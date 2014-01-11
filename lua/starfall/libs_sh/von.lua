@@ -1,5 +1,5 @@
 --[[
-	SF vON library by Mijyuoon.
+	SF vON library by Wiremod Devs. I only made stupid wrapper.
 ]]
 
 --- vON library, allows for serializing/deserializing tables.

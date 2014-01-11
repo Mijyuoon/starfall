@@ -287,6 +287,18 @@ function SF.DefaultEnvironment.dofile(file)
 	return func()
 end
 
+--- Compiles a string and returns boolean success, compiled function or error.
+-- @param Str Code to be compiled
+-- @return Boolean status and compiled function (or error string)
+function SF.DefaultEnvironment.loadstring(str)
+        local func = CompileString(str, "SF - LoadString:", false)
+        if type(func) == "string" then
+                return false, func
+        end
+        debug.setfenv(func, SF.instance.env)
+        return true, func
+end
+
 -- ------------------------- Restrictions ------------------------- --
 -- Restricts access to builtin type's metatables
 

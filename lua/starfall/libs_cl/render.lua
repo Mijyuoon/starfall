@@ -69,6 +69,7 @@ local validfonts = {
 	"Arial",
 	"Arial Narrow",
 	"Lucida Console",
+	"Consolas",
 	"Trebuchet",
 	"Courier New",
 	"Times New Roman",
