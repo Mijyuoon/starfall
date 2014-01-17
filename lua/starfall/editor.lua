@@ -35,6 +35,9 @@ if CLIENT then
 		["local"] = true,
 		["return"] = true,
 		
+		["break"] = true,
+		["continue"] = true,
+		
 		["and"] = true,
 		["or"] = true,
 		["not"] = true,
@@ -70,8 +73,9 @@ if CLIENT then
 		["_"] = true,
 	}
 	
-	--[[
+	
 	-- E2 colors
+	--[[
 	local colors = {
 		["keyword"]		= { Color(160,240,240), false }, -- teal
 		["operator"]	= { Color(224,224,224), false }, -- white
@@ -82,13 +86,15 @@ if CLIENT then
 		["variable"]	= { Color(160,240,160), false }, -- green
 		
 		["string"]		= { Color(160,160,160), false }, -- gray
-		["comment"]		= { Color(160,160,160), false }, -- gray
+		["comment"]		= { Color(85, 140, 30), false }, -- dark green
 		
-		["ppcommand"]	= { Color(240,240,160), false }, -- pink
+		["ppcommand"]	= { Color(240,240,160), false }, -- yellow
 		["notfound"]	= { Color(240, 96, 96), false }, -- dark red
 	}
+	]]--
 
 	-- Colors originally by Cenius; slightly modified by Divran
+	--[[
 	local colors = {
 		["keyword"]		= { Color(160, 240, 240), false},
 		["operator"]	= { Color(224, 224, 224), false},
@@ -100,13 +106,16 @@ if CLIENT then
 		["variable"]	= { Color(180, 180, 260), false}, -- Was originally called "globals".
 		
 		--["comment"] 	= { Color(0, 255, 0), false}, -- Cenius' original comment color was green... imo not very nice
-		["comment"]		= { Color(128,128,128), false }, -- Changed to grey
+		--["comment"]		= { Color(128,128,128), false }, -- Changed to grey
+		["comment"] 	= { Color(0, 128, 0), false}, -- Changed back to green
 		
 		["ppcommand"]	= { Color(240, 240, 160), false},
 		
 		["notfound"]	= { Color(240,  96,  96), false}, 
 	}
-	]]
+	]]--
+	
+	--[[
 	local colors = {
 		["keyword"]     = { Color(100, 100, 255), false},
 		["operator"]    = { Color(150, 150, 200), false},
@@ -117,6 +126,20 @@ if CLIENT then
 		["comment"]     = { Color(133, 133, 133), false},
 		["ppcommand"]   = { Color(170, 170, 170), false},
 		["notfound"]    = { Color(240,  96,  96), false},
+	}
+	]]--
+	
+	
+	local colors = {
+		["keyword"]		= { Color(160, 240, 160), false }, -- teal
+		["operator"]	= { Color(224, 224, 224), false }, -- white
+		["brackets"]	= { Color(224, 224, 224), false }, -- white
+		["number"]		= { Color(240, 160, 160), false }, -- light red
+		["variable"]	= { Color(160, 160, 240), false }, -- green
+		["string"]		= { Color(170,  70, 200), false }, -- gray
+		["comment"]		= { Color(85,  140,  30), false }, -- dark green
+		["ppcommand"]	= { Color(240, 240, 160), false }, -- yellow
+		["notfound"]	= { Color(240,  96,  96), false }, -- dark red
 	}
 	
 	-- cols[n] = { tokendata, color }
@@ -141,12 +164,10 @@ if CLIENT then
 		char = char or '"'
 		
 		while self.character do
-			if self:NextPattern( ".-"..char ) then -- Found another string char (' or ")
+			if self:NextPattern( "[^\\]?"..char ) then -- Found another string char (' or ")
 				if self.tokendata[#self.tokendata-1] ~= "\\" then -- Ending found
 					return true
 				end
-			else -- Didn't find another :(
-				return false
 			end
 			
 			self:NextCharacter()		
@@ -251,6 +272,7 @@ if CLIENT then
 				else -- No ending found
 					self:NextPattern( ".*" ) -- Eat everything
 					addToken( "string", self.tokendata )
+					print("bad string ending")
 				end
 			elseif self:NextPattern( "^%[%[" ) then -- Multi line strings
 				if findMultilineEnding( self, row, "string" ) then -- Ending found
