@@ -113,6 +113,7 @@ end
 
 -- The below modules have the Gmod functions removed (the ones that begin with a capital letter),
 -- as requested by Divran
+-- Divran, you suck. ~Mijyuoon
 
 -- Filters Gmod Lua files based on Garry's naming convention.
 local function filterGmodLua(lib, original, gm)
@@ -130,7 +131,7 @@ end
 
 -- Default Hook Library
 --- TODO: Consult if this is actually wanted or not :/
-SF.DefaultEnvironment.hook = SF.Libraries.Get("hook")
+SF.DefaultEnvironment.hook = SF.Libraries.Get("hook") -- It's not. ~Mijyuoon
 
 -- String library
 local string_methods, string_metatable = SF.Typedef("Library: string")

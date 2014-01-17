@@ -70,11 +70,11 @@ net.Receive("starfall_screen_update", function(len)
 end)
 
 
-usermessage.Hook( "starfall_screen_used", function ( data )
-	local screen = Entity( data:ReadShort() )
-	local activator = Entity( data:ReadShort() )
+net.Receive( "starfall_screen_used", function ()
+	local screen = net.ReadEntity()
+	local activator = net.ReadEntity()
 	
-	screen:runScriptHook( "starfall_used", SF.Entities.Wrap( activator ) )
+	screen:runScriptHook( "use", SF.Entities.Wrap( activator ) )
 	
 	-- Error message copying
 	if screen.error then

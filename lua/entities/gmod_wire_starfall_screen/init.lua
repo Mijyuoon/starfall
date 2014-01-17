@@ -11,6 +11,7 @@ local screens = {}
 
 util.AddNetworkString("starfall_screen_download")
 util.AddNetworkString("starfall_screen_update")
+util.AddNetworkString("starfall_screen_used")
 
 local function sendScreenCode(screen, owner, files, mainfile, recipient)
 	--print("Sending SF code for: " .. tostring(recipient))
@@ -197,13 +198,13 @@ end
 -- Sends a umsg to all clients about the use.
 function ENT:Use( activator )
 	if activator:IsPlayer() then
-		umsg.Start( "starfall_screen_used" )
-			umsg.Short( self:EntIndex() )
-			umsg.Short( activator:EntIndex() )
-		umsg.End( )
+		net.Start( "starfall_screen_used" )
+			net.WriteEntity( self )
+			net.WriteEntity( activator )
+		net.Broadcast()
 	end
 	if self.sharedscreen then
-		self:runScriptHook( "starfall_used", SF.Entities.Wrap( activator ) )
+		self:runScriptHook( "use", SF.Entities.Wrap( activator ) )
 	end
 end
 
