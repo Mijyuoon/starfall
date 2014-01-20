@@ -13,7 +13,6 @@ surface.CreateFont("Starfall_ErrorFont", {
 	weight = 200
 })
 
-
 local dlScreen = nil
 local dlOwner = nil
 local dlMain = nil
@@ -22,7 +21,7 @@ local dlMscript = nil
 local hashes = {}
 
 net.Receive("starfall_screen_download", function(len)
-	if not dlScreen then
+	if not IsValid(dlScreen) then
 		dlScreen = net.ReadEntity()
 		dlOwner = net.ReadEntity()
 		dlMain = net.ReadString()
