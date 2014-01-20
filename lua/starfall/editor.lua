@@ -384,7 +384,7 @@ if CLIENT then
 		function SF.Editor.editor:Validate(gotoerror)
 			local fname, code = (self:GetChosenFile() or "main"), self:GetCode()
 			local pp_data = { moonscript = false }
-			SF.Preprocessor.ParseDirectives(fname, code, pp_data, pp_data)
+			SF.Preprocessor.ParseDirectives(fname, code, {}, pp_data)
 			
 			if self.moonscript ~= pp_data.moonscript then
 				self.moonscript = pp_data.moonscript
@@ -407,7 +407,7 @@ if CLIENT then
 			if type(err) == "string" then
 				self.C['Val'].panel:SetBGColor(128, 0, 0, 180)
 				self.C['Val'].panel:SetFGColor(255, 255, 255, 128)
-				self.C['Val'].panel:SetText( err:gsub("\n"," ") )
+				self.C['Val'].panel:SetText( "   " .. err:gsub("\n"," ") )
 			else
 				self.C['Val'].panel:SetBGColor(0, 128, 0, 180)
 				self.C['Val'].panel:SetFGColor(255, 255, 255, 128)

@@ -18,6 +18,7 @@ local dlScreen = nil
 local dlOwner = nil
 local dlMain = nil
 local dlFiles = nil
+local dlMscript = nil
 local hashes = {}
 
 net.Receive("starfall_screen_download", function(len)
@@ -25,19 +26,21 @@ net.Receive("starfall_screen_download", function(len)
 		dlScreen = net.ReadEntity()
 		dlOwner = net.ReadEntity()
 		dlMain = net.ReadString()
-		dlFiles = {}
+		dlFiles, dlMscript = {}, {}
 		--print("Begin recieving, mainfile:", updata.mainfile)
 	else
 		if net.ReadBit() ~= 0 then
 			--print("End recieving data")
-			dlScreen:CodeSent(dlFiles, dlMain, dlOwner)
+			dlScreen:CodeSent(dlFiles, dlMain, dlOwner, dlMscript)
 			dlScreen.files = dlFiles
 			dlScreen.mainfile = dlMain
-			dlScreen, dlFiles, dlMain, dlOwner = nil, nil, nil, nil
+			dlScreen.mscript = dlMscript
+			dlScreen, dlFiles, dlMscript, dlMain, dlOwner = nil, nil, nil, nil, nil
 			return
 		end
 		local filename = net.ReadString()
 		local filedata = net.ReadString()
+		dlMscript[filename] = (net.ReadBit() > 0)
 		--print("\tRecieved data for:", filename, "len:", #filedata)
 		dlFiles[filename] = dlFiles[filename] and dlFiles[filename]..filedata or filedata
 	end
@@ -65,7 +68,7 @@ net.Receive("starfall_screen_update", function(len)
 			net.WriteEntity(screen)
 		net.SendToServer()
 	else
-		screen:CodeSent(screen.files, screen.mainfile, screen.owner)
+		screen:CodeSent(screen.files, screen.mainfile, screen.owner, screen.mscript)
 	end
 end)
 
@@ -129,11 +132,12 @@ function ENT:Error(msg)
 	self:SetOverlayText("Starfall Screen\nInactive (Error)")
 end
 
-function ENT:CodeSent(files, main, owner)
+function ENT:CodeSent(files, main, owner, mscript)
 	if not files or not main or not owner then return end
 	if self.instance then self.instance:deinitialize() end
 	self.owner = owner
-	local ok, instance = SF.Compiler.Compile(files,context,main,owner,{ent=self,render={}})
+	local datatable = { ent = self, render = {}, moonscript = mscript }
+	local ok, instance = SF.Compiler.Compile(files,context,main,owner,datatable)
 	if not ok then self:Error(instance) return end
 	
 	instance.runOnError = function(inst,...) self:Error(...) end

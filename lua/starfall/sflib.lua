@@ -515,10 +515,7 @@ else
 			net.SendToServer()
 			--print("\tHeader sent")
 
-			local fname = next(list.files)
-			while fname do
-				--print("\tSending data for:", fname)
-				local fdata = list.files[fname]
+			for fname, fdata in pairs(list.files) do
 				local offset = 1
 				repeat
 					net.Start("starfall_upload")
@@ -531,7 +528,6 @@ else
 					--print("\t\tSent data from", offset, "to", offset + #data)
 					offset = offset + #data + 1
 				until offset > #fdata
-				fname = next(list.files, fname)
 			end
 
 			net.Start("starfall_upload")

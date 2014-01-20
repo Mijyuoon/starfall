@@ -21,24 +21,25 @@ local function sendScreenCode(screen, owner, files, mainfile, recipient)
 	net.WriteString(mainfile)
 	if recipient then net.Send(recipient) else net.Broadcast() end
 	--print("\tHeader sent")
-
-	local fname = next(files)
-	while fname do
-		--print("\tSending data for:", fname)
-		local fdata = files[fname]
+	
+	for fname, fdata in pairs(files) do
 		local offset = 1
+		local pp_data = { moonscript = false }
+		SF.Preprocessor.ParseDirectives(fname, fdata, {}, pp_data)
+		if pp_data.moonscript then
+			fdata = moonscript.to_lua(fdata)
+		end
 		repeat
 			net.Start("starfall_screen_download")
 			net.WriteBit(false)
 			net.WriteString(fname)
 			local data = fdata:sub(offset, offset+60000)
 			net.WriteString(data)
+			net.WriteBit(pp_data.moonscript)
+			--print( "moonscript " .. tostring(pp_data.moonscript) .. " for: " .. fname)
 			if recipient then net.Send(recipient) else net.Broadcast() end
-
-			--print("\t\tSent data from", offset, "to", offset + #data)
 			offset = offset + #data + 1
 		until offset > #fdata
-		fname = next(files, fname)
 	end
 
 	net.Start("starfall_screen_download")
