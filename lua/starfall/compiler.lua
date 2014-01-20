@@ -40,6 +40,7 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 	
 	for filename, source in pairs(code) do
 		if not dontpreprocess then
+			instance.ppdata.moonscript = nil
 			SF.Preprocessor.ParseDirectives(filename,source,context.directives,instance.ppdata)
 		end
 		
@@ -47,12 +48,21 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 			-- Lua doesn't have empty statements, so an empty file gives a syntax error
 			instance.scripts[filename] = function() end
 		else
-			local func = CompileString(source, "SF:"..filename, false)
-			if type(func) == "string" then
-				return false, func
+			if instance.ppdata.moonscript then
+				local func, err = moonscript.loadstring(source, "SF:"..filename)
+				if type(func) ~= "function" then
+					return false, (err or func)
+				end
+				debug.setfenv(func, instance.env)
+				instance.scripts[filename] = func
+			else
+				local func = CompileString(source, "SF:"..filename, false)
+				if type(func) == "string" then
+					return false, func
+				end
+				debug.setfenv(func, instance.env)
+				instance.scripts[filename] = func
 			end
-			debug.setfenv(func, instance.env)
-			instance.scripts[filename] = func
 		end
 	end
 	

@@ -281,18 +281,21 @@ end
 
 --- Runs an --@include'd file and returns the result.
 -- Pretty much like standard Lua dofile()
-function SF.DefaultEnvironment.dofile(file)
+function SF.DefaultEnvironment.loadFile(file)
 	SF.CheckType(file, "string")
+	if file:sub(-4,-1) ~= ".txt" then
+		file = file .. ".txt"
+	end
 	local func = SF.instance.scripts[file]
 	if not func then error("Can't find file '"..file.."' (did you forget to --@include it?)",2) end
 	return func()
 end
 
 --- Compiles a string and returns boolean success, compiled function or error.
--- @param Str Code to be compiled
+-- @param Str Lua code to be compiled
 -- @return Boolean status and compiled function (or error string)
-function SF.DefaultEnvironment.loadstring(str)
-        local func = CompileString(str, "SF - LoadString:", false)
+function SF.DefaultEnvironment.loadString(str)
+        local func = CompileString(str, "SF - LoadString", false)
         if type(func) == "string" then
                 return false, func
         end
@@ -300,6 +303,18 @@ function SF.DefaultEnvironment.loadstring(str)
         return true, func
 end
 
+--- Compiles a string and returns boolean success, compiled function or error.
+-- This is MoonScript version of loadString.
+-- @param Str MoonScript code to be compiled
+-- @return Boolean status and compiled function (or error string)
+function SF.DefaultEnvironment.loadStringMoon(str)
+        local func, err = moonscript.loadstring(str, "SF - LoadString")
+        if type(func) ~= "function" then
+                return false, (err or func)
+        end
+        debug.setfenv(func, SF.instance.env)
+        return true, func
+end
 -- ------------------------- Restrictions ------------------------- --
 -- Restricts access to builtin type's metatables
 

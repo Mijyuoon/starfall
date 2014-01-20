@@ -152,3 +152,8 @@ local function directive_sharedscreen(args, filename, data)
 	
 end
 SF.Preprocessor.SetGlobalDirective("sharedscreen",directive_sharedscreen)
+
+local function directive_moonscript(args, filename, data)
+	if not data.moonscript then data.moonscript = true end
+end
+SF.Preprocessor.SetGlobalDirective("moonscript",directive_moonscript)

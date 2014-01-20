@@ -8,138 +8,92 @@ SF.Editor = {}
 
 -- TODO: Server-side controls
 
---- Includes table
--- @name Includes table
--- @class table
--- @field mainfile Main file
--- @field files filename : file contents pairs
-
 if CLIENT then
 
-	local keywords = {
-		["if"] = true,
-		["elseif"] = true,
-		["else"] = true,
-		["then"] = true,
-		["end"] = true,
-		
-		["while"] = true,
-		["for"] = true,
-		["in"] = true,
-		
-		["do"] = true,
-		["repeat"] = true,
-		["until"] = true,
-		
-		["function"] = true,
-		["local"] = true,
-		["return"] = true,
-		
-		["break"] = true,
-		["continue"] = true,
-		
-		["and"] = true,
-		["or"] = true,
-		["not"] = true,
-		
-		["true"] = true,
-		["false"] = true,
-		["nil"] = true,
-	}
+	local function mktrue(tab)
+		local rtab = {}
+		for _,v in ipairs(tab) do
+			rtab[v] = true
+		end
+		return rtab
+	end
 	
-	local operators = {
-		["+"] = true,
-		["-"] = true,
-		["/"] = true,
-		["*"] = true,
-		["^"] = true,
-		["%"] = true,
-		["#"] = true,
-		["="] = true,
-		["=="] = true,
-		["~="] = true,
-		[","] = true,
-		["."] = true,
-		["<"] = true,
-		[">"] = true,
-		
-		["{"] = true,
-		["}"] = true,
-		["("] = true,
-		[")"] = true,
-		["["] = true,
-		["]"] = true,
-		
-		["_"] = true,
-	}
-	
-	
-	-- E2 colors
-	--[[
-	local colors = {
-		["keyword"]		= { Color(160,240,240), false }, -- teal
-		["operator"]	= { Color(224,224,224), false }, -- white
-		["brackets"]	= { Color(224,224,224), false }, -- white
-		
-		["function"]	= { Color(160,160,240), false }, -- blue
-		["number"]		= { Color(240,160,160), false }, -- light red
-		["variable"]	= { Color(160,240,160), false }, -- green
-		
-		["string"]		= { Color(160,160,160), false }, -- gray
-		["comment"]		= { Color(85, 140, 30), false }, -- dark green
-		
-		["ppcommand"]	= { Color(240,240,160), false }, -- yellow
-		["notfound"]	= { Color(240, 96, 96), false }, -- dark red
-	}
-	]]--
+	local function mkoptable(optab)
+		local ptab = {}
+		for _,op in ipairs(optab) do
+			local current = ptab
+			for i = 1, #op do
+				local c = op[i]
+				if i == #op then
+					current[c] = true
+				else
+					current[c] = {}
+					current = current[c]
+				end
+			end
+		end
+		return ptab
+	end
 
-	-- Colors originally by Cenius; slightly modified by Divran
-	--[[
-	local colors = {
-		["keyword"]		= { Color(160, 240, 240), false},
-		["operator"]	= { Color(224, 224, 224), false},
-		["brackets"]	= { Color(224, 224, 224), false},
-		["function"]	= { Color(160, 160, 240), false}, -- Was originally called "expression"
-		
-		["number"]		= { Color(240, 160, 160), false}, 
-		["string"]		= { Color(160, 160, 160), false}, -- Changed to lighter grey so it isn't the same as comments
-		["variable"]	= { Color(180, 180, 260), false}, -- Was originally called "globals".
-		
-		--["comment"] 	= { Color(0, 255, 0), false}, -- Cenius' original comment color was green... imo not very nice
-		--["comment"]		= { Color(128,128,128), false }, -- Changed to grey
-		["comment"] 	= { Color(0, 128, 0), false}, -- Changed back to green
-		
-		["ppcommand"]	= { Color(240, 240, 160), false},
-		
-		["notfound"]	= { Color(240,  96,  96), false}, 
+	local lua_keywords = mktrue {
+		"if", "elseif", "else", "then",
+		"while", "for", "repeat", "until",
+		"do", "end", "break", "continue",
+		"function", "local", "return",
+		"true", "false", "nil",
+		"and", "or", "not"
 	}
-	]]--
 	
-	--[[
-	local colors = {
-		["keyword"]     = { Color(100, 100, 255), false},
-		["operator"]    = { Color(150, 150, 200), false},
-		["brackets"]    = { Color(120, 120, 255), false},
-		["number"]      = { Color(174, 129, 255), false},
-		["variable"]    = { Color(248, 248, 242), false},
-		["string"]      = { Color(230, 219, 116), false},
-		["comment"]     = { Color(133, 133, 133), false},
-		["ppcommand"]   = { Color(170, 170, 170), false},
-		["notfound"]    = { Color(240,  96,  96), false},
+	local moon_keywords = mktrue {
+		"if", "then", "else", "elseif", 
+		"export", "import", "from", "switch", 
+		"when", "with", "using", "do", "for", 
+		"unless", "continue", "break", "using",
+		"in", "while", "return", "local", "nil",
+		"class", "extends", "super", "self",
+		"and", "or", "not", "true", "false"
 	}
-	]]--
 	
+	local lua_kwords2 = mktrue {
+		"print", "pairs", "iparis", "next", "error",
+		"loadFile", "loadString", "loadStringMoon",
+		"assert", "require", "loadLibrary", "type",
+		"CLIENT", "SERVER", "tostring", "tonumber",
+		"setmetatable", "getmetatable", "unpack",
+		"getLibraries", "Color", "Vector", "Angle"
+	}
+	
+	local moon_kwords2 = lua_kwords2
+	
+	local lua_optable = mkoptable {
+		"+", "-", "*",  "/",  "%",  "^",
+		"#", "=", ",",  ".",  ":",  ";",
+		"<", ">", "==", "~=", ">=", "<=",
+		"(", ")", "{",  "}",  "[",  "]",
+	}
+	
+	local moon_optable = mkoptable {
+		"+", "-", "*",  "/",  "%",  "^", "..",
+		"+=", "-=", "*=", "/=", "%=", "^=",
+		"..=", "and=", "or=", "\\", "->", "=>",
+		"#", "=", ",",  ".",  ":",  ";", "!",
+		"<", ">", "==", "~=", ">=", "<=",
+		"(", ")", "{",  "}",  "[",  "]",
+	}
 	
 	local colors = {
-		["keyword"]		= { Color(160, 240, 160), false }, -- teal
-		["operator"]	= { Color(224, 224, 224), false }, -- white
-		["brackets"]	= { Color(224, 224, 224), false }, -- white
-		["number"]		= { Color(240, 160, 160), false }, -- light red
-		["variable"]	= { Color(160, 160, 240), false }, -- green
-		["string"]		= { Color(170,  70, 200), false }, -- gray
-		["comment"]		= { Color(85,  140,  30), false }, -- dark green
-		["ppcommand"]	= { Color(240, 240, 160), false }, -- yellow
-		["notfound"]	= { Color(240,  96,  96), false }, -- dark red
+		["keyword"]		= { Color(160, 240, 160), false },
+		["keyvalue2"]	= { Color(60,  175, 175), false },
+		["symbol"]		= { Color(200, 120,  90), false },
+		["operator"]	= { Color(205, 170, 105), false },
+		["brackets"]	= { Color(224, 224, 224), false },
+		["number"]		= { Color(240, 160, 160), false },
+		["variable"]	= { Color(120, 135, 165), false },
+		["class_var"]	= { Color(0,   190, 240), false },
+		["string"]		= { Color(180,  80, 220), false },
+		["comment"]		= { Color(85,  140,  30), false },
+		["ppcommand"]	= { Color(240, 240, 160), false },
+		["notfound"]	= { Color(240,  96,  96), false },
 	}
 	
 	-- cols[n] = { tokendata, color }
@@ -216,6 +170,52 @@ if CLIENT then
 			end
 		end
 	end
+	
+	local function NextOperator(self, operators)
+		local op = operators[self.character]
+		if not op then
+			self:NextCharacter()
+			return false 
+		end
+
+		for ik=1,5 do
+			self:NextCharacter()
+			-- if not self.character then return op[1] end
+			if op == true then return true end
+			if not op[self.character] then return true end
+			op = op[self.character]
+		end
+	end
+
+	local number_patt, classvar_patt
+	if type(lpeg) == "table" then
+		local P,R,S = lpeg.P, lpeg.R, lpeg.S
+		
+		local num_pref, num_suff = (R"09"^1 * S"."^-1 * R"09"^0), (S"."^-1 * R"09"^1)
+		number_patt = (num_pref + num_suff) * (S"eE" * S"+-"^-1 * R"09"^1)^-1
+		
+		local var_id = R"az" + R"AZ" + P"_"
+		classvar_patt = P"@" * P"@"^-1 * (var_id * (var_id + R"09")^0)^-1
+	end
+	
+	local function NextLPeg(self, patt, patt2)
+		if not patt then
+			return self:NextPattern(patt2)
+		end
+		if not self.character then return end
+		local ppos = patt:match(self.line, self.position)
+		if not ppos then return false end
+		
+		local buf = self.line:sub(self.position, ppos-1)
+		self.tokendata = self.tokendata .. buf
+		self.position = ppos
+		if ppos <= #self.line then
+			self.character = self.line:sub(ppos, ppos)
+		else
+			self.character = nil
+		end
+		return true
+	end
 
 	-- TODO: remove all the commented debug prints
 	local function SyntaxColorLine(self,row)
@@ -235,6 +235,11 @@ if CLIENT then
 			end
 			self.tokendata = ""
 		end
+		
+		local is_moon = self.parentpanel.moonscript
+		local kwords = is_moon and moon_keywords or lua_keywords
+		local kwords2 = is_moon and moon_kwords2 or lua_kwords2
+		local operators = is_moon and moon_optable or lua_optable
 
 		while self.character do
 			self.tokendata = ""
@@ -243,13 +248,22 @@ if CLIENT then
 			local spaces = self:SkipPattern( "^%s*" )
 			if spaces then addToken( "comment", spaces ) end
 	
-			if self:NextPattern( "^%a[%w_]*" ) then -- Variables and keywords
-				if keywords[self.tokendata] then
+			if self:NextPattern( "^[%a_][%w_]*" ) then -- Variables and keywords
+				if is_moon and self.character == ":" then -- Symbols (moonscript)
+					addToken( "symbol", self.tokendata .. ":" )
+					self:NextCharacter()
+				elseif kwords2[self.tokendata] then
+					addToken( "keyvalue2", self.tokendata )
+				elseif kwords[self.tokendata] then
 					addToken( "keyword", self.tokendata )
 				else
 					addToken( "variable", self.tokendata )
 				end
-			elseif self:NextPattern( "^%d*%.?%d+" ) then -- Numbers
+			elseif is_moon and self:NextPattern( "^:[%a_][%w_]*" ) then -- Symbols (moonscript)
+				addToken( "symbol", self.tokendata )
+			elseif is_moon and NextLPeg(self, classvar_patt, "^@@?[%w_]*") then -- Class variables (moonscript)
+				addToken( "class_var", self.tokendata )
+			elseif NextLPeg(self, number_patt, "^%d*%.?%d+") then -- Numbers
 				addToken( "number", self.tokendata )
 			elseif self:NextPattern( "^%-%-" ) then -- Comment
 				if self:NextPattern( "^@" ) then -- ppcommand
@@ -272,7 +286,6 @@ if CLIENT then
 				else -- No ending found
 					self:NextPattern( ".*" ) -- Eat everything
 					addToken( "string", self.tokendata )
-					print("bad string ending")
 				end
 			elseif self:NextPattern( "^%[%[" ) then -- Multi line strings
 				if findMultilineEnding( self, row, "string" ) then -- Ending found
@@ -281,13 +294,16 @@ if CLIENT then
 					self:NextPattern( ".*" )
 					addToken( "string", self.tokendata )
 				end
-			elseif self:NextPattern( "^[%+%-/%*%^%%#=~,;:%._<>]" ) then -- Operators
-				addToken( "operator", self.tokendata )
+			-- elseif self:NextPattern( op_pattern ) then -- Operators
 			elseif self:NextPattern("^[%(%)%[%]{}]") then
 				addToken( "brackets", self.tokendata)
 			else
-				self:NextCharacter()
-				addToken( "notfound", self.tokendata )
+				-- self:NextCharacter()
+				if NextOperator(self, operators) then
+					addToken("operator", self.tokendata)
+				else
+					addToken("notfound", self.tokendata)
+				end
 			end
 			self.tokendata = ""
 		end
@@ -296,7 +312,8 @@ if CLIENT then
 	end
 	
 	local code1 = "--@name \n--@author \n\n"
-	local code2 = "--[[\n" .. [[    Starfall Scripting Environment
+	local code2 = "--[[\n" .. [[
+    Starfall Scripting Environment
 
     More info: http://gmodstarfall.github.io/Starfall/
     Reference Page: http://sf.inp.io
@@ -365,12 +382,32 @@ if CLIENT then
 		local editor = SF.Editor.editor:GetCurrentEditor()
 		
 		function SF.Editor.editor:Validate(gotoerror)
-			local err = CompileString(self:GetCode(), "SF:"..(self:GetChosenFile() or "main"), false)
+			local fname, code = (self:GetChosenFile() or "main"), self:GetCode()
+			local pp_data = { moonscript = false }
+			SF.Preprocessor.ParseDirectives(fname, code, pp_data, pp_data)
+			
+			if self.moonscript ~= pp_data.moonscript then
+				self.moonscript = pp_data.moonscript
+			end
+			
+			local fcn, err
+			if pp_data.moonscript then
+				if type(moonscript) == "table" then
+					fcn, err = moonscript.loadstring(code, "SF:"..fname)
+					if type(fcn) ~= "function" then
+						err = err or fcn
+					end
+				else
+					err = "MoonScript module not loaded, cannot validate"
+				end
+			else
+				fcn, err = nil, CompileString(code, "SF:"..fname, false)
+			end
 			
 			if type(err) == "string" then
 				self.C['Val'].panel:SetBGColor(128, 0, 0, 180)
 				self.C['Val'].panel:SetFGColor(255, 255, 255, 128)
-				self.C['Val'].panel:SetText( "   " .. err )
+				self.C['Val'].panel:SetText( err:gsub("\n"," ") )
 			else
 				self.C['Val'].panel:SetBGColor(0, 128, 0, 180)
 				self.C['Val'].panel:SetFGColor(255, 255, 255, 128)
