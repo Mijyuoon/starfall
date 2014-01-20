@@ -307,7 +307,10 @@ end
 -- This is MoonScript version of loadString.
 -- @param Str MoonScript code to be compiled
 -- @return Boolean status and compiled function (or error string)
-function SF.DefaultEnvironment.loadStringMoon(str)
+function SF.DefaultEnvironment.loadStringM(str)
+		if type(moonscript) ~= "table" then
+			return false, "MoonScript module not loaded, cannot compile"
+		end
         local func, err = moonscript.loadstring(str, "SF - LoadString")
         if type(func) ~= "function" then
                 return false, (err or func)

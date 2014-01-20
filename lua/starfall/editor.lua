@@ -56,7 +56,7 @@ if CLIENT then
 	
 	local lua_kwords2 = mktrue {
 		"print", "pairs", "iparis", "next", "error",
-		"loadFile", "loadString", "loadStringMoon",
+		"loadFile", "loadString", "loadStringM",
 		"assert", "require", "loadLibrary", "type",
 		"CLIENT", "SERVER", "tostring", "tonumber",
 		"setmetatable", "getmetatable", "unpack",
@@ -401,7 +401,7 @@ if CLIENT then
 					err = "MoonScript module not loaded, cannot validate"
 				end
 			else
-				fcn, err = nil, CompileString(code, "SF:"..fname, false)
+				err = CompileString(code, "SF:"..fname, false)
 			end
 			
 			if type(err) == "string" then
