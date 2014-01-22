@@ -17,6 +17,28 @@ if SERVER then
 	AddCSLuaFile("moonscript/transform/names.lua")
 	AddCSLuaFile("moonscript/transform/destructure.lua")
 end
+
+_MLOADED = {}
+function loadmodule(name)
+	if _MLOADED[name] then
+		return _MLOADED[name]
+	end
 	
+	local kname = name:gsub("%.","/") .. ".lua"
+	if not file.Exists(kname, "LUA") then
+		error("cannot find module \"" .. name .. "\"")
+	end
+	
+	local func = CompileFile(kname, name)
+	if func then
+		_MLOADED[name] = func() or true
+		return _MLOADED[name]
+	end
+end
+
+string.explode = function(s,sep) 
+	return string.Explode(sep or "", s) 
+end
+
 package.moonpath = ""
 moonscript = loadmodule "moonscript.base"

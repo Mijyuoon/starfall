@@ -20,15 +20,28 @@ if CLIENT then
 	
 	local function mkoptable(optab)
 		local ptab = {}
-		for _,op in ipairs(optab) do
+		for _, op in pairs(optab) do
 			local current = ptab
+			local color = tonumber(op[-1])
+			if color then
+				op = op:sub(1, -2)
+			end
 			for i = 1, #op do
 				local c = op[i]
+				local nxt = current[c]
+				if not nxt then
+					nxt = {}
+					current[c] = nxt
+				end
+
 				if i == #op then
-					current[c] = true
+					nxt[1] = true
+					nxt[3] = color
 				else
-					current[c] = {}
-					current = current[c]
+					if not nxt[2] then
+						nxt[2] = {}
+					end
+					current = nxt[2]
 				end
 			end
 		end
@@ -69,16 +82,17 @@ if CLIENT then
 		"+", "-", "*",  "/",  "%",  "^",
 		"#", "=", ",",  ".",  ":",  ";",
 		"<", ">", "==", "~=", ">=", "<=",
-		"(", ")", "{",  "}",  "[",  "]",
+		"(", ")", "{",  "}",  "[",  "]"
 	}
 	
 	local moon_optable = mkoptable {
-		"+", "-", "*",  "/",  "%",  "^", "..",
-		"+=", "-=", "*=", "/=", "%=", "^=",
-		"..=", "and=", "or=", "\\", "->", "=>",
-		"#", "=", ",",  ".",  ":",  ";", "!",
-		"<", ">", "==", "~=", ">=", "<=",
+		"+", "-", "*",  "/",  "%",  "^", -- "..",
+		-- "+=", "-=", "*=", "/=", "%=", "^=",
+		-- "..=", "\\", "->", "=>", "#", "=",
+		"\\2", "->2", "=>2", "#", "=", "!2",
+		"<", ">", "==", "~=", "!=", ">=", "<=",
 		"(", ")", "{",  "}",  "[",  "]",
+		",",  ".",  ":",  ";",
 	}
 	
 	local colors = {
@@ -86,6 +100,7 @@ if CLIENT then
 		["keyvalue2"]	= { Color(60,  175, 175), false },
 		["symbol"]		= { Color(200, 120,  90), false },
 		["operator"]	= { Color(205, 170, 105), false },
+		["operator2"]	= { Color(100, 255,   0), false },
 		["brackets"]	= { Color(224, 224, 224), false },
 		["number"]		= { Color(240, 160, 160), false },
 		["variable"]	= { Color(120, 135, 165), false },
@@ -113,6 +128,7 @@ if CLIENT then
 	local string_find = string.find
 	local string_sub = string.sub
 	local string_format = string.format
+	local string_match = string.match
 	
 	local function findStringEnding(self,row,char)
 		char = char or '"'
@@ -130,8 +146,9 @@ if CLIENT then
 		return false
 	end
 
-	local function findMultilineEnding(self,row,what) -- also used to close multiline comments
-		if self:NextPattern( ".-%]%]" ) then -- Found ending
+	local function findMultilineEnding(self,row,what,mx) -- also used to close multiline comments
+		self.mlcount = mx or ""
+		if self:NextPattern( ".-%]"..(self.mlcount).."%]" ) then -- Found ending
 			return true
 		end
 		
@@ -144,28 +161,30 @@ if CLIENT then
 	
 	local function findInitialMultilineEnding(self,row,what)
 		if row == self.Scroll[1] then
-			-- This code checks if the visible code is inside a string or a block comment
 			self.multiline = nil
-			local singleline = false
-
-			local str = string_gsub( table_concat( self.Rows, "\n", 1, self.Scroll[1]-1 ), "\r", "" )
+			self.mlcount = ""
+			--local singleline = false
 			
-			for before, char, after in string_gmatch( str, "()([%-\"'\n%[%]])()" ) do
-				before = string_sub( str, before-1, before-1 )
-				after = string_sub( str, after, after+2 )
+			for i=1, self.Scroll[1]-1 do
+				local row = self.Rows[i]
 				
-				if not self.multiline and not singleline then
-					if char == '"' or char == "'" or (char == "-" and after[1] == "-" and after ~= "-[[") then
-						singleline = true
-					elseif char == "-" and after == "-[[" then
-						self.multiline = "comment"
-					elseif char == "[" and after[1] == "[" then
-						self.multiline = "string"
+				if not self.multiline then
+					local offset = 1
+					repeat
+						local _, succ = string_find(row, "%[(=*)%[.-%]%1%]", offset)
+						if succ then offset = succ end
+					until not succ
+					
+					local succ, vpref, vext = string_match(row, "()(.?.?)%[(=*)%[", offset)
+					if succ then
+						self.mlcount = vext
+						self.multiline = (vpref == "--") and "comment" or "string"
 					end
-				elseif singleline and ((char == "'" or char == '"') and before ~= "\\" or char == "\n") then
-					singleline = false
-				elseif self.multiline and char == "]" and after[1] == "]" then
-					self.multiline = nil
+				else
+					local succ, vext = string_match(row, "()%](=*)%]")
+					if succ and vext == self.mlcount then
+						self.multiline = nil
+					end
 				end
 			end
 		end
@@ -175,57 +194,27 @@ if CLIENT then
 		local op = operators[self.character]
 		if not op then
 			self:NextCharacter()
-			return false 
+			return false, nil
 		end
 
 		for ik=1,5 do
 			self:NextCharacter()
-			-- if not self.character then return op[1] end
-			if op == true then return true end
-			if not op[self.character] then return true end
-			op = op[self.character]
+			if not (op[2] and op[2][self.character]) then 
+				return op[1], (op[3] or "") 
+			end
+			op = op[2][self.character]
 		end
-	end
-
-	local number_patt, classvar_patt
-	if type(lpeg) == "table" then
-		local P,R,S = lpeg.P, lpeg.R, lpeg.S
-		
-		local num_pref, num_suff = (R"09"^1 * S"."^-1 * R"09"^0), (S"."^-1 * R"09"^1)
-		number_patt = (num_pref + num_suff) * (S"eE" * S"+-"^-1 * R"09"^1)^-1
-		
-		local var_id = R"az" + R"AZ" + P"_"
-		classvar_patt = P"@" * P"@"^-1 * (var_id * (var_id + R"09")^0)^-1
-	end
-	
-	local function NextLPeg(self, patt, patt2)
-		if not patt then
-			return self:NextPattern(patt2)
-		end
-		if not self.character then return end
-		local ppos = patt:match(self.line, self.position)
-		if not ppos then return false end
-		
-		local buf = self.line:sub(self.position, ppos-1)
-		self.tokendata = self.tokendata .. buf
-		self.position = ppos
-		if ppos <= #self.line then
-			self.character = self.line:sub(ppos, ppos)
-		else
-			self.character = nil
-		end
-		return true
 	end
 
 	-- TODO: remove all the commented debug prints
 	local function SyntaxColorLine(self,row)
 		cols,lastcol = {}, nil
 		self:ResetTokenizer(row)
-		findInitialMultilineEnding(self,row,self.multiline)
+		findInitialMultilineEnding(self,row,self.multiline,self.mlcount)
 		self:NextCharacter()
 		
 		if self.multiline then
-			if findMultilineEnding(self,row,self.multiline) then
+			if findMultilineEnding(self,row,self.multiline,self.mlcount) then
 				addToken( self.multiline, self.tokendata )
 				self.multiline = nil
 			else
@@ -261,16 +250,20 @@ if CLIENT then
 				end
 			elseif is_moon and self:NextPattern( "^:[%a_][%w_]*" ) then -- Symbols (moonscript)
 				addToken( "symbol", self.tokendata )
-			elseif is_moon and NextLPeg(self, classvar_patt, "^@@?[%w_]*") then -- Class variables (moonscript)
+			elseif is_moon and (self:NextPattern("^@@?[%a_][%w_]*") or self:NextPattern("^@@?")) then -- Class variables (moonscript)
 				addToken( "class_var", self.tokendata )
-			elseif NextLPeg(self, number_patt, "^%d*%.?%d+") then -- Numbers
+			elseif self:NextPattern( "^0[xX][%da-fA-F]+" ) then -- Hex numbers
+				addToken( "number", self.tokendata )
+			elseif self:NextPattern( "^%d*%.?%d+") then -- Numbers
+				self:NextPattern( "[eE][+-]?%d+" )
 				addToken( "number", self.tokendata )
 			elseif self:NextPattern( "^%-%-" ) then -- Comment
 				if self:NextPattern( "^@" ) then -- ppcommand
 					self:NextPattern( ".*" ) -- Eat all the rest
 					addToken( "ppcommand", self.tokendata )
-				elseif self:NextPattern( "^%[%[" ) then -- Multi line comment
-					if findMultilineEnding( self, row, "comment" ) then -- Ending found
+				elseif not is_moon and self:NextPattern( "^%[=*%[" ) then -- Multi line comment
+					local mlcount = string_match(self.tokendata, "=+")
+					if findMultilineEnding( self, row, "comment", mlcount ) then -- Ending found
 						addToken( "comment", self.tokendata )
 					else -- Ending not found
 						self:NextPattern( ".*" )
@@ -287,8 +280,9 @@ if CLIENT then
 					self:NextPattern( ".*" ) -- Eat everything
 					addToken( "string", self.tokendata )
 				end
-			elseif self:NextPattern( "^%[%[" ) then -- Multi line strings
-				if findMultilineEnding( self, row, "string" ) then -- Ending found
+			elseif self:NextPattern( "^%[=*%[" ) then -- Multi line strings
+				local mlcount = string_match(self.tokendata, "=+")
+				if findMultilineEnding( self, row, "string", mlcount ) then -- Ending found
 					addToken( "string", self.tokendata )
 				else -- Ending not found
 					self:NextPattern( ".*" )
@@ -299,8 +293,9 @@ if CLIENT then
 				addToken( "brackets", self.tokendata)
 			else
 				-- self:NextCharacter()
-				if NextOperator(self, operators) then
-					addToken("operator", self.tokendata)
+				local is_operator, degree = NextOperator(self, operators)
+				if is_operator then
+					addToken("operator" .. degree, self.tokendata)
 				else
 					addToken("notfound", self.tokendata)
 				end

@@ -8,9 +8,9 @@ local find_library, _ = SF.Libraries.Register("find")
 
 local find_cooldown
 if SERVER then
-	find_cooldown = CreateConVar("sf_find_cooldown_sv", "0.01", {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DONTRECORD})
+	find_cooldown = CreateConVar("sf_find_cooldown_sv", "0.1", {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DONTRECORD})
 else
-	find_cooldown = CreateConVar("sf_find_cooldown_cl", "0.01", {FCVAR_ARCHIVE, FCVAR_DONTRECORD})
+	find_cooldown = CreateConVar("sf_find_cooldown_cl", "0.1", {FCVAR_ARCHIVE, FCVAR_DONTRECORD})
 end
 
 local function updateCooldown(instance)

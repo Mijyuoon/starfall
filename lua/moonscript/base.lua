@@ -6,6 +6,7 @@ elseif system.IsLinux() then
 else
 	instance = instance .. "osx.dll"
 end
+print("LPeg" ..instance)
 
 if file.Exists("lua/bin/" .. instance, "MOD") then
 	require "lpeg"
