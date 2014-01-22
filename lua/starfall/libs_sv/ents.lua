@@ -125,9 +125,10 @@ local function parent_check( child, parent )
 	return true
 end
 
-local function check_access(ent)
+function SF.Entities.CheckAccess(ent)
 	return (canModify(SF.instance.player, ent) or SF.instance.permissions:checkPermission("Modify All Entities"))
 end
+local check_access = SF.Entities.CheckAccess
 
 function ents_methods:parent( ent )
 	SF.CheckType( self, ents_metatable )

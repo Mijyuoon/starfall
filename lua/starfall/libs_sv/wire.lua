@@ -226,6 +226,23 @@ function wire_library.self()
 	return wlwrap(ent)
 end
 
+local check_access = SF.Entities.CheckAccess
+local ent_unwrap = SF.Entities.Unwrap
+local ents_metatable = SF.Entities.Metatable
+
+function wire_library.wirelink(self)
+	SF.CheckType(self, ents_metatable)
+	
+	local ent = ent_unwrap(self)
+	if not IsValid(ent) then return nil end
+	if not check_access(ent) then return nil end
+	
+	if not ent.extended then
+		WireLib.CreateWirelinkOutput( SF.instance.player, ent, {true} )
+	end
+	return wlwrap(ent)
+end
+
 -- ------------------------- Wirelink ------------------------- --
 
 --- Retrieves an output. Returns nil if the output doesn't exist.
@@ -261,6 +278,12 @@ wirelink_metatable.__newindex = function(self,k,v)
 		if not input or not outputConverters[input.Type] then return end
 		WireLib.TriggerInput(wl,k,outputConverters[input.Type](v))
 	end
+end
+
+wirelink_metatable.__tostring = function(self)
+	local ent = wlunwrap(self)
+	if not ent then return "(null wirelink)" end
+	return tostring(ent):gsub("Entity","Wirelink")
 end
 
 --- Checks if a wirelink is valid. (ie. doesn't point to an invalid entity)
