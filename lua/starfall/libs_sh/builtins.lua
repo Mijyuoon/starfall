@@ -57,7 +57,7 @@ end
 -- @name SF.DefaultEnvironment.ipairs
 -- @class function
 -- @param tbl
-SF.DefaultEnvironment.ipairs = function( t ) return mynext, t, 0 end
+SF.DefaultEnvironment.ipairs = ipairs
 --- Same as Lua's pairs
 -- @name SF.DefaultEnvironment.pairs
 -- @class function
@@ -131,11 +131,12 @@ end
 
 -- Default Hook Library
 --- TODO: Consult if this is actually wanted or not :/
-SF.DefaultEnvironment.hook = SF.Libraries.Get("hook") -- It's not. ~Mijyuoon
+--SF.DefaultEnvironment.hook = SF.Libraries.Get("hook") 
+-- It's not. ~Mijyuoon
 
 -- String library
 local string_methods, string_metatable = SF.Typedef("Library: string")
-filterGmodLua(string,string_methods)
+filterGmodLua(string, string_methods)
 string_metatable.__newindex = function() end
 string_methods.explode = function(str,separator,withpattern) return string.Explode(separator,str,withpattern) end
 --- Lua's (not glua's) string library
@@ -180,6 +181,14 @@ table_metatable.__newindex = function() end
 -- @name SF.DefaultEnvironment.table
 -- @class table
 SF.DefaultEnvironment.table = setmetatable({},table_metatable)
+
+local bit_methods, bit_metatable = SF.Typedef("Library: bit")
+filterGmodLua(bit, bit_methods)
+bit_metatable.__newindex = function() end
+--- Lua's bit library
+-- @name SF.DefaultEnvironment.bit
+-- @class table
+SF.DefaultEnvironment.bit = setmetatable({}, bit_metatable)
 
 -- ------------------------- Functions ------------------------- --
 
@@ -308,16 +317,42 @@ end
 -- @param Str MoonScript code to be compiled
 -- @return Boolean status and compiled function (or error string)
 function SF.DefaultEnvironment.loadStringM(str)
-		if type(moonscript) ~= "table" then
-			return false, "MoonScript module not loaded, cannot compile"
-		end
-        local func, err = moonscript.loadstring(str, "SF - LoadString")
-        if type(func) ~= "function" then
-                return false, (err or func)
-        end
-        debug.setfenv(func, SF.instance.env)
-        return true, func
+	if type(moonscript) ~= "table" then
+		return false, "MoonScript module not loaded, cannot compile"
+	end
+	local func, err = moonscript.loadstring(str, "SF - LoadString")
+	if type(func) ~= "function" then
+			return false, (err or func)
+	end
+	debug.setfenv(func, SF.instance.env)
+	return true, func
 end
+
+--- Lua's pcall function
+function SF.DefaultEnvironment.pcall ( ... )
+    ok, err = pcall(...)
+
+    -- don't catch quota errors
+    if SF.instance.ops > SF.instance.context.ops then
+        error(err, 0)
+    end
+
+    return ok, err
+end
+
+--- Lua's setfenv, modified for safe use in Starfall
+-- Works like setfenv, but is restricted on functions
+function SF.DefaultEnvironment.setfenv( f, table )
+	if type( f ) ~= "function" then error( "Main Thread is protected!" ) end
+	return setfenv( f, table )
+end
+
+--- Simple version of Lua's getfenv
+-- Returns the current environment
+function SF.DefaultEnvironment.getfenv()
+	return getfenv()
+end
+
 -- ------------------------- Restrictions ------------------------- --
 -- Restricts access to builtin type's metatables
 

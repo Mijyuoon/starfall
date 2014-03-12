@@ -49,7 +49,7 @@ if CLIENT then
 	end
 
 	local lua_keywords = mktrue {
-		"if", "elseif", "else", "then",
+		"if", "elseif", "else", "then", "in",
 		"while", "for", "repeat", "until",
 		"do", "end", "break", "continue",
 		"function", "local", "return",
@@ -68,7 +68,8 @@ if CLIENT then
 	}
 	
 	local lua_kwords2 = mktrue {
-		"print", "pairs", "iparis", "next", "error",
+		"print", "pairs", "ipairs", "next",
+		"error", "pcall", "getfenv", "setfenv",
 		"loadFile", "loadString", "loadStringM",
 		"assert", "require", "loadLibrary", "type",
 		"CLIENT", "SERVER", "tostring", "tonumber",
@@ -82,13 +83,11 @@ if CLIENT then
 		"+", "-", "*",  "/",  "%",  "^",
 		"#", "=", ",",  ".",  ":",  ";",
 		"<", ">", "==", "~=", ">=", "<=",
-		"(", ")", "{",  "}",  "[",  "]"
+		"(", ")", "{",  "}",  "[",  "]",
 	}
 	
 	local moon_optable = mkoptable {
-		"+", "-", "*",  "/",  "%",  "^", -- "..",
-		-- "+=", "-=", "*=", "/=", "%=", "^=",
-		-- "..=", "\\", "->", "=>", "#", "=",
+		"+", "-", "*",  "/",  "%",  "^",
 		"\\2", "->2", "=>2", "#", "=", "!2",
 		"<", ">", "==", "~=", "!=", ">=", "<=",
 		"(", ")", "{",  "}",  "[",  "]",
@@ -134,13 +133,22 @@ if CLIENT then
 		char = char or '"'
 		
 		while self.character do
-			if self:NextPattern( "[^\\]?"..char ) then -- Found another string char (' or ")
-				if self.tokendata[#self.tokendata-1] ~= "\\" then -- Ending found
+		--[[
+			if self:NextPattern( ".?"..char ) then -- Found another string char (' or ")
+				if self.tokendata[-2] ~= "\\" then -- Ending found
 					return true
 				end
 			end
 			
-			self:NextCharacter()		
+			self:NextCharacter()
+		--]]
+			if self:NextPattern(char) then
+				return true
+			end
+			if self.character == "\\" then 
+				self:NextCharacter() 
+			end
+			self:NextCharacter()
 		end
 		
 		return false

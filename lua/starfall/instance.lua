@@ -46,8 +46,8 @@ function SF.Instance:runWithOps(func,...)
 		end
 	end
 	
-	--local begin = SysTime()
-	--local beginops = self.ops
+	local begin = SysTime()
+	local beginops = self.ops
 	
 	local args = {...}
 	local traceback
@@ -63,7 +63,9 @@ function SF.Instance:runWithOps(func,...)
 	local ok, rt = xpcall(wrapperfunc, xpcall_callback)
 	debug.sethook(nil)
 	
-	--MsgN("SF: Exectued "..(self.ops-beginops).." instructions in "..(SysTime()-begin).." seconds")
+	if SF.ShowExeTime then
+		MsgN("SF: Exectued "..(self.ops-beginops).." instructions in "..(SysTime()-begin).." seconds")
+	end
 	
 	if ok then
 		return true, rt

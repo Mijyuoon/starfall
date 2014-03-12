@@ -58,8 +58,7 @@ function timer_library.create(name, delay, reps, func)
 		end
 	end
 	
-	timer.Create(timername, delay, reps, timercb )
-	
+	timer.Create(timername, delay, reps, timercb)
 	instance.data.timers[name] = true
 end
 
@@ -91,10 +90,25 @@ end
 
 --- Adjusts a timer
 -- @param name The timer name
-function timer_library.adjust(name)
+function timer_library.adjust(name, delay, reps, func)
 	SF.CheckType(name,"string")
+	SF.CheckType(delay,"number")
+	reps = SF.CheckType(reps,"number",0,1)
+	SF.CheckType(func,"function")
 	
-	timer.Adjust(mangle_timer_name(instance,name))
+	local instance = SF.instance
+	local timername = mangle_timer_name(instance,name)
+	
+	local function timercb()
+		local ok, msg, traceback = instance:runFunction(func)
+		if not ok then
+			instance:Error( msg, traceback )
+			timer.Remove( timername )
+		end
+	end
+	
+	timer.Adjust(timername, delay, reps, timercb)
+	instance.data.timers[name] = true
 end
 
 --- Pauses a timer

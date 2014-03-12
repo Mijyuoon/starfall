@@ -133,7 +133,11 @@ end
 function ENT:OnRestore()
 end
 
+--[[
+
 function ENT:BuildDupeInfo()
+	print "build dupe info ()"
+	
 	local info = self.BaseClass.BuildDupeInfo(self) or {}
 	if self.instance then
 		info.starfall = SF.SerializeCode(self.instance.source, self.instance.mainfile)
@@ -145,8 +149,24 @@ function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
 	self.BaseClass.ApplyDupeInfo(self, ply, ent, info, GetEntByID)
 	self.owner = ply
 	
+	print "apply dupe info ()"
+	
 	if info.starfall then
 		local code, main = SF.DeserializeCode(info.starfall)
 		self:Compile(code, main)
 	end
 end
+--]]
+
+local instance
+
+function ENT:PreEntityCopy()
+	instance = self.instance
+	self.instance = nil
+end
+
+function ENT:PostEntityCopy()
+	self.instance = instance
+end
+
+duplicator.RegisterEntityClass("gmod_wire_starfall_processor", nil)
