@@ -38,7 +38,6 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 	instance.mainfile = mainfile
 	instance.permissions = setmetatable({},context.permissions)
 	
-	local mscript = instance.data.moonscript or {}
 	for filename, source in pairs(code) do
 		if not dontpreprocess then
 			instance.ppdata.moonscript = nil
@@ -49,7 +48,7 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 			-- Lua doesn't have empty statements, so an empty file gives a syntax error
 			instance.scripts[filename] = function() end
 		else
-			if instance.ppdata.moonscript and not mscript[filename] then
+			if instance.ppdata.moonscript then
 				if type(moonscript) == "table" then
 					local func, err = moonscript.loadstring(source, "SF:"..filename)
 					if type(func) ~= "function" then

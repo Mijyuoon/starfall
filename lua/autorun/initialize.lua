@@ -36,9 +36,5 @@ function loadmodule(name)
 	end
 end
 
-string.explode = function(s,sep) 
-	return string.Explode(sep or "", s) 
-end
-
 package.moonpath = ""
 moonscript = loadmodule "moonscript.base"

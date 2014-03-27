@@ -69,7 +69,7 @@ if CLIENT then
 	
 	local lua_kwords2 = mktrue {
 		"print", "pairs", "ipairs", "next",
-		"error", "pcall", "getfenv", "setfenv",
+		"error", "pcall", "opsUsed", "opsMax",
 		"loadFile", "loadString", "loadStringM",
 		"assert", "require", "loadLibrary", "type",
 		"CLIENT", "SERVER", "tostring", "tonumber",
@@ -138,8 +138,7 @@ if CLIENT then
 				if self.tokendata[-2] ~= "\\" then -- Ending found
 					return true
 				end
-			end
-			
+			end	
 			self:NextCharacter()
 		--]]
 			if self:NextPattern(char) then

@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- Stargate library functions
 -------------------------------------------------------------------------------
---[[
+
 local sg_lib = SF.Libraries.Register("stargate")
 local e_meta = SF.Entities.Metatable
 
@@ -72,4 +72,14 @@ function sg_lib.irisToggle(gate)
 		gate:IrisToggle()
 	end
 end
---]]
+
+function sg_lib.overloadPerc(gate)
+	SF.CheckType(gate, e_meta)
+	gate = unwrap(gate)
+	if IsValid(gate) and gate.IsStargate then
+		local pow = gate.excessPower or 0
+		local lim = gate.excessPowerLimit or 1
+		return math.Clamp(100*pow/lim, 0, 100)
+	end
+	return nil
+end

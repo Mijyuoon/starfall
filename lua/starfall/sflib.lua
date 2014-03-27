@@ -436,6 +436,10 @@ if SERVER then
 	util.AddNetworkString("starfall_upload")
 	
 	local uploaddata = {}
+	
+	function SF.ResetUpload()
+		uploaddata = {}
+	end
 	-- Packet structure:
 	-- 
 	-- Initialize packet:

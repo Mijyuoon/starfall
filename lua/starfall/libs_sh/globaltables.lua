@@ -1,7 +1,7 @@
 
 --- Cross-instance tables
 -- @shared
-local gtables_library, gtables_metamethods = SF.Libraries.Register("globaltables")
+local gtables_library, gtables_metamethods = SF.Libraries.Register("gtables")
 
 SF.GlobalTables = {}
 

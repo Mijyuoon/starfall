@@ -17,7 +17,6 @@ local dlScreen = nil
 local dlOwner = nil
 local dlMain = nil
 local dlFiles = nil
-local dlMscript = nil
 local hashes = {}
 
 net.Receive("starfall_screen_download", function(len)
@@ -25,21 +24,19 @@ net.Receive("starfall_screen_download", function(len)
 		dlScreen = net.ReadEntity()
 		dlOwner = net.ReadEntity()
 		dlMain = net.ReadString()
-		dlFiles, dlMscript = {}, {}
+		dlFiles = {}
 		--print("Begin recieving, mainfile:", updata.mainfile)
 	else
 		if net.ReadBit() ~= 0 then
 			--print("End recieving data")
-			dlScreen:CodeSent(dlFiles, dlMain, dlOwner, dlMscript)
+			dlScreen:CodeSent(dlFiles, dlMain, dlOwner)
 			dlScreen.files = dlFiles
 			dlScreen.mainfile = dlMain
-			dlScreen.mscript = dlMscript
-			dlScreen, dlFiles, dlMscript, dlMain, dlOwner = nil, nil, nil, nil, nil
+			dlScreen, dlFiles, dlMain, dlOwner = nil, nil, nil, nil
 			return
 		end
 		local filename = net.ReadString()
 		local filedata = net.ReadString()
-		dlMscript[filename] = (net.ReadBit() > 0)
 		--print("\tRecieved data for:", filename, "len:", #filedata)
 		dlFiles[filename] = dlFiles[filename] and dlFiles[filename]..filedata or filedata
 	end
@@ -47,7 +44,11 @@ end)
 
 net.Receive("starfall_screen_update", function(len)
 	local screen = net.ReadEntity()
-	if not IsValid(screen) then return end
+	--print("Update...")
+	if not IsValid(screen) then 
+		--print("Failed!")
+		return
+	end
 
 	local dirty = false
 	local finish = net.ReadBit()
@@ -67,12 +68,12 @@ net.Receive("starfall_screen_update", function(len)
 			net.WriteEntity(screen)
 		net.SendToServer()
 	else
-		screen:CodeSent(screen.files, screen.mainfile, screen.owner, screen.mscript)
+		screen:CodeSent(screen.files, screen.mainfile, screen.owner)
 	end
 end)
 
 
-net.Receive( "starfall_screen_used", function ()
+net.Receive("starfall_screen_used", function ()
 	local screen = net.ReadEntity()
 	local activator = net.ReadEntity()
 	
@@ -131,11 +132,11 @@ function ENT:Error(msg)
 	self:SetOverlayText("Starfall Screen\nInactive (Error)")
 end
 
-function ENT:CodeSent(files, main, owner, mscript)
+function ENT:CodeSent(files, main, owner)
 	if not files or not main or not owner then return end
 	if self.instance then self.instance:deinitialize() end
 	self.owner = owner
-	local datatable = { ent = self, render = {}, moonscript = mscript }
+	local datatable = { ent = self, render = {} }
 	local ok, instance = SF.Compiler.Compile(files,context,main,owner,datatable)
 	if not ok then self:Error(instance) return end
 	

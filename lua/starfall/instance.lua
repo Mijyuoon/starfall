@@ -79,6 +79,9 @@ end
 function SF.Instance:prepare(hook, name)
 	assert(self.initialized, "Instance not initialized!")
 	assert(not self.error, "Instance is errored!")
+	if SF.instance ~= nil then
+		debug.Trace()
+	end
 	assert(SF.instance == nil)
 	
 	self:runLibraryHook("prepare",hook, name)

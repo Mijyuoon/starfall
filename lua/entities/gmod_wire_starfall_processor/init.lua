@@ -90,7 +90,7 @@ function ENT:Think()
 		self:UpdateState(tostring(self.instance.ops).." ops, "..tostring(math.floor(self.instance.ops / self.instance.context.ops * 100)).."%")
 
 		self.instance:resetOps()
-		self:RunScriptHook("think")
+		self:runScriptHook("think")
 	end
 
 	self:NextThink(CurTime())
@@ -104,25 +104,25 @@ function ENT:OnRemove()
 end
 
 function ENT:TriggerInput(key, value)
-	self:RunScriptHook("input",key, SF.Wire.InputConverters[self.Inputs[key].Type](value))
+	self:runScriptHook("input", key, SF.Wire.InputConverters[self.Inputs[key].Type](value))
 end
 
 function ENT:ReadCell(address)
-	return tonumber(self:RunScriptHookForResult("readcell",address)) or 0
+	return tonumber(self:runScriptHookForResult("readcell",address)) or 0
 end
 
 function ENT:WriteCell(address, data)
-	self:RunScriptHook("writecell",address,data)
+	self:runScriptHook("writecell",address,data)
 end
 
-function ENT:RunScriptHook(hook, ...)
+function ENT:runScriptHook(hook, ...)
 	if self.instance and not self.instance.error and self.instance.hooks[hook:lower()] then
 		local ok, rt = self.instance:runScriptHook(hook, ...)
 		if not ok then self:Error(rt) end
 	end
 end
 
-function ENT:RunScriptHookForResult(hook,...)
+function ENT:runScriptHookForResult(hook,...)
 	if self.instance and not self.instance.error and self.instance.hooks[hook:lower()] then
 		local ok, rt = self.instance:runScriptHookForResult(hook, ...)
 		if not ok then self:Error(rt)

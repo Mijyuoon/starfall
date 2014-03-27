@@ -79,21 +79,23 @@ local validfonts = {
 	"OCR A Extended",
 	"Tele-Marines",
 	"DS-Digital",
+	"Data Control Unifon",
 	"Stargate Address Glyphs SG1",
 	"Stargate Address Glyphs Concept",
 	"Stargate Address Glyphs U",
 	"Stargate Address Glyphs Atl",
 }
 
-surface.CreateFont("sf_screen_font_Default_16_400_9_0000", {size = 16, weight = 400,
+local defaultFont = "sf_screen_font_Default_16_400_9_0000"
+
+surface.CreateFont(defaultFont, {size = 16, weight = 400,
 		antialias=false, additive = false, font = "Default",
 		shadow = false, outline = false, blur = 0})
 
 local defined_fonts = {
-	["sf_screen_font_Default_16_400_9_0000"] = true
+	[defaultFont] = true
 }
 
-local defaultFont = "sf_screen_font_Default_16_400_9_0000"
 
 local poly_methods, poly_metamethods = SF.Typedef("Polygon")
 local wrappoly, unwrappoly = SF.CreateWrapper(poly_metamethods)

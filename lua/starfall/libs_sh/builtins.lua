@@ -4,6 +4,7 @@
 -------------------------------------------------------------------------------
 
 local dgetmeta = debug.getmetatable
+local dsetmeta = debug.setmetatable
 
 --- Built in values. These don't need to be loaded; they are in the default environment.
 -- @name builtin
@@ -62,14 +63,16 @@ SF.DefaultEnvironment.ipairs = ipairs
 -- @name SF.DefaultEnvironment.pairs
 -- @class function
 -- @param tbl
-SF.DefaultEnvironment.pairs = function( t ) return mynext, t, nil end
+SF.DefaultEnvironment.pairs = function(t) 
+	return mynext, t, nil
+end
 --- Same as Lua's type
 -- @name SF.DefaultEnvironment.type
 -- @class function
 -- @param obj
-SF.DefaultEnvironment.type = function( val )
-	local tp = getmetatable( val )
-	return type(tp) == "string" and tp or type( val )
+SF.DefaultEnvironment.type = function(val)
+	local tp = getmetatable(val)
+	return (type(tp) == "string") and tp or type(val)
 end
 --- Same as Lua's next
 -- @name SF.DefaultEnvironment.next
@@ -81,7 +84,11 @@ SF.DefaultEnvironment.next = mynext
 -- @class function
 -- @param condition
 -- @param msg
-SF.DefaultEnvironment.assert = function(ok, msg) if not ok then error(msg or "assertion failed!",2) end end
+SF.DefaultEnvironment.assert = function(ok, msg) 
+	if not ok then 
+		error(msg or "assertion failed!",2) 
+	end 
+end
 --- Same as Lua's unpack
 -- @name SF.DefaultEnvironment.unpack
 -- @class function
@@ -96,7 +103,9 @@ SF.DefaultEnvironment.getmetatable = function(tbl)
 	return getmetatable(tbl)
 end
 --- Throws an error. Can't change the level yet.
-SF.DefaultEnvironment.error = function(msg) error(msg or "an unspecified error occured",2) end
+SF.DefaultEnvironment.error = function(msg) 
+	error(msg or "an unspecified error occured",2) 
+end
 
 SF.DefaultEnvironment.CLIENT = CLIENT
 SF.DefaultEnvironment.SERVER = SERVER
@@ -138,7 +147,21 @@ end
 local string_methods, string_metatable = SF.Typedef("Library: string")
 filterGmodLua(string, string_methods)
 string_metatable.__newindex = function() end
-string_methods.explode = function(str,separator,withpattern) return string.Explode(separator,str,withpattern) end
+--[[
+string_metatable.__index = function(key)
+	local tkey = type(key)
+	if string_methods[key] then
+		return string_methods[key]
+	elseif tkey == "number" then
+		return self:sub( key, key )
+	else
+		error( "bad key to string index (number expected, got " .. tkey .. ")", 2 )
+	end
+end
+--]]
+string_methods.explode = function(str,sep,patt) return 
+	string.Explode(sep,str,patt) 
+end
 --- Lua's (not glua's) string library
 -- @name SF.DefaultEnvironment.string
 -- @class table
@@ -157,7 +180,7 @@ color_metatable.__newindex = function() end
 -- @param b - Blue
 -- @param a - Alpha
 SF.DefaultEnvironment.Color = function(...)
-	return setmetatable(Color(...),color_metatable)
+	return setmetatable(Color(...), color_metatable)
 end
 
 
@@ -229,47 +252,70 @@ end
 if SERVER then
 	--- Prints a message to the player's chat.
 	function SF.DefaultEnvironment.print(...)
-		local str = ""
-		local tbl = {...}
-		for i=1,#tbl do str = str .. tostring(tbl[i]) .. (i == #tbl and "" or "\t") end
-		SF.instance.player:ChatPrint(str)
+		local buffer, tabl = "", {...}
+		for key, val in ipairs(tabl) do
+			tabl[key] = tostring(val)
+		end
+		buffer = table.concat(tabl, "\t")
+		SF.instance.player:ChatPrint(buffer)
 	end
 else
 	--- Prints a message to the player's chat.
 	function SF.DefaultEnvironment.print(...)
 		if SF.instance.player ~= LocalPlayer() then return end
-		local str = ""
-		local tbl = {...}
-		for i=1,#tbl do str = str .. tostring(tbl[i]) .. (i == #tbl and "" or "\t") end
-		LocalPlayer():ChatPrint(str)
+		local buffer, tabl = "", {...}
+		for key, val in ipairs(tabl) do
+			tabl[key] = tostring(val)
+		end
+		buffer = table.concat(tabl, "\t")
+		LocalPlayer():ChatPrint(buffer)
 	end
 end
 
-local function printTableX( target, t, indent, alreadyprinted )
-	for k,v in SF.DefaultEnvironment.pairs( t ) do
-		if SF.GetType( v ) == "table" and not alreadyprinted[v] then
-			alreadyprinted[v] = true
-			target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. ":" )
-			printTableX( target, v, indent + 1, alreadyprinted )
-		else
-			target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. "\t=\t" .. tostring(v) )
+if print_rex then
+	local type_f = SF.GetType
+	local it_f = SF.DefaultEnvironment.pairs
+	local function msg_f(msg)
+		SF.instance.player:ChatPrint(msg)
+	end
+	
+	function SF.DefaultEnvironment.printTable( tab )
+		local ply = SF.instance.player
+		if CLIENT and ply ~= LocalPlayer() then return end
+		SF.CheckType( tab, "table" )
+
+		print_rex(tab, type_f, it_f, msg_f)
+	end
+else
+	local function printTableX( target, t, indent, alreadyprinted )
+		for k,v in SF.DefaultEnvironment.pairs( t ) do
+			if SF.GetType( v ) == "table" and not alreadyprinted[v] then
+				alreadyprinted[v] = true
+				target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. ":" )
+				printTableX( v, indent + 1, alreadyprinted )
+			else
+				target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. "\t=\t" .. tostring(v) )
+			end
 		end
 	end
+	
+	function SF.DefaultEnvironment.printTable( t )
+		local ply = SF.instance.player
+		if CLIENT and ply ~= LocalPlayer() then return end
+		SF.CheckType( t, "table" )
+
+		printTableX(ply, t, 0, {[t] = true})
+	end
 end
 
-function SF.DefaultEnvironment.printTable( t )
-	if CLIENT and SF.instance.player ~= LocalPlayer() then return end
-	SF.CheckType( t, "table" )
 
-	printTableX( (SERVER and SF.instance.player or LocalPlayer()), t, 0, {[t] = true} )
-end
 
 
 --- Runs an --@include'd script and caches the result.
 -- Works pretty much like standard Lua require()
 function SF.DefaultEnvironment.require(file)
 	SF.CheckType(file, "string")
-	if file:sub(-4,-1) ~= ".txt" then
+	if file:sub(-4, -1) ~= ".txt" then
 		file = file .. ".txt"
 	end
 	local loaded = SF.instance.data.reqloaded
@@ -306,7 +352,7 @@ end
 function SF.DefaultEnvironment.loadString(str)
         local func = CompileString(str, "SF - LoadString", false)
         if type(func) == "string" then
-                return false, func
+			return false, func
         end
         debug.setfenv(func, SF.instance.env)
         return true, func
@@ -322,15 +368,15 @@ function SF.DefaultEnvironment.loadStringM(str)
 	end
 	local func, err = moonscript.loadstring(str, "SF - LoadString")
 	if type(func) ~= "function" then
-			return false, (err or func)
+		return false, (err or func)
 	end
 	debug.setfenv(func, SF.instance.env)
 	return true, func
 end
 
 --- Lua's pcall function
-function SF.DefaultEnvironment.pcall ( ... )
-    ok, err = pcall(...)
+function SF.DefaultEnvironment.pcall (...)
+    local ok, err = pcall(...)
 
     -- don't catch quota errors
     if SF.instance.ops > SF.instance.context.ops then
@@ -340,10 +386,11 @@ function SF.DefaultEnvironment.pcall ( ... )
     return ok, err
 end
 
+--[[
 --- Lua's setfenv, modified for safe use in Starfall
 -- Works like setfenv, but is restricted on functions
 function SF.DefaultEnvironment.setfenv( f, table )
-	if type( f ) ~= "function" then error( "Main Thread is protected!" ) end
+	if type( f ) ~= "function" then error("Main Thread is protected!", 2) end
 	return setfenv( f, table )
 end
 
@@ -352,21 +399,25 @@ end
 function SF.DefaultEnvironment.getfenv()
 	return getfenv()
 end
+--]]
 
 -- ------------------------- Restrictions ------------------------- --
 -- Restricts access to builtin type's metatables
 
 local _R = debug.getregistry()
+--local _S = getmetatable("")
 local function restrict(instance, hook, name, ok, err)
 	_R.Vector.__metatable = "Vector"
 	_R.Angle.__metatable = "Angle"
 	_R.VMatrix.__metatable = "VMatrix"
+	--dsetmeta("", string_metatable)
 end
 
 local function unrestrict(instance, hook, name, ok, err)
 	_R.Vector.__metatable = nil
 	_R.Angle.__metatable = nil
 	_R.VMatrix.__metatable = nil
+	--dsetmeta("", _S)
 end
 
 SF.Libraries.AddHook("prepare", restrict)

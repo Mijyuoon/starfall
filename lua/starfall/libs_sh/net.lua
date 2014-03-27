@@ -7,7 +7,7 @@ local net = net
 --- Net message library. Used for sending data from the server to the client and back
 local net_library, _ = SF.Libraries.Register("net")
 
-local burst_limit = CreateConVar( "sf_net_burst_limit", "10", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+local burst_limit = CreateConVar( "sf_net_burst_limit", "1000", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
 					"The net message burst limit." )
 
 local burst_interval = CreateConVar( "sf_net_burst_interval", "0.1", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
