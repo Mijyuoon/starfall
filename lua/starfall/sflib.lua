@@ -65,6 +65,23 @@ SF.defaultquota = CreateConVar("sf_defaultquota", "100000", {FCVAR_ARCHIVE,FCVAR
 
 local dgetmeta = debug.getmetatable
 
+--- Throws an error like the throw function in builtins
+-- @param msg Message
+-- @param level Which level in the stacktrace to blame
+-- @param uncatchable Makes this exception uncatchable
+function SF.throw ( msg, level, uncatchable )
+	local info = debug.getinfo( 1 + ( level or 1 ), "Sl" )
+	local filename = info.short_src:match( "^SF:(.*)$" ) or info.short_src
+	local err = {
+		uncatchable = false,
+		file = filename,
+		line = info.currentline,
+		message = msg,
+		uncatchable = uncatchable
+	}
+	error( err )
+end
+
 --- Creates a type that is safe for SF scripts to use. Instances of the type
 -- cannot access the type's metatable or metamethods.
 -- @param name Name of table
@@ -131,14 +148,17 @@ end
 -- @param env The environment metatable to use for the script. Default is SF.DefaultEnvironmentMT
 -- @param directives Additional Preprocessor directives to use. Default is an empty table
 -- @param permissions The permissions manager to use. Default is SF.DefaultPermissions
--- @param ops Operations quota. Default is specified by the convar "sf_defaultquota"
+-- @param ops Operations quota function. Default is specified by the convar "sf_defaultquota" and returned when calling ops()
 -- @param libs Additional (local) libraries for the script to access. Default is an empty table.
+local function get_defaultquota()
+	return SF.defaultquota:GetInt()
+end
 function SF.CreateContext(env, directives, permissions, ops, libs)
 	local context = {}
 	context.env = env or SF.DefaultEnvironmentMT
 	context.directives = directives or {}
 	context.permissions = permissions or SF.Permissions
-	context.ops = ops or SF.defaultquota:GetInt()
+	context.ops = ops or get_defaultquota
 	context.libs = libs or {}
 	return context
 end

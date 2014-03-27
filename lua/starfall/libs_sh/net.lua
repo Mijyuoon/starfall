@@ -78,45 +78,57 @@ if SERVER then
 	-- @server
 	-- @param target The player or table of players to send the message to, or nil to send to everyone
 
-	function net_library.send( target )
+	function net_library.send(target)
 		local instance = SF.instance
-		if not instance.data.net.started then error("net message not started",2) end
+		if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 		local sendfunc, newtarget = checktargets( target )
+		local to_all = instance.data.net.to_all
 		
 		local data = instance.data.net.data
 		if #data == 0 then return false end
 		net.Start( "SF_netmessage" )
-		for i=1,#data do
-			local writefunc = data[i][1]
-			local writevalue = data[i][2]
-			local writesetting = data[i][3]
+			net.WriteEntity( to_all and NULL or SF.instance.data.entity )
+			for i=1, #data do
+				local writefunc = data[i][1]
+				local writevalue = data[i][2]
+				local writesetting = data[i][3]
 			
-			net[writefunc]( writevalue, writesetting )
-		end
+				net[writefunc](writevalue, writesetting)
+			end
 		
-		sendfunc( newtarget )
+		sendfunc(newtarget)
 	end
 else
 	--- Send the net message to the server
 	-- @client
 	function net_library.send()
 		local instance = SF.instance
-		if not instance.data.net.started then error("net message not started",2) end
+		if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
+		local to_all = instance.data.net.to_all
 		
 		local data = instance.data.net.data
 		if #data == 0 then return false end
 		net.Start( "SF_netmessage" )
-		for i=1,#data do
-			local writefunc = data[i][1]
-			local writevalue = data[i][2]
-			local writesetting = data[i][3]
+			net.WriteEntity( to_all and NULL or SF.instance.data.entity )
+			for i=1, #data do
+				local writefunc = data[i][1]
+				local writevalue = data[i][2]
+				local writesetting = data[i][3]
 			
-			net[writefunc]( writevalue, writesetting )
-		end
+				net[writefunc](writevalue, writesetting)
+			end
 		
 		net.SendToServer()
 	end
+end
+
+--- Sets whether send a message to all screens
+-- @shared
+-- @param flag To all screens?
+function net_library.sendToAll(flag)
+	SF.CheckType(flag, "boolean")
+	SF.instance.data.net.to_all = flag
 end
 
 --- Starts the net message
@@ -125,7 +137,7 @@ end
 function net_library.start( name )
 	SF.CheckType( name, "string" )
 	local instance = SF.instance
-	if not can_send( instance ) then return error("can't send net messages that often",2) end
+	if not can_send( instance ) then SF.throw( "can't send net messages that often", 2 ) end
 	
 	instance.data.net.started = true
 	instance.data.net.data = {}
@@ -138,7 +150,7 @@ end
 
 function net_library.writeTable( t )
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 	
 	SF.CheckType( t, "table" )
 	
@@ -160,7 +172,7 @@ end
 
 function net_library.writeString( t )
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 	SF.CheckType( t, "string" )
 
@@ -183,7 +195,7 @@ end
 
 function net_library.writeInt( t, n )
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 	SF.CheckType( t, "number" )
 	SF.CheckType( n, "number" )
@@ -209,7 +221,7 @@ end
 
 function net_library.writeUInt( t, n )
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 	SF.CheckType( t, "number" )
 	SF.CheckType( n, "number" )
@@ -234,7 +246,7 @@ end
 
 function net_library.writeBit( t )
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 	SF.CheckType( t, "boolean" )
 
@@ -256,7 +268,7 @@ end
 
 function net_library.writeDouble( t )
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 	SF.CheckType( t, "number" )
 
@@ -278,7 +290,7 @@ end
 
 function net_library.writeFloat( t )
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 	SF.CheckType( t, "number" )
 
@@ -299,7 +311,7 @@ end
 
 function net_library.bytesWritten()
 	local instance = SF.instance
-	if not instance.data.net.started then error("net message not started",2) end
+	if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 
 	return net.BytesWritten()
 end
@@ -312,5 +324,11 @@ function net_library.canSend()
 end
 
 net.Receive( "SF_netmessage", function( len, ply )
-	SF.RunScriptHook( "net", net.ReadString(), len, ply and SF.WrapObject( ply ) )
+	local ent = net.ReadEntity()
+	local name = net.ReadString()
+	if IsValid(ent) and ent:GetClass() == "gmod_wire_starfall_screen" then
+		ent:runScriptHook( "net", name, len, ply and SF.WrapObject( ply ) )
+	elseif ent and ent:EntIndex() == 0 then
+		SF.RunScriptHook( "net", name, len, ply and SF.WrapObject( ply ) )
+	end
 end)

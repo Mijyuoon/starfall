@@ -36,13 +36,13 @@ end
 -- @return True if ok
 -- @return A table of values that the hook returned
 function SF.Instance:runWithOps(func,...)
-	local maxops = self.context.ops
+	local maxops = self.context.ops()
 	
 	local function ophook(event)
 		self.ops = self.ops + 500
 		if self.ops > maxops then
 			debug.sethook(nil)
-			error("Operations quota exceeded.",0)
+			SF.throw("Operations quota exceeded.",0)
 		end
 	end
 	

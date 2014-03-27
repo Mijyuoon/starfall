@@ -1,121 +1,99 @@
---[[
-	SF HTTP library by Person8880.
-]]
-
---- HTTP library, allows for GET and POST requests.
+--- Http library. Requests content from urls.
 -- @shared
+local http_library, _ = SF.Libraries.Register( "http" )
+local http_interval = CreateConVar( "sf_http_interval", "0.5", { FCVAR_ARCHIVE, FCVAR_REPLICATED }, "Interval in seconds in which one http request can be made" )
+local http_max_active = CreateConVar( "sf_http_max_active", "3", { FCVAR_ARCHIVE, FCVAR_REPLICATED }, "The maximum amount of active http requests at the same time" )
 
-local HTTPLib, _ = SF.Libraries.Register( "http" )
+-- Initializes the lastRequest variable to a value which ensures that the first call to httpRequestReady returns true
+-- and the "active requests counter" to 0
+SF.Libraries.AddHook( "initialize", function( instance )
+	instance.data.http = {
+		lastRequest = 0,
+		active = 0
+	}
+end )
 
-local Cooldown
-local CurTime = CurTime
-local Fetch = http.Fetch
-local Post = http.Post
-
-local FC = { FCVAR_ARCHIVE, FCVAR_DONTRECORD }
-
-if SERVER then
-	Cooldown = CreateConVar( "sf_http_cooldown_sv", "15", FC )
-else
-	Cooldown = CreateConVar( "sf_http_cooldown_cl", "15", FC )
-end
-
-local Requests = {}
-
-local function AddRequest( Ply, Time )
-	Requests[ Ply ] = Time
-
-	timer.Create( "SF-HTTP"..Ply:EntIndex(), Cooldown:GetInt(), 1, function()
-		if Requests[ Ply ] then
-			Requests[ Ply ] = nil
-		end
-	end )
-end
-
-local function CanRequest( Ply )
-	return Requests[ Ply ] == nil
-end
-
---- Performs a GET request.
--- @param URL The URL to request.
--- @param OnSuccess Function to run on success. It's passed the body of the web page.
--- @param OnFail Function to run on failure.
-function HTTPLib.fetch( URL, OnSuccess, OnFail )
-	SF.CheckType( URL, "string" )
-	SF.CheckType( OnSuccess, "function" )
-	SF.CheckType( OnFail, "function" )
-
-	local Instance = SF.instance
-	local Ply = SF.instance.player
-
-	if not CanRequest( Ply ) then return nil, "cooldown" end
-
-	local Time = CurTime() + Cooldown:GetInt()
-
-	AddRequest( Ply, Time )
-
-	Fetch( URL, function( Body )
-		if not ( Instance and Instance.initialized ) then return end
-		if Requests[ Ply ] ~= Time then return end --Timed out.
-
-		Instance:runFunction( OnSuccess, Body ) 
-	end, function( ... )
-		if not ( Instance and Instance.initialized ) then return end
-		if Requests[ Ply ] ~= Time then return end
-
-		Instance:runFunction( OnFail, ... ) 
-	end )
-
-	return true
-end
-
---- Performs a POST request.
--- @param URL The URL to request.
--- @param Params The table of parameters of the POST request.
--- @param OnSuccess The function to run on success. It's passed the body of the response.
--- @param OnFail Function to run on failure.
-function HTTPLib.post( URL, Params, OnSuccess, OnFail )
-	SF.CheckType( URL, "string" )
-	SF.CheckType( Params, "table" )
-	SF.CheckType( OnSuccess, "function" )
-	SF.CheckType( OnFail, "function" )
-
-	local Instance = SF.instance
-	local Ply = SF.instance.player
-
-	if not CanRequest( Ply ) then return nil, "cooldown" end
-
-	local Time = CurTime() + Cooldown:GetInt()
-
-	AddRequest( Ply, Time )
-
-	Post( URL, Params, function( Body )
-		if not ( Instance and Instance.initialized ) then return end
-		if Requests[ Ply ] ~= Time then return end --Timed out.
-
-		Instance:runFunction( OnSuccess, Body ) 
-	end, function( ... )
-		if not ( Instance and Instance.initialized ) then return end
-		if Requests[ Ply ] ~= Time then return end
-
-		Instance:runFunction( OnFail, ... ) 
-	end )
-
-	return true
-end
-
---- Returns when you can next run a request.
-function HTTPLib.nextRequest()
-	return Requests[ SF.instance.player ] or 0
-end
-
---- Returns how long until the next request is allowed.
-function HTTPLib.cooldownTime()
-	local Next = Requests[ SF.instance.player ]
-
-	if Next then
-		return Next - CurTime()
+-- Returns an error when a http request was already triggered in the current interval
+-- or the maximum amount of simultaneous requests is currently active, returns true otherwise
+local function httpRequestReady ( instance )
+	local httpData = instance.data.http
+	if CurTime() - httpData.lastRequest < http_interval:GetFloat() or httpData.active >= http_max_active:GetInt() then
+		SF.throw( "You can't run a new http request yet", 2 )
 	end
+	return true
+end
 
-	return 0
+-- Runs the appropriate callback after a http request
+local function runCallback ( instance, callback, ... )
+	if callback then
+		local args = { ... }
+		if IsValid( instance.data.entity ) and not instance.error then
+			local ok, msg, traceback = instance:runFunction( callback, unpack( args ) )
+			if not ok then
+				instance:Error( "http callback errored with: " .. msg, traceback )
+			end
+		end
+	end
+	instance.data.http.active = instance.data.http.active - 1
+end
+
+--- Checks if a new http request can be started
+function http_library.canRequest ( )
+	local httpData = SF.instance.data.http
+	return CurTime() - httpData.lastRequest >= http_interval:GetFloat() and httpData.active < http_max_active:GetInt()
+end
+
+--- Runs a new http GET request
+-- @param url http target url
+-- @param callbackSuccess the function to be called on request success, taking the arguments body (string), length (number), headers (table) and code (number)
+-- @param callbackFail the function to be called on request fail, taking the failing reason as an argument
+function http_library.get(url, callbackSuccess, callbackFail)
+	local instance = SF.instance
+	
+	httpRequestReady( instance )
+	
+	SF.CheckType( url, "string" )
+	SF.CheckType( callbackSuccess, "function" )
+	if callbackFail then SF.CheckType( callbackFail, "function" ) end
+	
+	instance.data.http.lastRequest = CurTime()
+	instance.data.http.active = instance.data.http.active + 1
+	http.Fetch( url, function ( body, len, headers, code ) 
+		runCallback( instance, callbackSuccess, body, len, headers, code )
+	end, function ( err )
+		runCallback( instance, callbackFail, err )
+	end )
+end
+
+--- Runs a new http POST request
+-- @param url http target url
+-- @param params POST parameters to be sent
+-- @param callbackSuccess the function to be called on request success, taking the arguments body (string), length (number), headers (table) and code (number)
+-- @param callbackFail the function to be called on request fail, taking the failing reason as an argument
+function http_library.post(url, params, callbackSuccess, callbackFail)
+	local instance = SF.instance
+	
+	httpRequestReady( instance )
+	
+	SF.CheckType( url, "string" )
+	
+	if params then
+		SF.CheckType( params, "table" )
+		for k,v in pairs( params ) do
+			if type( k ) ~= "string" or type( v ) ~= "string" then
+				SF.throw( "Post parameters can only contain string keys and string values", 2 )
+			end
+		end
+	end
+	
+	SF.CheckType( callbackSuccess, "function" )	
+	if callbackFail then SF.CheckType( callbackFail, "function" ) end
+	
+	instance.data.http.lastRequest = CurTime()
+	instance.data.http.active = instance.data.http.active + 1
+	http.Post( url, params, function ( body, len, headers, code )
+		runCallback( instance, callbackSuccess, body, len, headers, code )
+	end, function ( err )
+		runCallback( instance, callbackFail, err )
+	end )
 end

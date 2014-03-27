@@ -27,7 +27,8 @@ local function sendScreenCode(screen, owner, files, mainfile, recipient)
 		local pp_data = { moonscript = false }
 		SF.Preprocessor.ParseDirectives(fname, fdata, {}, pp_data)
 		if pp_data.moonscript then
-			fdata = moonscript.to_lua(fdata) or ""
+			local code, err = moonscript.to_lua(fdata)
+			fdata = code and code or "!ERROR!"..err
 		end
 		repeat
 			net.Start("starfall_screen_download")
@@ -109,7 +110,15 @@ function ENT:UpdateName(state)
 end
 
 function ENT:Error(msg, override)
-	ErrorNoHalt("Processor of "..self.owner:Nick().." errored: "..msg.."\n")
+	if type( msg ) == "table" then
+		if msg.message then
+			local line = msg.line
+			local file = msg.file
+
+			msg = ( file and ( file .. ":" ) or "" ) .. ( line and ( line .. ": " ) or "" ) .. msg.message
+		end
+	end
+	ErrorNoHalt( "Processor of " .. self.owner:Nick() .. " errored: " .. tostring( msg ) .. "\n" )
 	WireLib.ClientError(msg, self.owner)
 	
 	if self.instance then
@@ -218,6 +227,14 @@ end
 
 function ENT:TriggerInput(key, value)
 	self:runScriptHook("input", key, SF.Wire.InputConverters[self.Inputs[key].Type](value))
+end
+
+function ENT:ReadCell ( address )
+	return tonumber( self:runScriptHookForResult( "readcell", address ) ) or 0
+end
+
+function ENT:WriteCell ( address, data )
+	self:runScriptHook( "writecell", address, data )
 end
 
 --[[

@@ -67,7 +67,15 @@ function ENT:Compile(codetbl, mainfile)
 end
 
 function ENT:Error(msg, traceback)
-	ErrorNoHalt("Processor of "..self.owner:Nick().." errored: "..msg.."\n")
+	if type( msg ) == "table" then
+		if msg.message then
+			local line = msg.line
+			local file = msg.file
+
+			msg = ( file and ( file .. ":" ) or "" ) .. ( line and ( line .. ": " ) or "" ) .. msg.message
+		end
+	end
+	ErrorNoHalt( "Processor of " .. self.owner:Nick() .. " errored: " .. tostring( msg ) .. "\n" )
 	if traceback then
 		print(traceback)
 	end
@@ -87,7 +95,8 @@ function ENT:Think()
 	self.BaseClass.Think(self)
 	
 	if self.instance and not self.instance.error then
-		self:UpdateState(tostring(self.instance.ops).." ops, "..tostring(math.floor(self.instance.ops / self.instance.context.ops * 100)).."%")
+		--self:UpdateState(tostring(self.instance.ops).." ops, "..tostring(math.floor(self.instance.ops / self.instance.context.ops * 100)).."%")
+		self:UpdateState( tostring( self.instance.ops ) .. " ops, " .. tostring( math.floor( self.instance.ops / self.instance.context.ops() * 100 ) ) .. "%" )
 
 		self.instance:resetOps()
 		self:runScriptHook("think")

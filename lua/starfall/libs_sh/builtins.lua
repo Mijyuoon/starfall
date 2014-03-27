@@ -86,7 +86,7 @@ SF.DefaultEnvironment.next = mynext
 -- @param msg
 SF.DefaultEnvironment.assert = function(ok, msg) 
 	if not ok then 
-		error(msg or "assertion failed!",2) 
+		SF.throw(msg or "assertion failed!",2) 
 	end 
 end
 --- Same as Lua's unpack
@@ -102,9 +102,49 @@ SF.DefaultEnvironment.getmetatable = function(tbl)
 	SF.CheckType(tbl,"table")
 	return getmetatable(tbl)
 end
+--- Same as Lua's pcall.
+SF.DefaultEnvironment.pcall = pcall
 --- Throws an error. Can't change the level yet.
 SF.DefaultEnvironment.error = function(msg) 
-	error(msg or "an unspecified error occured",2) 
+	error(msg or "unspecified error occured",2) 
+end
+
+--- Try to execute a function and catch possible exceptions
+-- Similar to pcall, but a bit more in-depth
+-- @param func Function to execute
+-- @param catch Function to execute in case func fails
+function SF.DefaultEnvironment.try(func, catch)
+	SF.CheckType(func, "function")
+	SF.CheckType(catch, "function")
+	local ok, err = pcall( func )
+	if ok then return end
+	if type(err) == "table" then
+		if err.uncatchable then
+			error(err, 2)
+		end
+	end
+	catch(err)
+end
+
+--- Throws an exception
+-- @param msg Message
+-- @param level Which level in the stacktrace to blame. Defaults to one of invalid
+-- @param uncatchable Makes this exception uncatchable
+function SF.DefaultEnvironment.throw(msg, level, uncatchable)
+	local info = debug.getinfo( 1 + ( level or 1 ), "Sl" )
+	local filename = info.short_src:match( "^SF:(.*)$" )
+	if not filename then
+		info = debug.getinfo( 2, "Sl" )
+		filename = info.short_src:match( "^SF:(.*)$" )
+	end
+	local err = {
+		uncatchable = false,
+		file = filename,
+		line = info.currentline,
+		message = msg,
+		uncatchable = uncatchable
+	}
+	error(err)
 end
 
 SF.DefaultEnvironment.CLIENT = CLIENT
@@ -117,7 +157,7 @@ end
 
 --- Gets the ops hard quota
 function SF.DefaultEnvironment.opsMax()
-	return SF.instance.context.ops
+	return SF.instance.context.ops()
 end
 
 -- The below modules have the Gmod functions removed (the ones that begin with a capital letter),
@@ -171,6 +211,7 @@ SF.DefaultEnvironment.string = setmetatable({},string_metatable)
 
 local color_methods, color_metatable = SF.Typedef("Color")
 color_metatable.__newindex = function() end
+SF.ColorMetatable = color_metatable
 
 --- Same as the Gmod Color type
 -- @name SF.DefaultEnvironment.Color
@@ -272,44 +313,25 @@ else
 	end
 end
 
-if print_rex then
-	local type_f = SF.GetType
-	local it_f = SF.DefaultEnvironment.pairs
-	local function msg_f(msg)
-		SF.instance.player:ChatPrint(msg)
-	end
-	
-	function SF.DefaultEnvironment.printTable( tab )
-		local ply = SF.instance.player
-		if CLIENT and ply ~= LocalPlayer() then return end
-		SF.CheckType( tab, "table" )
-
-		print_rex(tab, type_f, it_f, msg_f)
-	end
-else
-	local function printTableX( target, t, indent, alreadyprinted )
-		for k,v in SF.DefaultEnvironment.pairs( t ) do
-			if SF.GetType( v ) == "table" and not alreadyprinted[v] then
-				alreadyprinted[v] = true
-				target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. ":" )
-				printTableX( v, indent + 1, alreadyprinted )
-			else
-				target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. "\t=\t" .. tostring(v) )
-			end
+local function printTableX( target, t, indent, alreadyprinted )
+	for k,v in SF.DefaultEnvironment.pairs( t ) do
+		if SF.GetType( v ) == "table" and not alreadyprinted[v] then
+			alreadyprinted[v] = true
+			target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. ":" )
+			printTableX( v, indent + 1, alreadyprinted )
+		else
+			target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. "\t=\t" .. tostring(v) )
 		end
-	end
-	
-	function SF.DefaultEnvironment.printTable( t )
-		local ply = SF.instance.player
-		if CLIENT and ply ~= LocalPlayer() then return end
-		SF.CheckType( t, "table" )
-
-		printTableX(ply, t, 0, {[t] = true})
 	end
 end
 
+function SF.DefaultEnvironment.printTable( t )
+	local ply = SF.instance.player
+	if CLIENT and ply ~= LocalPlayer() then return end
+	SF.CheckType( t, "table" )
 
-
+	printTableX(ply, t, 0, {[t] = true})
+end
 
 --- Runs an --@include'd script and caches the result.
 -- Works pretty much like standard Lua require()
@@ -328,7 +350,7 @@ function SF.DefaultEnvironment.require(file)
 		return loaded[file]
 	else
 		local func = SF.instance.scripts[file]
-		if not func then error("Can't find file '"..file.."' (did you forget to --@include it?)",2) end
+		if not func then SF.throw("Can't find file '"..file.."' (did you forget to --@include it?)",2) end
 		loaded[file] = func() or true
 		return loaded[file]
 	end
@@ -342,7 +364,7 @@ function SF.DefaultEnvironment.loadFile(file)
 		file = file .. ".txt"
 	end
 	local func = SF.instance.scripts[file]
-	if not func then error("Can't find file '"..file.."' (did you forget to --@include it?)",2) end
+	if not func then SF.throw("Can't find file '"..file.."' (did you forget to --@include it?)",2) end
 	return func()
 end
 
@@ -374,23 +396,13 @@ function SF.DefaultEnvironment.loadStringM(str)
 	return true, func
 end
 
---- Lua's pcall function
-function SF.DefaultEnvironment.pcall (...)
-    local ok, err = pcall(...)
-
-    -- don't catch quota errors
-    if SF.instance.ops > SF.instance.context.ops then
-        error(err, 0)
-    end
-
-    return ok, err
-end
-
 --[[
 --- Lua's setfenv, modified for safe use in Starfall
 -- Works like setfenv, but is restricted on functions
 function SF.DefaultEnvironment.setfenv( f, table )
-	if type( f ) ~= "function" then error("Main Thread is protected!", 2) end
+	if type( f ) ~= "function" then 
+		SF.throw("Main Thread is protected!", 2) 
+	end
 	return setfenv( f, table )
 end
 

@@ -78,19 +78,6 @@ function super_lib.globalCtx(func, ...)
 end
 --]]
 
-function super_lib.qpcall(...)
-	if not mijsf.CheckPly() then 
-		return nil
-	end
-	local ins = SF.instance
-	local quota = ins.ops
-	local ok, err = pcall(...)
-	if ins.ops > ins.context.ops then
-		ins.ops = quota
-	end
-	return ok, err
-end
-
 function super_lib.wrap(obj)
 	if not mijsf.CheckPly() then 
 		return nil

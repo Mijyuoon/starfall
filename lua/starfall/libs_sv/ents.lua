@@ -327,7 +327,7 @@ function ents_methods:setFrozen(freeze)
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
-	phys:EnableMotion(not (freeze and true or false))
+	phys:EnableMotion(not freeze)
 	phys:Wake()
 	return true
 end
@@ -346,14 +346,14 @@ end
 
 --- Sets the entity solid state
 -- @param notsolid Should the entity be not solid?
-function ents_methods:setNotSolid(notsolid)
+function ents_methods:setSolid(solid)
 	SF.CheckType(self,ents_metatable)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
 	if not check_access(ent) then return false, "access denied" end
 	
-	ent:SetNotSolid(notsolid and true or false)
+	ent:SetNotSolid(not notsolid)
 	return true
 end
 
