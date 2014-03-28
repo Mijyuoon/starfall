@@ -2,7 +2,7 @@
 	Serverside screenPos() by Mijyuoon.
 ]]
 
-local render_library, _ = SF.Libraries.Register("render")
+local render_library, _ = SF.Libraries.RegisterLocal("render")
 
 --- Gets a 2D cursor position where ply is aiming.
 function render_library.cursorPos( ply )

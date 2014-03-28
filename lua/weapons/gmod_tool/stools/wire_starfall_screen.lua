@@ -7,51 +7,11 @@ TOOL.Tab			= "Wire"
 -- ------------------------------- Sending / Recieving ------------------------------- --
 include("starfall/sflib.lua")
 
-local MakeSF
-local RequestSend
-
 TOOL.ClientConVar[ "Model" ] = "models/hunter/plates/plate2x2.mdl"
 cleanup.Register( "starfall_screen" )
 
 if SERVER then
-	util.AddNetworkString("starfall_screen_requpload")
-	util.AddNetworkString("starfall_screen_upload")
-	
-	net.Receive("starfall_screen_upload", function(len, ply)
-		local ent = net.ReadEntity()
-		if not ent or not ent:IsValid() then
-			ErrorNoHalt("SF: Player "..ply:GetName().." tried to send code to a nonexistant entity.\n")
-			return
-		end
-		
-		if ent:GetClass() ~= "gmod_wire_starfall_screen" then
-			ErrorNoHalt("SF: Player "..ply:GetName().." tried to send code to a non-starfall screen entity.\n")
-			return
-		end
-		
-		local mainfile = net.ReadString()
-		local numfiles = net.ReadUInt(16)
-		local task = {
-			mainfile = mainfile,
-			files = {},
-		}
-		
-		for i=1,numfiles do
-			local filename = net.ReadString()
-			local code = net.ReadString()
-			task.files[filename] = code
-		end
-		
-		ent:CodeSent(ply,task)
-	end)
-	
-	RequestSend = function(ply, ent)
-		net.Start("starfall_screen_requpload")
-		net.WriteEntity(ent)
-		net.Send(ply)
-	end
-	
-	CreateConVar('sbox_maxstarfall_screen', 3, {FCVAR_REPLICATED,FCVAR_NOTIFY,FCVAR_ARCHIVE})
+	CreateConVar('sbox_maxstarfall_screen', 10, {FCVAR_REPLICATED,FCVAR_NOTIFY,FCVAR_ARCHIVE})
 	
 	function MakeSF( pl, Pos, Ang, model)
 		if not pl:CheckLimit( "starfall_screen" ) then return false end

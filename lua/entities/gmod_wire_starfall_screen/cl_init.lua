@@ -8,70 +8,84 @@ assert(SF, "Starfall didn't load correctly!")
 local context = SF.CreateContext(nil, nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
 
 surface.CreateFont("Starfall_ErrorFont", {
-	font = "arial",
-	size = 26,
-	weight = 200
+	font = "Arial",
+	size = 16,
+	weight = 200,
 })
 
-local dlScreen = nil
-local dlOwner = nil
-local dlMain = nil
-local dlFiles = nil
-local hashes = {}
+local function make_path(ply, path)
+	local path = util.CRC(path:gsub("starfall/", ""))
+	return string.format("sf_cache/%s.txt", path)
+end
+	
+local function check_cached(ply, path, crc)
+	local path = make_path(ply, path)
+	if not file.Exists(path, "DATA") then
+		return false
+	end
+	
+	local fdata = file.Read(path, "DATA")
+	if util.CRC(fdata) ~= crc then
+		return false
+	end
+	return true, fdata
+end
 
-net.Receive("starfall_screen_download", function(len)
-	if not IsValid(dlScreen) then
-		dlScreen = net.ReadEntity()
-		dlOwner = net.ReadEntity()
-		dlMain = net.ReadString()
-		dlFiles = {}
-		--print("Begin recieving, mainfile:", updata.mainfile)
-	else
-		if net.ReadBit() ~= 0 then
-			--print("End recieving data")
-			dlScreen:CodeSent(dlFiles, dlMain, dlOwner)
-			dlScreen.files = dlFiles
-			dlScreen.mainfile = dlMain
-			dlScreen, dlFiles, dlMain, dlOwner = nil, nil, nil, nil
-			return
+net.Receive("starfall_screen_download", function()
+	local action = net.ReadInt(8)
+	if action == SF_UPLOAD_CRC then
+		local screen = net.ReadEntity()
+		screen.files = {}
+		local file_list = {}
+		while net.ReadBit() > 0 do
+			local fname = net.ReadString()
+			local fcrc = net.ReadString()
+			local chk, fdata = check_cached(ply, fname, fcrc)
+			if not chk then
+				file_list[#file_list + 1] = fname
+				--print("Cache miss/expired for: "..fname)
+			else
+				screen.files[fname] = fdata
+				--print("Got cache entry for: "..fname)
+			end
+		end	
+		net.Start("starfall_screen_download")
+		net.WriteInt(SF_UPLOAD_DATA, 8)
+		net.WriteEntity(screen)
+		for _, fname in ipairs(file_list) do
+			net.WriteBit(true)
+			net.WriteString(fname)
+			--print("Request file: "..fname)
 		end
+		net.WriteBit(false)
+		net.SendToServer()
+	elseif action == SF_UPLOAD_DATA then
+		local screen = net.ReadEntity()
 		local filename = net.ReadString()
 		local filedata = net.ReadString()
-		--print("\tRecieved data for:", filename, "len:", #filedata)
-		dlFiles[filename] = dlFiles[filename] and dlFiles[filename]..filedata or filedata
-	end
-end)
-
-net.Receive("starfall_screen_update", function(len)
-	local screen = net.ReadEntity()
-	--print("Update...")
-	if not IsValid(screen) then 
-		--print("Failed!")
-		return
-	end
-
-	local dirty = false
-	local finish = net.ReadBit()
-
-	while finish == 0 do
-		local file = net.ReadString()
-		local hash = net.ReadString()
-
-		if hash ~= hashes[file] then
-			dirty = true
-			hashes[file] = hash
+		local current_file = screen.files[filename]
+		if not current_file then
+			screen.files[filename] = {filedata}
+		else
+			current_file[#current_file + 1] = filedata
 		end
-		finish = net.ReadBit()
-	end
-	if dirty then
-		net.Start("starfall_screen_download")
-			net.WriteEntity(screen)
-		net.SendToServer()
-	else
+	elseif action == SF_UPLOAD_END then
+		local screen = net.ReadEntity()
+		for key, val in pairs(screen.files) do
+			if type(val) == "table" then
+				screen.files[key] = table.concat(val)
+				if key ~= "generic" then
+					local cache_path = make_path(ply, key)
+					file.Write(cache_path, screen.files[key])
+					--print("Write cache for: "..key.." as "..cache_path)
+				end
+			end
+		end
+		screen.owner = net.ReadEntity()
+		screen.mainfile = net.ReadString()
 		screen:CodeSent(screen.files, screen.mainfile, screen.owner)
 	end
 end)
-
 
 net.Receive("starfall_screen_used", function ()
 	local screen = net.ReadEntity()
@@ -88,7 +102,8 @@ end)
 function ENT:Initialize()
 	self.GPU = GPULib.WireGPU(self)
 	net.Start("starfall_screen_download")
-		net.WriteEntity(self)
+	net.WriteInt(SF_UPLOAD_INIT, 8)
+	net.WriteEntity(self)
 	net.SendToServer()
 end
 
@@ -143,7 +158,7 @@ end
 function ENT:CodeSent(files, main, owner)
 	if not files or not main or not owner then return end
 	if self.instance then self.instance:deinitialize() end
-	self.owner = owner
+	--self.owner = owner
 	local datatable = { ent = self, render = {} }
 	local ok, instance = SF.Compiler.Compile(files,context,main,owner,datatable)
 	if not ok then self:Error(instance) return end

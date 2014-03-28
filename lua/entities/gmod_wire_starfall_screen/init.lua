@@ -6,82 +6,91 @@ include('shared.lua')
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
 
-local context = SF.CreateContext()
+local context = SF.CreateContext(nil, nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
 local screens = {}
 
 util.AddNetworkString("starfall_screen_download")
-util.AddNetworkString("starfall_screen_update")
+--util.AddNetworkString("starfall_screen_update")
 util.AddNetworkString("starfall_screen_used")
 
-local function sendScreenCode(screen, owner, files, mainfile, recipient)
-	--print("Sending SF code for: " .. tostring(recipient))
-	net.Start("starfall_screen_download")
-	net.WriteEntity(screen)
-	net.WriteEntity(owner)
-	net.WriteString(mainfile)
-	if recipient then net.Send(recipient) else net.Broadcast() end
-	--print("\tHeader sent")
-	
-	for fname, fdata in pairs(files) do
-		local offset = 1
-		local pp_data = { moonscript = false }
-		SF.Preprocessor.ParseDirectives(fname, fdata, {}, pp_data)
-		if pp_data.moonscript then
-			local code, err = moonscript.to_lua(fdata)
-			fdata = code and code or "!ERROR!"..err
-		end
-		repeat
-			net.Start("starfall_screen_download")
-			net.WriteBit(false)
-			net.WriteString(fname)
-			local data = fdata:sub(offset, offset+60000)
-			net.WriteString(data)
-			if recipient then net.Send(recipient) else net.Broadcast() end
-			offset = offset + #data + 1
-		until offset > #fdata
-	end
+local Requests = {}
 
+local function sendScreenCode(ply, screen)
 	net.Start("starfall_screen_download")
-	net.WriteBit(true)
-	if recipient then net.Send(recipient) else net.Broadcast() end
-	--print("Done sending")
+	net.WriteInt(SF_UPLOAD_CRC, 8)
+	net.WriteEntity(screen)
+	for key, val in pairs(screen.files) do
+		net.WriteBit(true)
+		net.WriteString(key)
+		net.WriteString(util.CRC(val))
+	end
+	net.WriteBit(false)
+	if not ply then
+		net.Broadcast()
+	else
+		net.Send(ply)
+	end
 end
 
-local requests = {}
-
-local function sendCodeRequest(ply, screenid)
-	local screen = Entity(screenid)
+local function initCodeRequest(screen, ply)
 	if not IsValid(screen) then
-		print("[SF] Bad screen ID: "..screenid)
-	end
-
-	if not screen.mainfile then
-		if not requests[screenid] then requests[screenid] = {} end
-		if requests[screenid][player] then return end
-		requests[screenid][ply] = true
+		Requests[screen] = nil
 		return
-
-		--[[if timer.Exists("starfall_send_code_request") then return end
-		timer.Create("starfall_send_code_request", .5, 1, retryCodeRequests) ]]
-	elseif screen.mainfile then
-		if requests[screenid] then
-			requests[screenid][ply] = nil
+	end
+	if screen.mainfile then
+		if Requests[screen] then
+			Requests[screen][ply] = nil
 		end
-		sendScreenCode(screen, screen.owner, screen.files, screen.mainfile, ply)
+		sendScreenCode(ply, screen)
+	else
+		if not Requests[screen] then
+			Requests[screen] = {}
+		end
+		Requests[screen][ply] = true
 	end
 end
 
 local function retryCodeRequests()
-	for screenid,plys in pairs(requests) do
-		for ply,_ in pairs(requests[screenid]) do
-			sendCodeRequest(ply, screenid)
+	for screen, plys in pairs(Requests) do
+		for ply, _ in pairs(plys) do
+			initCodeRequest(screen, ply)
 		end
 	end
 end
 
 net.Receive("starfall_screen_download", function(len, ply)
-	local screen = net.ReadEntity()
-	sendCodeRequest(ply, screen:EntIndex())
+	local action = net.ReadInt(8)
+	if action == SF_UPLOAD_INIT then
+		local screen = net.ReadEntity()
+		initCodeRequest(screen, ply)
+	elseif action == SF_UPLOAD_DATA then
+		local screen = net.ReadEntity()
+		local file_list = {}
+		while net.ReadBit() > 0 do
+			local fname = net.ReadString()
+			file_list[#file_list + 1] = fname
+			--print("Server requested for: "..fname)
+		end
+		for _, fname in ipairs(file_list) do
+			local fdata, offset = screen.files[fname], 1
+			repeat
+				net.Start("starfall_screen_download")
+				net.WriteInt(SF_UPLOAD_DATA, 8)
+				net.WriteEntity(screen)
+				net.WriteString(fname)
+				local data = fdata:sub(offset, offset+64000)
+				net.WriteString(data)
+				net.Send(ply)
+				offset = offset + #data + 1
+			until offset > #fdata
+		end
+		net.Start("starfall_screen_download")
+		net.WriteInt(SF_UPLOAD_END, 8)
+		net.WriteEntity(screen)
+		net.WriteEntity(screen.owner)
+		net.WriteString(screen.mainfile)
+		net.Send(ply)
+	end
 end)
 
 function ENT:Initialize()
@@ -140,16 +149,7 @@ function ENT:CodeSent(ply, files, mainfile)
 	screens[self] = self
 
 	if update then
-		net.Start("starfall_screen_update")
-			net.WriteEntity(self)
-			for k,v in pairs(files) do
-				net.WriteBit(false)
-				net.WriteString(k)
-				net.WriteString(util.CRC(v))
-			end
-			net.WriteBit(true)
-		net.Broadcast()
-		--sendScreenCode(self, ply, files, mainfile)
+		sendScreenCode(nil, self)
 	end
 
 	local ppdata = {}
@@ -188,12 +188,14 @@ local i = 0
 function ENT:Think()
 	self.BaseClass.Think(self)
 
+	---[[
 	i = i + 1
 
 	if i % 22 == 0 then
 		retryCodeRequests()
 		i = 0
 	end
+	--]]
 
 	self:NextThink(CurTime())
 	

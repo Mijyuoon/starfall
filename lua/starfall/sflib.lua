@@ -451,37 +451,49 @@ end
 
 -- ------------------------------------------------------------------------- --
 
+file.CreateDir("sf_cache/")
+SF_UPLOAD_ERROR = 0
+SF_UPLOAD_INIT = 1
+SF_UPLOAD_CRC = 2
+SF_UPLOAD_DATA = 3
+SF_UPLOAD_HEAD = 4
+SF_UPLOAD_END = 5
+
 if SERVER then
 	util.AddNetworkString("starfall_requpload")
 	util.AddNetworkString("starfall_upload")
 	
 	local uploaddata = {}
 	
-	function SF.ResetUpload()
+	function SF.ResetUploads()
 		uploaddata = {}
 	end
-	-- Packet structure:
-	-- 
-	-- Initialize packet:
-	--   Bit: False to cancel transfer
-	--   String: Main filename
-	-- Payload packets:
-	--   Bit: End transmission. If true, no other data is included
-	--   String: Filename. Multiple packets with the same filename are to be concactenated onto each other in the order they were sent
-	--   String: File data
 
-	--- Requests a player to send whatever code they have open in his/her editor to
-	-- the server.
-	-- @server
-	-- @param ply Player to request code from
-	-- @param callback Called when all of the code is recieved. Arguments are either the main filename and a table
-	-- of filename->code pairs, or nil if the client couldn't handle the request (due to bad includes, etc)
-	-- @return True if the code was requested, false if an incomplete request is still in progress for that player
+	local function make_path(ply, path)
+		local path = util.CRC(path:gsub("starfall/", ""))
+		local plyid = ply:SteamID():gsub(":","_")
+		file.CreateDir("sf_cache/" .. plyid)
+		return string.format("sf_cache/%s/%s.txt", plyid, path)
+	end
+	
+	local function check_cached(ply, path, crc)
+		local path = make_path(ply, path)
+		if not file.Exists(path, "DATA") then
+			return false
+		end
+		
+		local fdata = file.Read(path, "DATA")
+		if util.CRC(fdata) ~= crc then
+			return false
+		end
+		return true, fdata
+	end
+	
 	function SF.RequestCode(ply, callback)
 		if uploaddata[ply] then return false end
 		
 		net.Start("starfall_requpload")
-		net.WriteEntity(ent)
+		net.WriteInt(SF_UPLOAD_INIT, 8)
 		net.Send(ply)
 
 		uploaddata[ply] = {
@@ -492,10 +504,6 @@ if SERVER then
 		}
 		return true
 	end
-
-	hook.Add("PlayerDisconnected", "SF_requestcode_cleanup", function(ply)
-		uploaddata[ply] = nil
-	end)
 	
 	net.Receive("starfall_upload", function(len, ply)
 		local updata = uploaddata[ply]
@@ -504,67 +512,109 @@ if SERVER then
 			return
 		end
 		
-		if updata.needHeader then
-			if net.ReadBit() == 0 then
-				--print("Recieved cancel packet")
-				updata.callback(nil, nil)
-				uploaddata[ply] = nil
-				return
+		local action = net.ReadInt(8)
+		if action == SF_UPLOAD_ERROR then
+			updata.callback(nil, nil)
+			uploaddata[ply] = nil
+		elseif action == SF_UPLOAD_CRC then
+			local file_list = {}
+			while net.ReadBit() > 0 do
+				local fname = net.ReadString()
+				local fcrc = net.ReadString()
+				local chk, fdata = check_cached(ply, fname, fcrc)
+				if not chk then
+					file_list[#file_list + 1] = fname
+					--print("Cache miss/expired for: "..fname)
+				else
+					updata.files[fname] = fdata
+					--print("Got cache entry for: "..fname)
+				end
 			end
+			net.Start("starfall_requpload")
+			net.WriteInt(SF_UPLOAD_DATA, 8)
+			for _, fname in ipairs(file_list) do
+				net.WriteBit(true)
+				net.WriteString(fname)
+				--print("Request file: "..fname)
+			end
+			net.WriteBit(false)
+			net.Send(ply)
+		elseif action == SF_UPLOAD_HEAD then
 			updata.mainfile = net.ReadString()
+			--print("Main file: " .. updata.mainfile)
 			updata.needHeader = nil
-			--print("Begin recieving, mainfile:", updata.mainfile)
-		else
-			if net.ReadBit() ~= 0 then
-				--print("End recieving data")
-				updata.callback(updata.mainfile, updata.files)
-				uploaddata[ply] = nil
-				return
-			end
+		elseif action == SF_UPLOAD_DATA then
 			local filename = net.ReadString()
 			local filedata = net.ReadString()
-			--print("\tRecieved data for:", filename, "len:", #filedata)
-			updata.files[filename] = updata.files[filename] and updata.files[filename]..filedata or filedata
+			local current_file = updata.files[filename]
+			if not current_file then
+				updata.files[filename] = {filedata}
+			else
+				current_file[#current_file + 1] = filedata
+			end
+		elseif action == SF_UPLOAD_END then
+			for key, val in pairs(updata.files) do
+				if type(val) == "table" then
+					updata.files[key] = table.concat(val)
+					if key ~= "generic" then
+						local cache_path = make_path(ply, key)
+						file.Write(cache_path, updata.files[key])
+						--print("Write cache for: "..key.." as "..cache_path)
+					end
+				end
+			end
+			updata.callback(updata.mainfile, updata.files)
+			uploaddata[ply] = nil
 		end
-
 	end)
 else
-	net.Receive("starfall_requpload", function(len)
-		local ok, list = SF.Editor.BuildIncludesTable()
-		if ok then
-			--print("Uploading SF code")
+	local inc_table = nil
+	net.Receive("starfall_requpload", function()
+		local action = net.ReadInt(8)
+		if action == SF_UPLOAD_INIT then
+			local ok, files = SF.Editor.BuildIncludesTable()
+			if ok then
+				inc_table = files
+				net.Start("starfall_upload")
+				net.WriteInt(SF_UPLOAD_CRC, 8)
+				for key, val in pairs(inc_table.files) do
+					net.WriteBit(true)
+					net.WriteString(key)
+					net.WriteString(util.CRC(val))
+				end
+				net.WriteBit(false)
+				net.SendToServer()
+			else
+				net.Start("starfall_upload")
+				net.WriteInt(SF_UPLOAD_ERROR, 8)
+				net.SendToServer()
+			end
+		elseif action == SF_UPLOAD_DATA then
+			local file_list = {}
+			while net.ReadBit() > 0 do
+				local fname = net.ReadString()
+				file_list[#file_list + 1] = fname
+				--print("Server requested for: "..fname)
+			end
 			net.Start("starfall_upload")
-			net.WriteBit(true)
-			net.WriteString(list.mainfile)
+			net.WriteInt(SF_UPLOAD_HEAD, 8)
+			net.WriteString(inc_table.mainfile)
 			net.SendToServer()
-			--print("\tHeader sent")
-
-			for fname, fdata in pairs(list.files) do
-				local offset = 1
+			for _, fname in ipairs(file_list) do
+				local fdata, offset = inc_table.files[fname], 1
 				repeat
 					net.Start("starfall_upload")
-					net.WriteBit(false)
+					net.WriteInt(SF_UPLOAD_DATA, 8)
 					net.WriteString(fname)
-					local data = fdata:sub(offset, offset+60000)
+					local data = fdata:sub(offset, offset+64000)
 					net.WriteString(data)
 					net.SendToServer()
-
-					--print("\t\tSent data from", offset, "to", offset + #data)
 					offset = offset + #data + 1
 				until offset > #fdata
 			end
-
 			net.Start("starfall_upload")
-			net.WriteBit(true)
+			net.WriteInt(SF_UPLOAD_END, 8)
 			net.SendToServer()
-			--print("Done sending")
-		else
-			net.Start("starfall_upload")
-			net.WriteBit(false)
-			net.SendToServer()
-			if buildlist then
-				WireLib.AddNotify("File not found: "..buildlist,NOTIFY_ERROR,7,NOTIFYSOUND_ERROR1)
-			end
 		end
 	end)
 end
