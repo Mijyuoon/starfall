@@ -162,6 +162,7 @@ function ENT:CodeSent(ply, files, mainfile)
 		instance.runOnError = function(inst,...) self:Error(...) end
 
 		if self.instance then
+			self:runScriptHook("last")
 			self.instance:deinitialize()
 			self.instance = nil
 		end

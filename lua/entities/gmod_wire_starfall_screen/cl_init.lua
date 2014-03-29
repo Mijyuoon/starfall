@@ -158,7 +158,10 @@ end
 
 function ENT:CodeSent(files, main, owner)
 	if not files or not main or not owner then return end
-	if self.instance then self.instance:deinitialize() end
+	if self.instance then
+		self:runScriptHook("last")
+		self.instance:deinitialize()
+	end
 	--self.owner = owner
 	local datatable = { ent = self, render = {} }
 	local ok, instance = SF.Compiler.Compile(files,context,main,owner,datatable)
