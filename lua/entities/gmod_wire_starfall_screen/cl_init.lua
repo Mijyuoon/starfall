@@ -120,6 +120,7 @@ end
 function ENT:OnRemove()
 	self.GPU:Finalize()
 	if self.instance then
+		self:runScriptHook("last")
 		self.instance:deinitialize()
 	end
 end

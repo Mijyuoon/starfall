@@ -30,6 +30,21 @@ function timer_library.frametime()
 	return FrameTime()
 end
 
+function timer_library.date(format, time)
+	SF.CheckType(format, "string")
+	if time ~= nil then
+		SF.CheckType(time, "number")
+	end
+	return os.date(format, time)
+end
+
+function timer_library.time(ts_struct)
+	if ts_struct ~= nil then
+		SF.CheckType(ts_struct, "table")
+	end
+	return os.time(ts_struct)
+end
+
 -- ------------------------- Timers ------------------------- --
 
 local function mangle_timer_name(instance, name)

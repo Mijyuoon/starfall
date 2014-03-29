@@ -142,7 +142,7 @@ end
 
 function ENT:CodeSent(ply, files, mainfile)
 	if ply ~= self.owner then return end
-	local update = self.mainfile ~= nil
+	local update = (self.mainfile ~= nil)
 
 	self.files = files
 	self.mainfile = mainfile
@@ -222,6 +222,9 @@ end
 
 function ENT:OnRemove()
 	if not self.instance then return end
+	if self.sharedscreen then
+		self:runScriptHook("last")
+	end
 	screens[self] = nil
 	self.instance:deinitialize()
 	self.instance = nil
