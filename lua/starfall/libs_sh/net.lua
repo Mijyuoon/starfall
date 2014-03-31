@@ -126,7 +126,7 @@ end
 --- Sets whether send a message to all screens
 -- @shared
 -- @param flag To all screens?
-function net_library.sendToAll(flag)
+function net_library.toAll(flag)
 	SF.CheckType(flag, "boolean")
 	SF.instance.data.net.to_all = flag
 end
