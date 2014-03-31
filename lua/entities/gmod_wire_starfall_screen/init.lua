@@ -19,7 +19,7 @@ local function sendScreenCode(ply, screen)
 	net.Start("starfall_screen_download")
 	net.WriteInt(SF_UPLOAD_CRC, 8)
 	net.WriteEntity(screen)
-	for key, val in pairs(screen.files) do
+	for key, val in pairs(screen.co_files) do
 		net.WriteBit(true)
 		net.WriteString(key)
 		net.WriteString(util.CRC(val))
@@ -72,14 +72,14 @@ net.Receive("starfall_screen_download", function(len, ply)
 			--print("Server requested for: "..fname)
 		end
 		for _, fname in ipairs(file_list) do
-			local fdata, offset = screen.files[fname], 1
+			local fdata, offset = screen.co_files[fname], 1
 			repeat
 				net.Start("starfall_screen_download")
 				net.WriteInt(SF_UPLOAD_DATA, 8)
 				net.WriteEntity(screen)
 				net.WriteString(fname)
 				local data = fdata:sub(offset, offset+64000)
-				net.WriteString(data)
+				net.WriteString(util.Base64Encode(data))
 				net.Send(ply)
 				offset = offset + #data + 1
 			until offset > #fdata
@@ -145,8 +145,12 @@ function ENT:CodeSent(ply, files, mainfile)
 	local update = (self.mainfile ~= nil)
 
 	self.files = files
+	self.co_files = {}
 	self.mainfile = mainfile
 	screens[self] = self
+	for key,val in pairs(files) do
+		self.co_files[key] = util.Compress(val)
+	end
 
 	if update then
 		sendScreenCode(nil, self)

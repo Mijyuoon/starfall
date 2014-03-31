@@ -9,13 +9,15 @@ local context = SF.CreateContext(nil, nil, nil, nil, SF.Libraries.CreateLocalTbl
 
 surface.CreateFont("Starfall_ErrorFont", {
 	font = "Arial",
-	size = 16,
+	size = 20,
 	weight = 200,
 })
 
 local function make_path(ply, path)
 	local path = util.CRC(path:gsub("starfall/", ""))
-	return string.format("sf_cache/%s.txt", path)
+	local plyid = ply:SteamID():gsub(":","_")
+	file.CreateDir("sf_cache/" .. plyid)
+	return string.format("sf_cache/%s/%s.txt", plyid, path)
 end
 	
 local function check_cached(ply, path, crc)
@@ -33,6 +35,7 @@ end
 
 net.Receive("starfall_screen_download", function()
 	local action = net.ReadInt(8)
+	local ply = LocalPlayer()
 	if action == SF_UPLOAD_CRC then
 		local screen = net.ReadEntity()
 		screen.files = {}
@@ -45,7 +48,7 @@ net.Receive("starfall_screen_download", function()
 				file_list[#file_list + 1] = fname
 				--print("Cache miss/expired for: "..fname)
 			else
-				screen.files[fname] = fdata
+				screen.files[fname] = util.Decompress(fdata)
 				--print("Got cache entry for: "..fname)
 			end
 		end	
@@ -63,6 +66,7 @@ net.Receive("starfall_screen_download", function()
 		local screen = net.ReadEntity()
 		local filename = net.ReadString()
 		local filedata = net.ReadString()
+		filedata = util.Base64Decode(filedata)
 		local current_file = screen.files[filename]
 		if not current_file then
 			screen.files[filename] = {filedata}
@@ -73,10 +77,11 @@ net.Receive("starfall_screen_download", function()
 		local screen = net.ReadEntity()
 		for key, val in pairs(screen.files) do
 			if type(val) == "table" then
-				screen.files[key] = table.concat(val)
+				local file_data = table.concat(val)
+				screen.files[key] = util.Decompress(file_data)
 				if key ~= "generic" then
 					local cache_path = make_path(ply, key)
-					file.Write(cache_path, screen.files[key])
+					file.Write(cache_path, file_data)
 					--print("Write cache for: "..key.." as "..cache_path)
 				end
 			end
@@ -188,7 +193,7 @@ function ENT:CodeSent(files, main, owner)
 			
 		elseif self.error then
 			surface.SetTexture(0)
-			surface.SetDrawColor(0, 0, 0, 120)
+			surface.SetDrawColor(0, 0, 0, 140)
 			surface.DrawRect(0, 0, 512, 512)
 			
 			draw.DrawText("Error occurred in Starfall Screen:", "Starfall_ErrorFont", 32, 16, Color(0, 255, 255, 255)) -- Cyan
