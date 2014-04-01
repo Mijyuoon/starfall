@@ -26,7 +26,7 @@ local function check_cached(ply, path, crc)
 		return false
 	end
 	
-	local fdata = file.Read(path, "DATA")
+	local fdata = util.Decompress(file.Read(path, "DATA"))
 	if util.CRC(fdata) ~= crc then
 		return false
 	end
@@ -48,7 +48,7 @@ net.Receive("starfall_screen_download", function()
 				file_list[#file_list + 1] = fname
 				--print("Cache miss/expired for: "..fname)
 			else
-				screen.files[fname] = util.Decompress(fdata)
+				screen.files[fname] = fdata
 				--print("Got cache entry for: "..fname)
 			end
 		end	
@@ -66,7 +66,6 @@ net.Receive("starfall_screen_download", function()
 		local screen = net.ReadEntity()
 		local filename = net.ReadString()
 		local filedata = net.ReadString()
-		filedata = util.Base64Decode(filedata)
 		local current_file = screen.files[filename]
 		if not current_file then
 			screen.files[filename] = {filedata}
@@ -77,7 +76,7 @@ net.Receive("starfall_screen_download", function()
 		local screen = net.ReadEntity()
 		for key, val in pairs(screen.files) do
 			if type(val) == "table" then
-				local file_data = table.concat(val)
+				local file_data = util.Base64Decode(table.concat(val))
 				screen.files[key] = util.Decompress(file_data)
 				if key ~= "generic" then
 					local cache_path = make_path(ply, key)

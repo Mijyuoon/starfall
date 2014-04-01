@@ -19,7 +19,7 @@ local function sendScreenCode(ply, screen)
 	net.Start("starfall_screen_download")
 	net.WriteInt(SF_UPLOAD_CRC, 8)
 	net.WriteEntity(screen)
-	for key, val in pairs(screen.co_files) do
+	for key, val in pairs(screen.files) do
 		net.WriteBit(true)
 		net.WriteString(key)
 		net.WriteString(util.CRC(val))
@@ -79,7 +79,7 @@ net.Receive("starfall_screen_download", function(len, ply)
 				net.WriteEntity(screen)
 				net.WriteString(fname)
 				local data = fdata:sub(offset, offset+64000)
-				net.WriteString(util.Base64Encode(data))
+				net.WriteString(data)
 				net.Send(ply)
 				offset = offset + #data + 1
 			until offset > #fdata
@@ -149,7 +149,7 @@ function ENT:CodeSent(ply, files, mainfile)
 	self.mainfile = mainfile
 	screens[self] = self
 	for key,val in pairs(files) do
-		self.co_files[key] = util.Compress(val)
+		self.co_files[key] = util.Base64Encode(util.Compress(val))
 	end
 
 	if update then

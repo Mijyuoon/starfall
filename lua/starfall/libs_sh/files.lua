@@ -95,6 +95,18 @@ function files_library.exists(path)
 	return file.Exists("sf_files/"..make_path(path), "DATA")
 end
 
+--- Retrieves file size
+-- @param path Filepath relative to data/sf_files/. Cannot contain '..'
+-- @return File size, nil if error
+-- @return Error message if applicable
+function files_library.size(path)
+	SF.CheckType(path, "string")
+	if not check_access() then
+		return nil, "access denied"
+	end
+	return file.Size("sf_files/"..make_path(path), "DATA")
+end
+
 --- Deletes a file
 -- @param path Filepath relative to data/sf_files/. Cannot contain '..'
 -- @return True if successful, nil if error
