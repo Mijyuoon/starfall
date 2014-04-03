@@ -173,6 +173,7 @@ function ENT:CodeSent(files, main, owner)
 	
 	instance.runOnError = function(inst,...) self:Error(...) end
 	
+	self.error = nil
 	self.instance = instance
 	instance.data.entity = self
 	instance.data.render.gpu = self.GPU

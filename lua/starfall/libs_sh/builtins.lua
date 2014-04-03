@@ -318,7 +318,7 @@ local function printTableX( target, t, indent, alreadyprinted )
 		if SF.GetType( v ) == "table" and not alreadyprinted[v] then
 			alreadyprinted[v] = true
 			target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. ":" )
-			printTableX( v, indent + 1, alreadyprinted )
+			printTableX( target, v, indent + 1, alreadyprinted )
 		else
 			target:ChatPrint( string.rep( "\t", indent ) .. tostring(k) .. "\t=\t" .. tostring(v) )
 		end
