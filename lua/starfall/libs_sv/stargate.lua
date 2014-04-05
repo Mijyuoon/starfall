@@ -83,3 +83,26 @@ function sg_lib.overloadPerc(gate)
 	end
 	return nil
 end
+
+function sg_lib.overloadTime(gate)
+	SF.CheckType(gate, e_meta)
+	gate = unwrap(gate)
+	if IsValid(gate) and gate.IsStargate then
+		if not IsValid(gate.overloader) then
+			return -1
+		elseif not gate.overloader.isFiring then
+			return -1
+		elseif gate.isOverloading then
+			return 0
+		end
+		local pow = gate.excessPower or 0
+		local lim = gate.excessPowerLimit or 1
+		local sec = gate.overloader.energyPerSecond or 1
+		local time_left = (lim-pow) / sec
+		if StarGate.IsIrisClosed(gate) then
+			time_left = time_left * 2
+		end
+		return time_left
+	end
+	return nil
+end
