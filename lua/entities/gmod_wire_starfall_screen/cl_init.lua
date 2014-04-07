@@ -14,6 +14,7 @@ surface.CreateFont("Starfall_ErrorFont", {
 })
 
 local function make_path(ply, path)
+	if not ply then return false end
 	local path = util.CRC(path:gsub("starfall/", ""))
 	local plyid = ply:SteamID():gsub(":","_")
 	file.CreateDir("sf_cache/" .. plyid)
@@ -21,6 +22,7 @@ local function make_path(ply, path)
 end
 	
 local function check_cached(ply, path, crc)
+	if not ply then return false end
 	local path = make_path(ply, path)
 	if not file.Exists(path, "DATA") then
 		return false
@@ -35,15 +37,15 @@ end
 
 net.Receive("starfall_screen_download", function()
 	local action = net.ReadInt(8)
-	local ply = LocalPlayer()
 	if action == SF_UPLOAD_CRC then
 		local screen = net.ReadEntity()
-		screen.files = {}
+		screen.owner = net.ReadEntity()
+		screen.mainfile = net.ReadString()
 		local file_list = {}
 		while net.ReadBit() > 0 do
 			local fname = net.ReadString()
 			local fcrc = net.ReadString()
-			local chk, fdata = check_cached(ply, fname, fcrc)
+			local chk, fdata = check_cached(screen.owner, fname, fcrc)
 			if not chk then
 				file_list[#file_list + 1] = fname
 				--print("Cache miss/expired for: "..fname)
@@ -67,7 +69,7 @@ net.Receive("starfall_screen_download", function()
 		local filename = net.ReadString()
 		local filedata = net.ReadString()
 		local current_file = screen.files[filename]
-		if not current_file then
+		if type(current_file) ~= "table" then
 			screen.files[filename] = {filedata}
 		else
 			current_file[#current_file + 1] = filedata
@@ -79,14 +81,14 @@ net.Receive("starfall_screen_download", function()
 				local file_data = util.Base64Decode(table.concat(val))
 				screen.files[key] = util.Decompress(file_data)
 				if key ~= "generic" then
-					local cache_path = make_path(ply, key)
-					file.Write(cache_path, file_data)
+					local cache_path = make_path(screen.owner, key)
+					if cache_path then
+						file.Write(cache_path, file_data)
+					end
 					--print("Write cache for: "..key.." as "..cache_path)
 				end
 			end
 		end
-		screen.owner = net.ReadEntity()
-		screen.mainfile = net.ReadString()
 		screen:CodeSent(screen.files, screen.mainfile, screen.owner)
 	end
 end)
@@ -105,6 +107,7 @@ end)
 
 function ENT:Initialize()
 	self.GPU = GPULib.WireGPU(self)
+	self.files = {}
 	net.Start("starfall_screen_download")
 	net.WriteInt(SF_UPLOAD_INIT, 8)
 	net.WriteEntity(self)

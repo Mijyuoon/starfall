@@ -19,6 +19,8 @@ local function sendScreenCode(ply, screen)
 	net.Start("starfall_screen_download")
 	net.WriteInt(SF_UPLOAD_CRC, 8)
 	net.WriteEntity(screen)
+	net.WriteEntity(screen.owner)
+	net.WriteString(screen.mainfile)
 	for key, val in pairs(screen.files) do
 		net.WriteBit(true)
 		net.WriteString(key)
@@ -87,8 +89,6 @@ net.Receive("starfall_screen_download", function(len, ply)
 		net.Start("starfall_screen_download")
 		net.WriteInt(SF_UPLOAD_END, 8)
 		net.WriteEntity(screen)
-		net.WriteEntity(screen.owner)
-		net.WriteString(screen.mainfile)
 		net.Send(ply)
 	end
 end)
@@ -141,6 +141,9 @@ function ENT:Error(msg, override)
 end
 
 function ENT:CodeSent(ply, files, mainfile)
+	if not IsValid(self.owner) then
+		self.owner = ply
+	end
 	if ply ~= self.owner then return end
 	local update = (self.mainfile ~= nil)
 
@@ -248,7 +251,6 @@ function ENT:WriteCell ( address, data )
 end
 
 --[[
-
 function ENT:BuildDupeInfo()
 	local info = self.BaseClass.BuildDupeInfo(self) or {}
 	info.starfall = SF.SerializeCode(self.instance.files, self.instance.mainfile)
@@ -263,9 +265,9 @@ function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
 	--local task = {files = code, mainfile = main}
 	self:CodeSent(ply, files, main)
 end
-
 --]]
 
+--[[
 local instance
 
 function ENT:PreEntityCopy()
@@ -276,5 +278,6 @@ end
 function ENT:PostEntityCopy()
 	self.instance = instance
 end
+--]]
 
 duplicator.RegisterEntityClass("gmod_wire_starfall_processor", nil)

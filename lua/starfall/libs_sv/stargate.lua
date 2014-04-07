@@ -106,3 +106,23 @@ function sg_lib.overloadTime(gate)
 	end
 	return nil
 end
+
+function sg_lib.getAddressList(gate)
+	SF.CheckType(gate, e_meta)
+	gate = unwrap(gate)
+	if IsValid(gate) and gate.IsStargate then
+		return gate:WireGetAddresses()
+	end
+	return nil
+end
+
+function sg_lib.getGateDistance(gate, addr)
+	SF.CheckType(gate, e_meta)
+	SF.CheckType(addr, "string")
+	gate = unwrap(gate)
+	if IsValid(gate) and gate.IsStargate then
+		addr = addr:upper():sub(1,9)
+		return gate:WireGetEnergy(addr, true)
+	end
+	return nil
+end

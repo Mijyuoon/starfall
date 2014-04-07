@@ -60,7 +60,7 @@ include("preprocessor.lua")
 include("permissions.lua")
 include("editor.lua")
 
-SF.defaultquota = CreateConVar("sf_defaultquota", "100000", {FCVAR_ARCHIVE,FCVAR_REPLICATED},
+SF.defaultquota = CreateConVar("sf_defaultquota", "300000", {FCVAR_ARCHIVE,FCVAR_REPLICATED},
 	"The default number of Lua instructions to allow Starfall scripts to execute")
 
 local dgetmeta = debug.getmetatable

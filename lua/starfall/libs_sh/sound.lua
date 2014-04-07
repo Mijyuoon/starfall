@@ -9,8 +9,8 @@ local wrap, unwrap = SF.CreateWrapper(sound_metamethods,true,false)
 
 --- Creates a sound and attaches it to an entity. You need to do sound:Play() before
 -- the sound will play however.
--- @param path Filepath to the sound file
 -- @param entity Entity playing the sound
+-- @param path Filepath to the sound file
 -- @return The sound object. Keep this around to ensure it isn't GC'd (and thus stopped)
 -- before it is done playing.
 function sound_library.create(entity, path)
