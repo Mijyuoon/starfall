@@ -125,11 +125,15 @@ function ENT:Think()
 end
 
 function ENT:OnRemove()
-	self.GPU:Finalize()
-	if self.instance then
-		self:runScriptHook("last")
-		self.instance:deinitialize()
-	end
+	local vtab = self:GetTable()
+	timer.Simple(0.1, function()
+		if IsValid(self) then return end
+		vtab.GPU:Finalize()
+		if vtab.instance then
+			vtab:runScriptHook("last")
+			vtab.instance:deinitialize()
+		end
+	end)
 end
 
 function ENT:Error(msg)

@@ -84,11 +84,17 @@ if SERVER then
 
 		local sendfunc, newtarget = checktargets( target )
 		local to_all = instance.data.net.to_all
+		local targ_ent = SF.instance.data.entity
+		if type(to_all) == "Entity" then
+			targ_ent = to_all
+		elseif to_all == true then
+			targ_ent = NULL
+		end
 		
 		local data = instance.data.net.data
 		if #data == 0 then return false end
 		net.Start( "SF_netmessage" )
-			net.WriteEntity( to_all and NULL or SF.instance.data.entity )
+			net.WriteEntity( targ_ent )
 			for i=1, #data do
 				local writefunc = data[i][1]
 				local writevalue = data[i][2]
@@ -106,11 +112,17 @@ else
 		local instance = SF.instance
 		if not instance.data.net.started then SF.throw( "net message not started", 2 ) end
 		local to_all = instance.data.net.to_all
+		local targ_ent = SF.instance.data.entity
+		if type(to_all) == "Entity" then
+			targ_ent = to_all
+		elseif to_all == true then
+			targ_ent = NULL
+		end
 		
 		local data = instance.data.net.data
 		if #data == 0 then return false end
 		net.Start( "SF_netmessage" )
-			net.WriteEntity( to_all and NULL or SF.instance.data.entity )
+			net.WriteEntity( targ_ent )
 			for i=1, #data do
 				local writefunc = data[i][1]
 				local writevalue = data[i][2]
@@ -129,6 +141,11 @@ end
 function net_library.toAll(flag)
 	SF.CheckType(flag, "boolean")
 	SF.instance.data.net.to_all = flag
+end
+
+function net_library.toEnt(targ)
+	SF.CheckType(targ, SF.Entities.Metatable)
+	SF.instance.data.net.to_all = SF.Entities.Unwrap(targ)
 end
 
 --- Starts the net message

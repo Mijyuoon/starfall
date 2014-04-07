@@ -135,7 +135,7 @@ function SF.RunScriptHook(hook,...)
 		if not instance.error then
 			local ok, err = instance:runScriptHook(hook,...)
 			if not ok then
-				instance.error = true
+				instance.error = 7
 				if instance.runOnError then
 					instance:runOnError( err )
 				end
@@ -150,8 +150,10 @@ end
 -- @param permissions The permissions manager to use. Default is SF.DefaultPermissions
 -- @param ops Operations quota function. Default is specified by the convar "sf_defaultquota" and returned when calling ops()
 -- @param libs Additional (local) libraries for the script to access. Default is an empty table.
+SF.Quota = 300000
 local function get_defaultquota()
-	return SF.defaultquota:GetInt()
+	--return SF.defaultquota:GetInt()
+	return SF.Quota
 end
 function SF.CreateContext(env, directives, permissions, ops, libs)
 	local context = {}

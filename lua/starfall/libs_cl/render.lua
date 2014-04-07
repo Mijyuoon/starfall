@@ -76,6 +76,7 @@ local validfonts = {
 	"ChatFont",
 	"Marlett",
 	"Anquietas",
+	"Quiver",
 	"OCR A Extended",
 	"Tele-Marines",
 	"DS-Digital",

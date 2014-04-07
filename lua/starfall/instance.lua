@@ -27,7 +27,6 @@ SF.Instance.__index = SF.Instance
 local function infloop_detection_replacement()
 	error("Infinite Loop Detected!",2)
 end
-
 --- Internal function - do not call.
 -- Runs a function while incrementing the instance ops coutner.
 -- This does no setup work and shouldn't be called by client code
@@ -113,6 +112,7 @@ function SF.Instance:initialize()
 	if not ok then
 		self:cleanup("_initialize", true, err, traceback)
 		self.error = true
+		--print "initialize() errored"
 		return false, err, traceback
 	end
 	
@@ -175,6 +175,7 @@ function SF.Instance:iterScriptHook(hook,...)
 		if not ok then
 			self:cleanup(hook,name,true,tbl,traceback)
 			self.error = true
+			--print "iterScriptHook() errored"
 			return false, tbl, traceback
 		end
 		
@@ -204,6 +205,7 @@ function SF.Instance:iterTblScriptHook(hook,...)
 		if not ok then
 			self:cleanup(hook,name,true,tbl,traceback)
 			self.error = true
+			--print "iterTblScriptHook() errored"
 			return false, tbl, traceback
 		end
 		
@@ -231,6 +233,7 @@ function SF.Instance:runFunction(func,...)
 	if not ok then
 		self:cleanup("_runFunction",func,true,tbl,traceback)
 		self.error = true
+		--print "runFunction() errored"
 		return false, tbl, traceback
 	end
 	
@@ -248,6 +251,7 @@ function SF.Instance:runFunctionT(func,...)
 	if not ok then
 		self:cleanup("_runFunction",func,true,tbl,traceback)
 		self.error = true
+		--print "runFunctionT() errored"
 		return false, tbl, traceback
 	end
 	
@@ -266,6 +270,7 @@ function SF.Instance:deinitialize()
 	self:runLibraryHook("deinitialize")
 	SF.allInstances[self] = nil
 	self.error = true
+	--print "!! deinitialize()"
 end
 
 --- Errors the instance. Should only be called from the tips of the call tree (aka from places such as the hook library, timer library, the entity's think function, etc)
@@ -273,6 +278,7 @@ function SF.Instance:Error(msg,traceback)
 	
 	if self.runOnError then -- We have a custom error function, use that instead
 		self.runOnError( msg, traceback )
+		print "runOnError()"
 		return
 	end
 	
