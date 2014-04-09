@@ -117,15 +117,25 @@ function ENT:OnRemove()
 end
 
 function ENT:TriggerInput(key, value)
+	local instance = SF.instance
+	SF.instance = nil
 	self:runScriptHook("input", key, SF.Wire.InputConverters[self.Inputs[key].Type](value))
+	SF.instance = instance
 end
 
 function ENT:ReadCell(address)
-	return tonumber(self:runScriptHookForResult("readcell",address)) or 0
+	local instance = SF.instance
+	SF.instance = nil
+	local res =  tonumber(self:runScriptHookForResult("readcell",address)) or 0
+	SF.instance = instance
+	return res
 end
 
 function ENT:WriteCell(address, data)
+	local instance = SF.instance
+	SF.instance = nil
 	self:runScriptHook("writecell",address,data)
+	SF.instance = instance
 end
 
 function ENT:runScriptHook(hook, ...)
