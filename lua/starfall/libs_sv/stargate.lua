@@ -126,3 +126,13 @@ function sg_lib.getGateDistance(gate, addr)
 	end
 	return nil
 end
+
+function sg_lib.gateUnstable(gate)
+	SF.CheckType(gate, e_meta)
+	gate = unwrap(gate)
+	if IsValid(gate) and gate.IsStargate then
+		local eh = gate.EventHorizon
+		return (IsValid(eh) and eh.Unstable)
+	end
+	return false
+end
