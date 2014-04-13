@@ -49,7 +49,10 @@ local function mynext( t, idx )
 	
 	local dm = dgetmeta( t )
 	if dm and type(dm.__metatable) == "string" then
-		return next(dm.__index,idx)
+		if type(dm.__index) == "table" then
+			return next(dm.__index,idx)
+		end
+		return nil
 	else
 		return next(t,idx)
 	end

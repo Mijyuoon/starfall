@@ -21,7 +21,8 @@ function P:check ( principal, target, key )
 	if type( target ) ~= "string" then return NEUTRAL end
 
 	-- allow if the localplayer is trying to write a file to their computer
-	if keys[ key ] and principal == LocalPlayer() then
+	--if keys[ key ] and principal == LocalPlayer() then
+	if keys[ key ] then
 		return ALLOW
 	else
 		return NEUTRAL
