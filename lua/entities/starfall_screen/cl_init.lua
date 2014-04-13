@@ -4,8 +4,8 @@ ENT.RenderGroup = RENDERGROUP_OPAQUE
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
-
-local context = SF.CreateContext(nil, nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
+--wat
+local context = SF.CreateContext(nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
 
 surface.CreateFont("Starfall_ErrorFont", {
 	font = "Arial",

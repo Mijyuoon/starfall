@@ -16,7 +16,7 @@ if SERVER then
 	function MakeSF( pl, Pos, Ang, model)
 		if not pl:CheckLimit( "starfall_screen" ) then return false end
 
-		local sf = ents.Create( "gmod_wire_starfall_screen" )
+		local sf = ents.Create( "starfall_screen" )
 		if not IsValid(sf) then return false end
 
 		sf:SetAngles( Ang )
@@ -45,7 +45,7 @@ function TOOL:LeftClick( trace )
 
 	local ply = self:GetOwner()
 
-	if trace.Entity:IsValid() and trace.Entity:GetClass() == "gmod_wire_starfall_screen" then
+	if trace.Entity:IsValid() and trace.Entity:GetClass() == "starfall_screen" then
 		local ent = trace.Entity
 		if not SF.RequestCode(ply, function(mainfile, files)
 			if not mainfile then return end

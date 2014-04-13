@@ -5,8 +5,8 @@ include('shared.lua')
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
-
-local context = SF.CreateContext(nil, nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
+--wat
+local context = SF.CreateContext(nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
 local screens = {}
 
 util.AddNetworkString("starfall_screen_download")
@@ -99,8 +99,10 @@ function ENT:Initialize()
 	self:SetSolid(SOLID_VPHYSICS)
 	self:SetUseType( 3 )
 	
+	---[[
 	self.Inputs = WireLib.CreateInputs(self, {})
 	self.Outputs = WireLib.CreateOutputs(self, {})
+	--]]
 	
 	local r,g,b,a = self:GetColor()
 end
@@ -192,11 +194,13 @@ function ENT:CodeSent(ply, files, mainfile)
 	end
 end
 
+timer.Create("Starfall_RetryCodeReq", 0.66, 0, retryCodeRequests)
+
 local i = 0
 function ENT:Think()
 	self.BaseClass.Think(self)
 
-	---[[
+	--[[
 	i = i + 1
 
 	if i % 22 == 0 then
@@ -238,6 +242,7 @@ function ENT:OnRemove()
 	self.instance = nil
 end
 
+---[[
 function ENT:TriggerInput(key, value)
 	local instance = SF.instance
 	SF.instance = nil
@@ -259,35 +264,4 @@ function ENT:WriteCell(address, data)
 	self:runScriptHook("writecell",address,data)
 	SF.instance = instance
 end
-
---[[
-function ENT:BuildDupeInfo()
-	local info = self.BaseClass.BuildDupeInfo(self) or {}
-	info.starfall = SF.SerializeCode(self.instance.files, self.instance.mainfile)
-	return info
-end
-
-function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
-	self.BaseClass.ApplyDupeInfo(self, ply, ent, info, GetEntByID)
-	self.owner = ply
-	
-	local code, main = SF.DeserializeCode(info.starfall)
-	--local task = {files = code, mainfile = main}
-	self:CodeSent(ply, files, main)
-end
 --]]
-
---[[
-local instance
-
-function ENT:PreEntityCopy()
-	instance = self.instance
-	self.instance = nil
-end
-
-function ENT:PostEntityCopy()
-	self.instance = instance
-end
---]]
-
-duplicator.RegisterEntityClass("gmod_wire_starfall_processor", nil)

@@ -8,25 +8,18 @@
 -- @shared
 local files_library, _ = SF.Libraries.Register("files")
 
---- Access Files permission
--- @name Access Files Permission
--- @class table
--- @field name "Access Files"
--- @field desc "Allows access to data/sf_files/"
--- @field level 1
--- @field value True if clientside, false if serverside
-
-SF.Permissions:registerPermission({
-	name  = "AccessFiles",
-	desc  = "Allows access to data/sf_files/",
-	level = 1,
-	value = 1,
-})
+-- Register privileges
+do
+	local P = SF.Permissions
+	P.registerPrivilege( "file.read", "Read files", "Allows the user to read files from data/sf_files directory" )
+	P.registerPrivilege( "file.write", "Write files", "Allows the user to write files to data/sf_files directory" )
+	P.registerPrivilege( "file.exists", "File existence check", "Allows the user to determine whether a file in data/sf_files exists" )
+end
 
 file.CreateDir("sf_files/")
 
-local function check_access()
-	return SF.instance.permissions:checkPermission("AccessFiles")
+local function check_access(path, perm)
+	return SF.Permissions.check( SF.instance.player, path, perm )
 end
 
 local function make_path(path)
@@ -45,7 +38,7 @@ end
 -- @return Error message if applicable
 function files_library.read(path)
 	SF.CheckType(path, "string")
-	if not check_access() then 
+	if not check_access(path, "file.read") then 
 		return nil, "access denied"
 	end
 	local contents = file.Read("sf_files/"..make_path(path), "DATA")
@@ -62,7 +55,7 @@ end
 function files_library.write(path, data)
 	SF.CheckType(path, "string")
 	SF.CheckType(data, "string")
-	if not check_access() then
+	if not check_access(path, "file.write") then
 		return nil, "access denied"
 	end
 	file.Write("sf_files/"..make_path(path), data)
@@ -76,7 +69,7 @@ end
 function files_library.append(path,data)
 	SF.CheckType(path, "string")
 	SF.CheckType(data, "string")
-	if not check_access() then
+	if not check_access(path, "file.write") then
 		return nil, "access denied"
 	end
 	file.Append("sf_files/"..make_path(path), data)
@@ -89,7 +82,7 @@ end
 -- @return Error message if applicable
 function files_library.exists(path)
 	SF.CheckType(path, "string")
-	if not check_access() then
+	if not check_access(path, "file.exists") then
 		return nil, "access denied"
 	end
 	return file.Exists("sf_files/"..make_path(path), "DATA")
@@ -101,7 +94,7 @@ end
 -- @return Error message if applicable
 function files_library.size(path)
 	SF.CheckType(path, "string")
-	if not check_access() then
+	if not check_access(path, "file.read") then
 		return nil, "access denied"
 	end
 	return file.Size("sf_files/"..make_path(path), "DATA")
@@ -114,12 +107,12 @@ end
 function files_library.delete(path)
 	SF.CheckType(path, "string")
 	local file_path = make_path(path)
-	if not check_access() then 
+	if not check_access(path, "file.write") then 
 		return nil, "access denied"
 	end
 	if not file.Exists("sf_files/"..file_path, "DATA") then 
 		return nil, "file not found"
 	end
-	file.Delete(file_path)
+	file.Delete("sf_files/"..file_path)
 	return true
 end

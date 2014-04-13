@@ -5,7 +5,8 @@
 if SF ~= nil then return end
 SF = {}
 
-jit.off() -- Needed so ops counting will work reliably.
+--jit.off() -- Needed so ops counting will work reliably.
+-- I don't give a fuck.
 
 -- Do a couple of checks for retarded mods that disable the debug table
 -- and run it after all addons load
@@ -46,8 +47,9 @@ if SERVER then
 	AddCSLuaFile("compiler.lua")
 	AddCSLuaFile("instance.lua")
 	AddCSLuaFile("libraries.lua")
+	AddCSLuaFile("database.lua")
 	AddCSLuaFile("preprocessor.lua")
-	AddCSLuaFile("permissions.lua")
+	AddCSLuaFile("permissions/core.lua")
 	AddCSLuaFile("editor.lua")
 	AddCSLuaFile("callback.lua")
 end
@@ -56,8 +58,9 @@ end
 include("compiler.lua")
 include("instance.lua")
 include("libraries.lua")
+include("database.lua")
 include("preprocessor.lua")
-include("permissions.lua")
+include("permissions/core.lua")
 include("editor.lua")
 
 SF.defaultquota = CreateConVar("sf_defaultquota", "300000", {FCVAR_ARCHIVE,FCVAR_REPLICATED},
@@ -155,11 +158,10 @@ local function get_defaultquota()
 	--return SF.defaultquota:GetInt()
 	return SF.Quota
 end
-function SF.CreateContext(env, directives, permissions, ops, libs)
+function SF.CreateContext(env, directives, ops, libs)
 	local context = {}
 	context.env = env or SF.DefaultEnvironmentMT
 	context.directives = directives or {}
-	context.permissions = permissions or SF.Permissions
 	context.ops = ops or get_defaultquota
 	context.libs = libs or {}
 	return context

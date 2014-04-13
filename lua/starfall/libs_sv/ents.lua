@@ -15,12 +15,19 @@ local function fix_nan(v)
 	if v < huge and v > -huge then return v else return 0 end
 end
 
-SF.Permissions:registerPermission({
-	name = "Modify All Entities",
-	desc = "Allow modification of entities not created by the owner",
-	level = 1,
-	value = false,
-})
+-- Register privileges
+do
+	local P = SF.Permissions
+	P.registerPrivilege( "entities.parent", "Parent", "Allows the user to parent an entity to another entity" )
+	P.registerPrivilege( "entities.unparent", "Unparent", "Allows the user to remove the parent of an entity" ) -- TODO: maybe merge with entities.parent?
+	P.registerPrivilege( "entities.applyForce", "Apply force", "Allows the user to apply force to an entity" )
+	P.registerPrivilege( "entities.setPos", "Set Position", "Allows the user to teleport an entity to another location" )
+	P.registerPrivilege( "entities.setAngles", "Set Angles", "Allows the user to teleport an entity to another orientation" )
+	P.registerPrivilege( "entities.setVelocity", "Set Velocity", "Allows the user to change the velocity of an entity" )
+	P.registerPrivilege( "entities.setFrozen", "Set Frozen", "Allows the user to freeze and unfreeze an entity" )
+	P.registerPrivilege( "entities.setSolid", "Set Solid", "Allows the user to change the solidity of an entity" )
+	P.registerPrivilege( "entities.enableGravity", "Enable gravity", "Allows the user to change whether an entity is affected by gravity" )
+end
 
 -- ------------------------- Internal Library ------------------------- --
 
@@ -125,10 +132,15 @@ local function parent_check( child, parent )
 	return true
 end
 
+--[[
 function SF.Entities.CheckAccess(ent)
 	return (canModify(SF.instance.player, ent) or SF.instance.permissions:checkPermission("Modify All Entities"))
 end
 local check_access = SF.Entities.CheckAccess
+--]]
+local function check_access(data, perm)
+	return SF.Permissions.check( SF.instance.player, data, perm )
+end
 
 function ents_methods:parent( ent )
 	SF.CheckType( self, ents_metatable )
@@ -139,7 +151,7 @@ function ents_methods:parent( ent )
 	if not isValid( ent ) then return false, "entity not valid" end
 	if not parent_check( this, ent ) then return false, "cannot parent to self" end
 	--print("getOwner: ,",ent:GetOwner())
-	if not (check_access(ent) and check_access(this)) then return false, "access denied" end
+	if not check_access({this, ent}, "entities.parent") then return false, "access denied" end
 
 	this:SetParent( ent )
 	return true
@@ -149,7 +161,7 @@ function ents_methods:unparent()
 
 	local this = unwrap(self)
 	if not isValid( ent ) then return false, "entity not valid" end
-	if not (check_access(ent) and check_access(this)) then return false, "access denied" end
+	if not check_access(this, "entities.unparent") then return false, "access denied" end
 	this:SetParent( nil )
 	return true
 end
@@ -164,7 +176,7 @@ function ents_methods:applyForceCenter(vec)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.applyForce") then return false, "access denied" end
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
@@ -184,7 +196,7 @@ function ents_methods:applyForceOffset(vec, offset)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.applyForce") then return false, "access denied" end
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
@@ -202,7 +214,7 @@ function ents_methods:applyAngForce(ang)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.applyForce") then return false, "access denied" end
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
@@ -243,7 +255,7 @@ function ents_methods:applyTorque(tq)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.applyForce") then return false, "access denied" end
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
@@ -278,7 +290,7 @@ function ents_methods:setPos(vec)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.setPos") then return false, "access denied" end
 
 	SF.setPos( ent, vec )
 
@@ -293,7 +305,7 @@ function ents_methods:setAngles(ang)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.setAngles") then return false, "access denied" end
 
 	SF.setAng( ent, ang )
 
@@ -308,7 +320,7 @@ function ents_methods:setVelocity(vel)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.setVelocity") then return false, "access denied" end
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
@@ -323,7 +335,7 @@ function ents_methods:setFrozen(freeze)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.setFrozen") then return false, "access denied" end
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
@@ -351,7 +363,7 @@ function ents_methods:setSolid(solid)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.setSolid") then return false, "access denied" end
 	
 	ent:SetNotSolid(not notsolid)
 	return true
@@ -364,7 +376,7 @@ function ents_methods:enableGravity(grav)
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
-	if not check_access(ent) then return false, "access denied" end
+	if not check_access(ent, "entities.enableGravity") then return false, "access denied" end
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	

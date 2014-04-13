@@ -369,8 +369,8 @@ function SF.DefaultEnvironment.loadFile(file)
 end
 
 --- Compiles a string and returns boolean success, compiled function or error.
--- @param Str Lua code to be compiled
--- @return Boolean status and compiled function (or error string)
+-- @param str Lua code to be compiled
+-- @return boolean status and compiled function (or error string)
 function SF.DefaultEnvironment.loadString(str)
         local func = CompileString(str, "SF - LoadString", false)
         if type(func) == "string" then
@@ -382,8 +382,8 @@ end
 
 --- Compiles a string and returns boolean success, compiled function or error.
 -- This is MoonScript version of loadString.
--- @param Str MoonScript code to be compiled
--- @return Boolean status and compiled function (or error string)
+-- @param str MoonScript code to be compiled
+-- @return boolean status and compiled function (or error string)
 function SF.DefaultEnvironment.loadStringM(str)
 	if type(moonscript) ~= "table" then
 		return false, "MoonScript module not loaded, cannot compile"
@@ -394,6 +394,21 @@ function SF.DefaultEnvironment.loadStringM(str)
 	end
 	debug.setfenv(func, SF.instance.env)
 	return true, func
+end
+
+--- Wraps a current processor's context for a function (Note: uses pcall)
+-- May be necesary to properly call functions from other SF instances
+-- @param func Function to wrap current context for
+-- @return function Wrapper function
+function SF.DefaultEnvironment.wrapContext(func)
+	local instance = SF.instance
+	return function(...)
+		local cinst = SF.instance
+		SF.instance = instance
+		local ret = { pcall(func, ...) }
+		SF.instance = cinst
+		return unpack(ret)
+	end
 end
 
 --[[

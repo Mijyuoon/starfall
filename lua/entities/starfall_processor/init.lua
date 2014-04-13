@@ -24,8 +24,10 @@ function ENT:Initialize()
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	
+	---[[
 	self.Inputs = WireLib.CreateInputs(self, {})
 	self.Outputs = WireLib.CreateOutputs(self, {})
+	--]]
 	
 	self:UpdateState("Inactive (No code)")
 	local clr = self:GetColor()
@@ -116,6 +118,7 @@ function ENT:OnRemove()
 	self.instance = nil
 end
 
+---[[
 function ENT:TriggerInput(key, value)
 	local instance = SF.instance
 	SF.instance = nil
@@ -137,6 +140,7 @@ function ENT:WriteCell(address, data)
 	self:runScriptHook("writecell",address,data)
 	SF.instance = instance
 end
+--]]
 
 function ENT:runScriptHook(hook, ...)
 	if self.instance and not self.instance.error and self.instance.hooks[hook:lower()] then
@@ -155,41 +159,3 @@ end
 
 function ENT:OnRestore()
 end
-
---[[
-
-function ENT:BuildDupeInfo()
-	print "build dupe info ()"
-	
-	local info = self.BaseClass.BuildDupeInfo(self) or {}
-	if self.instance then
-		info.starfall = SF.SerializeCode(self.instance.source, self.instance.mainfile)
-	end
-	return info
-end
-
-function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
-	self.BaseClass.ApplyDupeInfo(self, ply, ent, info, GetEntByID)
-	self.owner = ply
-	
-	print "apply dupe info ()"
-	
-	if info.starfall then
-		local code, main = SF.DeserializeCode(info.starfall)
-		self:Compile(code, main)
-	end
-end
---]]
-
-local instance
-
-function ENT:PreEntityCopy()
-	instance = self.instance
-	self.instance = nil
-end
-
-function ENT:PostEntityCopy()
-	self.instance = instance
-end
-
-duplicator.RegisterEntityClass("gmod_wire_starfall_processor", nil)

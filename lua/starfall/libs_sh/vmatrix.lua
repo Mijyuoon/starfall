@@ -1,7 +1,8 @@
 -- Credits to Radon & Xandaros
 SF.VMatrix = {}
 
-local vmatrix_methods, vmatrix_metamethods = SF.Typedef("VMatrix") -- Define our own VMatrix based off of standard VMatrix
+--- VMatrix type
+local vmatrix_methods, vmatrix_metamethods = SF.Typedef("VMatrix")
 local wrap, unwrap = SF.CreateWrapper( vmatrix_metamethods, true, false )
 
 SF.VMatrix.Methods = vmatrix_methods
@@ -9,27 +10,33 @@ SF.VMatrix.Metatable = vmatrix_metamethods
 SF.VMatrix.Wrap = wrap
 SF.VMatrix.Unwrap = unwrap
 
+--- Returns a new VMatrix
+-- @return New VMatrix
 SF.DefaultEnvironment.Matrix = function()
 	return wrap(Matrix())
 end
 
+--- Returns angles
+-- @return Angles
 function vmatrix_methods:getAngles()
-	--SF.CheckType( self, vmatrix_metamethods )
 	return unwrap(self):GetAngles()
 end
 
+--- Returns scale
+-- @return Scale
 function vmatrix_methods:getScale()
-	--SF.CheckType( self, vmatrix_metamethods )
 	return unwrap(self):GetScale()
 end
 
+--- Returns translation
+-- @return Translation
 function vmatrix_methods:getTranslation()
-	--SF.CheckType( self, vmatrix_metamethods )
 	return unwrap(self):GetTranslation()
 end
 
+--- Rotate the matrix
+-- @param ang Angle to rotate by
 function vmatrix_methods:rotate( ang )
-	--SF.CheckType( self, vmatrix_metamethods )
 	SF.CheckType( ang, "Angle")
 
 	local v = unwrap(self)
@@ -37,40 +44,45 @@ function vmatrix_methods:rotate( ang )
 
 end
 
+--- Scale the matrix
+-- @param vec Vector to scale by
 function vmatrix_methods:scale( vec )
-	--SF.CheckType( self, vmatrix_metamethods )
 	SF.CheckType( vec, "Vector" )
 
 	local v = unwrap(self)
 	v:Scale( vec )
 end
 
+--- Scales the absolute translation
+-- @param num Amount to scale by
 function vmatrix_methods:scaleTranslation( num )
-	--SF.CheckType( self, vmatrix_metamethods )
 	SF.CheckType( num, "Number" )
 
 	local v = unwrap(self)
 	v:ScaleTranslation( num )
 end
 
+--- Sets the angles
+-- @param ang New angles
 function vmatrix_methods:setAngles( ang )
-	--SF.CheckType( self, vmatrix_metamethods )
 	SF.CheckType( ang, "Angle" )
 
 	local v = unwrap(self)
 	v:SetAngles( ang )
 end
 
+--- Sets the translation
+-- @param vec New translation
 function vmatrix_methods:setTranslation( vec )
-	--SF.CheckType( self, vmatrix_metamethods )
 	SF.CheckType( vec, "Vector" )
 
 	local v = unwrap(self)
 	v:SetTranslation( vec )
 end
 
+--- Translate the matrix
+-- @param vec Vector to translate by
 function vmatrix_methods:translate( vec )
-	--SF.CheckType( self, vmatrix_metamethods )
 	SF.CheckType( vec, "Vector" )
 
 	local v = unwrap(self)
@@ -78,8 +90,7 @@ function vmatrix_methods:translate( vec )
 end
 
 function vmatrix_metamethods.__mul( lhs, rhs )
-	--SF.CheckType( lhs, vmatrix_metamethods )
 	SF.CheckType( rhs, vmatrix_metamethods )
 
-	return wrap(unwrap(rhs) * unwrap(rhs))
+	return wrap(unwrap(lhs) * unwrap(rhs))
 end

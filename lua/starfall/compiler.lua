@@ -36,7 +36,6 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 	instance.initialized = false
 	instance.context = context
 	instance.mainfile = mainfile
-	instance.permissions = setmetatable({},context.permissions)
 	
 	for filename, source in pairs(code) do
 		if not dontpreprocess then
@@ -74,6 +73,5 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 		end
 	end
 	
-	instance.permissions:assign(instance)
 	return true, instance
 end

@@ -3,13 +3,56 @@
 -------------------------------------------------------------------------------
 
 --- Wire library. Handles wire inputs/outputs, wirelinks, etc.
-local wire_library, _ = SF.Libraries.Register("wire")
+local wire_library, wire_metamethods = SF.Libraries.Register( "wire" )
+
+--[[
+function wire_metamethods.onLoad()
+    local ent = SF.instance.data.entity
+    if ent.Inputs ~= nil and ent.Outputs ~= nil then return end
+    ent.Inputs = WireLib.CreateInputs( ent, {} )
+    ent.Outputs = WireLib.CreateOutputs( ent, {} )
+
+    function ent:TriggerInput ( key, value )
+		local instance = SF.instance
+		SF.instance = nil
+        self:runScriptHook( "input", key, SF.Wire.InputConverters[ self.Inputs[ key ].Type ]( value ) )
+		SF.instance = instance
+    end
+
+    function ent:ReadCell ( address )
+		local instance = SF.instance
+		SF.instance = nil
+        local res = tonumber( self:runScriptHookForResult( "readcell", address ) ) or 0
+		SF.instance = instance
+		return res
+    end
+
+    function ent:WriteCell ( address, data )
+		local instance = SF.instance
+		SF.instance = nil
+        self:runScriptHook( "writecell", address, data )
+		SF.instance = instance
+	end
+
+end
+--]]
 
 SF.Wire = {}
 SF.Wire.Library = wire_library
 
 local wirelink_methods, wirelink_metatable = SF.Typedef("Wirelink")
 local wlwrap, wlunwrap = SF.CreateWrapper(wirelink_metatable,true,true)
+
+-- Register privileges
+do
+	local P = SF.Permissions
+	P.registerPrivilege( "wire.setOutputs", "Set outputs", "Allows the user to specify the set of outputs" )
+	P.registerPrivilege( "wire.setInputs", "Set inputs", "Allows the user to specify the set of inputs" )
+	P.registerPrivilege( "wire.output", "Output", "Allows the user to set the value of an output" )
+	P.registerPrivilege( "wire.input", "Input", "Allows the user to read the value of an input" )
+	P.registerPrivilege( "wire.wirelink.read", "Wirelink Read", "Allows the user to read from wirelink" )
+	P.registerPrivilege( "wire.wirelink.write", "Wirelink Write", "Allows the user to write to wirelink" )
+end
 
 ---
 -- @class table
@@ -171,21 +214,22 @@ end
 -- letter and contain only alphabetical characters.
 -- @param names An array of input names. May be modified by the function.
 -- @param types An array of input types. May be modified by the function.
-function wire_library.createInputs(names, types)
+function wire_library.adjustInputs ( names, types )
+	if not SF.Permissions.check( SF.instance.player, nil, "wire.setInputs" ) then SF.throw( "Insufficient permissions", 2 ) end
 	SF.CheckType(names,"table")
 	SF.CheckType(types,"table")
 	local ent = SF.instance.data.entity
-	if not ent then SF.throw("No entity to create inputs on",2) end
+	if not ent then SF.throw( "No entity to create inputs on", 2 ) end
 	
-	if #names ~= #types then SF.throw("Table lengths not equal",2) end
+	if #names ~= #types then SF.throw( "Table lengths not equal", 2 ) end
 	for i=1,#names do
 		local newname = names[i]
 		local newtype = types[i]
-		if type(newname) ~= "string" then SF.throw("Non-string input name: "..newname,2) end
-		if type(newtype) ~= "string" then SF.throw("Non-string input type: "..newtype,2) end
+		if type(newname) ~= "string" then SF.throw( "Non-string input name: " .. newname, 2 ) end
+		if type(newtype) ~= "string" then SF.throw( "Non-string input type: " .. newtype, 2 ) end
 		newtype = newtype:upper()
-		if not newname:match("^[%u][%a%d]*$") then SF.throw("Invalid input name: "..newname,2) end
-		if not inputConverters[newtype] then SF.throw("Invalid/unsupported input type: "..newtype,2) end
+		if not newname:match( "^[%u][%a%d]*$" ) then SF.throw( "Invalid input name: " .. newname, 2 ) end
+		if not inputConverters[ newtype ] then SF.throw( "Invalid/unsupported input type: " .. newtype, 2 ) end
 		names[i] = newname
 		types[i] = newtype
 	end
@@ -197,21 +241,22 @@ end
 -- letter and contain only alphabetical characters.
 -- @param names An array of output names. May be modified by the function.
 -- @param types An array of output types. May be modified by the function.
-function wire_library.createOutputs(names, types)
+function wire_library.adjustOutputs ( names, types )
+	if not SF.Permissions.check( SF.instance.player, nil, "wire.setOutputs" ) then SF.throw( "Insufficient permissions", 2 ) end
 	SF.CheckType(names,"table")
 	SF.CheckType(types,"table")
 	local ent = SF.instance.data.entity
-	if not ent then SF.throw("No entity to create outputs on",2) end
+	if not ent then SF.throw( "No entity to create outputs on", 2 ) end
 	
-	if #names ~= #types then SF.throw("Table lengths not equal",2) end
+	if #names ~= #types then SF.throw( "Table lengths not equal", 2 ) end
 	for i=1,#names do
 		local newname = names[i]
 		local newtype = types[i]
-		if type(newname) ~= "string" then SF.throw("Non-string output name: "..newname,2) end
-		if type(newtype) ~= "string" then SF.throw("Non-string output type: "..newtype,2) end
+		if type(newname) ~= "string" then SF.throw( "Non-string output name: " .. newname, 2 ) end
+		if type(newtype) ~= "string" then SF.throw( "Non-string output type: " .. newtype, 2 ) end
 		newtype = newtype:upper()
-		if not newname:match("^[%u][%a%d]*$") then SF.throw("Invalid output name: "..newname,2) end
-		if not outputConverters[newtype] then SF.throw("Invalid/unsupported output type: "..newtype,2) end
+		if not newname:match("^[%u][%a%d]*$") then SF.throw( "Invalid output name: " .. newname, 2 ) end
+		if not outputConverters[newtype] then SF.throw( "Invalid/unsupported output type: " .. newtype, 2 ) end
 		names[i] = newname
 		types[i] = newtype
 	end
@@ -222,31 +267,21 @@ end
 --- Returns the wirelink representing this entity.
 function wire_library.self()
 	local ent = SF.instance.data.entity
-	if not ent then SF.throw("No entity",2) end
+	if not ent then SF.throw( "No entity", 2 ) end
 	return wlwrap(ent)
 end
 
-local check_access = SF.Entities.CheckAccess
-local ent_unwrap = SF.Entities.Unwrap
-local ents_metatable = SF.Entities.Metatable
-
-function wire_library.wirelink(self)
-	SF.CheckType(self, ents_metatable)
-	
-	local ent = ent_unwrap(self)
-	if not IsValid(ent) then return nil end
-	if not check_access(ent) then return nil end
-	
-	if not ent.extended then
-		WireLib.CreateWirelinkOutput( SF.instance.player, ent, {true} )
-	end
-	return wlwrap(ent)
+wirelink_metatable.__tostring = function(self)
+	local ent = wlunwrap(self)
+	if not ent then return "(null wirelink)" end
+	return tostring(ent):gsub("Entity","Wirelink")
 end
 
 -- ------------------------- Wirelink ------------------------- --
 
 --- Retrieves an output. Returns nil if the output doesn't exist.
 wirelink_metatable.__index = function(self,k)
+	if not SF.Permissions.check( SF.instance.player, nil, "wire.wirelink.read" ) then SF.throw( "Insufficient permissions", 2 ) end
 	SF.CheckType(self,wirelink_metatable)
 	if wirelink_methods[k] then
 		return wirelink_methods[k]
@@ -266,6 +301,7 @@ end
 
 --- Writes to an input.
 wirelink_metatable.__newindex = function(self,k,v)
+	if not SF.Permissions.check( SF.instance.player, nil, "wire.wirelink.write" ) then SF.throw( "Insufficient permissions", 2 ) end
 	SF.CheckType(self,wirelink_metatable)
 	local wl = wlunwrap(self)
 	if not wl or not wl:IsValid() or not wl.extended then return end -- TODO: What is wl.extended?
@@ -278,12 +314,6 @@ wirelink_metatable.__newindex = function(self,k,v)
 		if not input or not outputConverters[input.Type] then return end
 		WireLib.TriggerInput(wl,k,outputConverters[input.Type](v))
 	end
-end
-
-wirelink_metatable.__tostring = function(self)
-	local ent = wlunwrap(self)
-	if not ent then return "(null wirelink)" end
-	return tostring(ent):gsub("Entity","Wirelink")
 end
 
 --- Checks if a wirelink is valid. (ie. doesn't point to an invalid entity)
@@ -372,11 +402,12 @@ end
 -- ------------------------- Ports Metatable ------------------------- --
 local wire_ports_methods, wire_ports_metamethods = SF.Typedef("Ports")
 
-function wire_ports_metamethods:__index(name)
+function wire_ports_metamethods:__index ( name )
+	if not SF.Permissions.check( SF.instance.player, nil, "wire.input" ) then SF.throw( "Insufficient permissions", 2 ) end
 	SF.CheckType(name,"string")
 	local instance = SF.instance
 	local ent = instance.data.entity
-	if not ent then SF.throw("No entity",2) end
+	if not ent then SF.throw( "No entity", 2 ) end
 
 	local input = ent.Inputs[name]
 	if not (input and input.Src and input.Src:IsValid()) then
@@ -385,11 +416,12 @@ function wire_ports_metamethods:__index(name)
 	return inputConverters[ent.Inputs[name].Type](ent.Inputs[name].Value)
 end
 
-function wire_ports_metamethods:__newindex(name,value)
+function wire_ports_metamethods:__newindex ( name, value )
+	if not SF.Permissions.check( SF.instance.player, nil, "wire.output" ) then SF.throw( "Insufficient permissions", 2 ) end
 	SF.CheckType(name,"string")
 	local instance = SF.instance
 	local ent = instance.data.entity
-	if not ent then SF.throw("No entity",2) end
+	if not ent then SF.throw( "No entity", 2 ) end
 
 	local output = ent.Outputs[name]
 	if not output then return end

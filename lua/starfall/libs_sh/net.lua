@@ -343,7 +343,7 @@ end
 net.Receive( "SF_netmessage", function( len, ply )
 	local ent = net.ReadEntity()
 	local name = net.ReadString()
-	if IsValid(ent) and ent:GetClass() == "gmod_wire_starfall_screen" then
+	if IsValid(ent) and ent:GetClass() == "starfall_screen" then
 		ent:runScriptHook( "net", name, len, ply and SF.WrapObject( ply ) )
 	elseif ent and ent:EntIndex() == 0 then
 		SF.RunScriptHook( "net", name, len, ply and SF.WrapObject( ply ) )

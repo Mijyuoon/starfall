@@ -5,6 +5,7 @@
 local sg_lib = SF.Libraries.Register("stargate")
 local e_meta = SF.Entities.Metatable
 
+local wrap = SF.Entities.Wrap
 local unwrap = SF.Entities.Unwrap
 --local isowner = SF.Entities.CheckAccess
 local function isowner(e)
@@ -136,3 +137,54 @@ function sg_lib.gateUnstable(gate)
 	end
 	return false
 end
+
+local function mangle_hook_name(instance)
+	return string.format("sf_stargate_%s", instance)
+end
+
+function sg_lib.listenTeleport(gate, func)
+	SF.CheckType(gate, e_meta)
+	if func then SF.CheckType(func, "function") end
+	gate = unwrap(gate)
+	if IsValid(gate) and gate.IsStargate then
+		local instance = SF.instance
+		local stargate_hook = instance.data.stargate_hook
+		
+		if func then
+			local function callback(sg, ent, blk)
+				local ok, msg, trace = instance:runFunction(func, sg, ent, blk)
+				if not ok then
+					instance:Error( msg, trace )
+					stargate_hook.teleport[gate] = nil
+				end
+			end
+			
+			stargate_hook.teleport[gate] = callback
+		else
+			stargate_hook.teleport[gate] = nil
+		end
+	end
+end
+
+SF.Libraries.AddHook("initialize", function(instance)
+	local teleport_hook = {}
+	instance.data.stargate_hook = {
+		teleport = teleport_hook,
+	}
+	
+	local hookname = mangle_hook_name(instance)
+	hook.Add("StarGate.Teleport", hookname, function(ent, gate, _, blk)
+		if gate:GetClass() == "event_horizon" then  -- Why the fuck is this happening?
+			gate = gate:GetParent()
+		end
+		if not teleport_hook[gate] then return nil end
+		local w_gate, w_ent = wrap(gate), wrap(ent)
+		teleport_hook[gate](w_gate, w_ent, blk)
+	end)
+end)
+
+SF.Libraries.AddHook("deinitialize", function(instance)
+	local hookname = mangle_hook_name(instance)
+	hook.Remove("StarGate.Teleport", hookname)
+	instance.data.stargate_hook = nil
+end)
