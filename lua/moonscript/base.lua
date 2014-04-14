@@ -1,20 +1,12 @@
-local instance = SERVER and "gmsv_lpeg_" or "gmcl_lpeg_"
-if system.IsWindows() then
-	instance = instance .. "win32.dll"
-elseif system.IsLinux() then
-	instance = instance .. "linux.dll"
+local lpeg_load = pcall(require, "lpeg")
+if lpeg_load then
+	lpeg.L = function(val)
+		return #val
+	end
 else
-	instance = instance .. "osx.dll"
+	-- Use LuLPeg
+	loadmodule("moonscript.lulpeg"):register(_G)
 end
-
-if file.Exists("lua/bin/" .. instance, "MOD") then
-	require "lpeg"
-else
-	local errmsg = "LPeg library not installed"
-	MsgC(Color(255,0,0), "MoonScript: " .. errmsg .. "\n")
-	return errmsg
-end
-
 local compile = loadmodule("moonscript.compile")
 local parse = loadmodule("moonscript.parse")
 local concat, insert, remove
@@ -27,10 +19,6 @@ do
   local _obj_0 = loadmodule("moonscript.util")
   split, dump, get_options, unpack = _obj_0.split, _obj_0.dump, _obj_0.get_options, _obj_0.unpack
 end
-local lua = {
-  loadstring = CompileString,
-  load = nil,
-}
 local dirsep, line_tables, create_moonpath, to_lua, moon_loader, loadstring, loadfile, dofile, insert_loader, remove_loader
 dirsep = "/"
 line_tables = loadmodule("moonscript.line_tables")
@@ -50,7 +38,7 @@ to_lua = function(text, options)
   end
   if "string" ~= type(text) then
     local t = type(text)
-    return nil, "expecting string (got " .. t .. ")", 2
+    return nil, "expecting string (got " .. t .. ")"
   end
   local tree, err = parse.string(text)
   if not tree then
@@ -58,26 +46,28 @@ to_lua = function(text, options)
   end
   local code, ltable, pos = compile.tree(tree, options)
   if not code then
-    return nil, compile.format_error(ltable, pos, text), 2
+    return nil, compile.format_error(ltable, pos, text)
   end
   return code, ltable
 end
 moon_loader = function(name)
   local name_path = name:gsub("%.", dirsep)
-  local file_data, file_path
+  local file, file_path
   local _list_0 = split(package.moonpath, ";")
   for _index_0 = 1, #_list_0 do
     local path = _list_0[_index_0]
     file_path = path:gsub("?", name_path)
-    file_data = file.Read(file_path, "GAME")
-    if file_data then
+    file = io.open(file_path)
+    if file then
       break
     end
   end
-  if file_data then
-    local res, err = loadstring(file_data, file_path)
+  if file then
+    local text = file:read("*a")
+    file:close()
+    local res, err = loadstring(text, file_path)
     if not res then
-      error(err)
+      error(file_path .. ": " .. err)
     end
     return res
   end
@@ -93,20 +83,19 @@ loadstring = function(...)
   if chunk_name then
     line_tables[chunk_name] = ltable_or_err
   end
-  --[[
-  return (lua.loadstring or lua.load)(code, chunk_name, unpack({
+  return CompileString(code, chunk_name, unpack({
     mode,
     env
   }))
-  ]]--
-  return lua.loadstring(code, chunk_name, false)
 end
 loadfile = function(fname, ...)
-  local fdata, err = file.Read(fname, "GAME")
-  if not fdata then
-    return nil
+  local file, err = io.open(fname)
+  if not (file) then
+    return nil, err
   end
-  return loadstring(fdata, fname, ...)
+  local text = assert(file:read("*a"))
+  file:close()
+  return loadstring(text, fname, ...)
 end
 dofile = function(...)
   local f = assert(loadfile(...))
@@ -144,7 +133,6 @@ return {
   insert_loader = insert_loader,
   remove_loader = remove_loader,
   to_lua = to_lua,
-  moon_chunk = moon_chunk,
   moon_loader = moon_loader,
   dirsep = dirsep,
   dofile = dofile,

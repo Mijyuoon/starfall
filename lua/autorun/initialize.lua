@@ -1,11 +1,12 @@
 if SERVER then
+	AddCSLuaFile()
 	AddCSLuaFile("moonscript/base.lua")
 	AddCSLuaFile("moonscript/compile.lua")
 	AddCSLuaFile("moonscript/data.lua")
 	AddCSLuaFile("moonscript/dump.lua")
 	AddCSLuaFile("moonscript/errors.lua")
-	-- AddCSLuaFile("moonscript/init.lua")
 	AddCSLuaFile("moonscript/line_tables.lua")
+	AddCSLuaFile("moonscript/lulpeg.lua")
 	AddCSLuaFile("moonscript/parse.lua")
 	AddCSLuaFile("moonscript/transform.lua")
 	AddCSLuaFile("moonscript/types.lua")
@@ -16,6 +17,17 @@ if SERVER then
 	
 	AddCSLuaFile("moonscript/transform/names.lua")
 	AddCSLuaFile("moonscript/transform/destructure.lua")
+	
+	resource.AddFile( "materials/models/spacecode/glass.vmt" )
+	resource.AddFile( "materials/models/spacecode/sfchip.vmt" )
+	resource.AddFile( "materials/models/spacecode/sfpcb.vmt" )
+	resource.AddFile( "models/spacecode/sfchip.mdl" )
+	resource.AddFile( "models/spacecode/sfchip_medium.mdl" )
+	resource.AddFile( "models/spacecode/sfchip_small.mdl" )
+else
+	list.Set( "Starfall_gate_Models", "models/spacecode/sfchip.mdl", true )
+	list.Set( "Starfall_gate_Models", "models/spacecode/sfchip_medium.mdl", true )
+	list.Set( "Starfall_gate_Models", "models/spacecode/sfchip_small.mdl", true )
 end
 
 _MLOADED = {}

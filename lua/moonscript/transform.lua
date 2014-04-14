@@ -329,15 +329,27 @@ Statement = Transformer({
     return apply_to_last(body, implicitly_return(self))
   end,
   ["return"] = function(self, node)
-    node[2] = Value:transform_once(self, node[2])
-    if "block_exp" == ntype(node[2]) then
-      local block_exp = node[2]
-      local block_body = block_exp[2]
-      local idx = #block_body
-      node[2] = block_body[idx]
-      block_body[idx] = node
-      return build.group(block_body)
+    local ret_val = node[2]
+    local ret_val_type = ntype(ret_val)
+    if ret_val_type == "explist" and #ret_val == 2 then
+      ret_val = ret_val[2]
+      ret_val_type = ntype(ret_val)
     end
+    if types.cascading[ret_val_type] then
+      return implicitly_return(self)(ret_val)
+    end
+    if ret_val_type == "chain" or ret_val_type == "comprehension" or ret_val_type == "tblcomprehension" then
+      ret_val = Value:transform_once(self, ret_val)
+      if ntype(ret_val) == "block_exp" then
+        return build.group(apply_to_last(ret_val[2], function(stm)
+          return {
+            "return",
+            stm
+          }
+        end))
+      end
+    end
+    node[2] = ret_val
     return node
   end,
   declare_glob = function(self, node)
@@ -378,6 +390,11 @@ Statement = Transformer({
     if num_names == 1 and num_values == 1 then
       local first_value = values[1]
       local first_name = names[1]
+      local first_type = ntype(first_value)
+      if first_type == "chain" then
+        first_value = Value:transform_once(self, first_value)
+        first_type = ntype(first_value)
+      end
       local _exp_0 = ntype(first_value)
       if "block_exp" == _exp_0 then
         local block_body = first_value[2]
@@ -397,6 +414,8 @@ Statement = Transformer({
         })
       elseif "comprehension" == _exp_0 or "tblcomprehension" == _exp_0 or "foreach" == _exp_0 or "for" == _exp_0 or "while" == _exp_0 then
         return build.assign_one(first_name, Value:transform_once(self, first_value))
+      else
+        values[1] = first_value
       end
     end
     local transformed
@@ -1411,13 +1430,11 @@ Value = Transformer({
       end
     end
     if #node <= 3 then
-      return (function()
-        if type(node[3]) == "string" then
-          return node
-        else
-          return convert_part(node[3])
-        end
-      end)()
+      if type(node[3]) == "string" then
+        return node
+      else
+        return convert_part(node[3])
+      end
     end
     local e = {
       "exp",
@@ -1538,7 +1555,7 @@ Value = Transformer({
       local base_name = NameProxy("base")
       local fn_name = NameProxy("fn")
       local is_super = ntype(node[2]) == "ref" and node[2][2] == "super"
-      return self.transform.value(build.block_exp({
+      return build.block_exp({
         build.assign({
           names = {
             base_name
@@ -1580,7 +1597,7 @@ Value = Transformer({
             })
           }
         })
-      }))
+      })
     end
   end,
   block_exp = function(self, node)

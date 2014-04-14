@@ -62,6 +62,10 @@ do
         if "string" == _exp_0 or DelayedLine == _exp_0 then
           line_no = line_no + 1
           out[line_no] = posmap[i]
+          for _ in l:gmatch("\n") do
+            line_no = line_no + 1
+          end
+          out[line_no] = posmap[i]
         elseif Lines == _exp_0 then
           local _
           _, line_no = l:flatten_posmap(line_no, out)
@@ -98,7 +102,6 @@ do
             end
           end
           insert(buffer, "\n")
-          local last = l
         elseif Lines == _exp_0 then
           l:flatten(indent and indent .. indent_char or indent_char, buffer)
         else
@@ -147,38 +150,30 @@ end
 do
   local _base_0 = {
     pos = nil,
-    _append_single = function(self, item)
-      if Line == mtype(item) then
-        if not (self.pos) then
-          self.pos = item.pos
-        end
-        for _index_0 = 1, #item do
-          local value = item[_index_0]
-          self:_append_single(value)
-        end
-      else
-        insert(self, item)
-      end
-      return nil
-    end,
     append_list = function(self, items, delim)
       for i = 1, #items do
-        self:_append_single(items[i])
+        self:append(items[i])
         if i < #items then
           insert(self, delim)
         end
       end
       return nil
     end,
-    append = function(self, ...)
-      local _list_0 = {
-        ...
-      }
-      for _index_0 = 1, #_list_0 do
-        local item = _list_0[_index_0]
-        self:_append_single(item)
+    append = function(self, first, ...)
+      if Line == mtype(first) then
+        if not (self.pos) then
+          self.pos = first.pos
+        end
+        for _index_0 = 1, #first do
+          local value = first[_index_0]
+          self:append(value)
+        end
+      else
+        insert(self, first)
       end
-      return nil
+      if ... then
+        return self:append(...)
+      end
     end,
     render = function(self, buffer)
       local current = { }
@@ -206,7 +201,7 @@ do
           insert(current, chunk)
         end
       end
-      if #current > 0 then
+      if current[1] then
         add_current()
       end
       return buffer
@@ -474,8 +469,12 @@ do
         action = node[1]
       end
       local fn = self.value_compilers[action]
-      if not fn then
-        error("Failed to compile value: " .. dump.value(node))
+      if not (fn) then
+        error({
+          "compile-error",
+          "Failed to find value compiler for: " .. dump.value(node),
+          node[-1]
+        })
       end
       local out = fn(self, node, ...)
       if type(node) == "table" and node[-1] then
@@ -659,13 +658,17 @@ do
 end
 local format_error
 format_error = function(msg, pos, file_str)
-  local line = pos_to_line(file_str, pos)
-  local line_str
-  line_str, line = get_closest_line(file_str, line)
-  line_str = line_str or ""
+  local line_message
+  if pos then
+    local line = pos_to_line(file_str, pos)
+    local line_str
+    line_str, line = get_closest_line(file_str, line)
+    line_str = line_str or ""
+    line_message = (" [%d] >>    %s"):format(line, trim(line_str))
+  end
   return concat({
     "Compile error: " .. msg,
-    (" [%d] >>    %s"):format(line, trim(line_str))
+    line_message
   }, "\n")
 end
 local value
@@ -689,27 +692,26 @@ tree = function(tree, options)
     return scope:root_stms(tree)
   end)
   local success, err = coroutine.resume(runner)
-  if not success then
-    local error_msg
+  if not (success) then
+    local error_msg, error_pos
     if type(err) == "table" then
-      local error_type = err[1]
-      if error_type == "user-error" then
-        error_msg = err[2]
+      local _exp_0 = err[1]
+      if "user-error" == _exp_0 or "compile-error" == _exp_0 then
+        error_msg, error_pos = unpack(err, 2)
       else
-        error_msg = error("Unknown error thrown", util.dump(error_msg))
+        error_msg, error_pos = error("Unknown error thrown", util.dump(error_msg))
       end
     else
-      error_msg = concat({
+      error_msg, error_pos = concat({
         err,
         debug.traceback(runner)
       }, "\n")
     end
-    return nil, error_msg, scope.last_pos
-  else
-    local lua_code = scope:render()
-    local posmap = scope._lines:flatten_posmap()
-    return lua_code, posmap
+    return nil, error_msg, error_pos or scope.last_pos
   end
+  local lua_code = scope:render()
+  local posmap = scope._lines:flatten_posmap()
+  return lua_code, posmap
 end
 do
   local data = loadmodule("moonscript.data")

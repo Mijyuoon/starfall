@@ -144,7 +144,7 @@ if CLIENT then
 	function TOOL.BuildCPanel(panel)
 		panel:AddControl("Header", { Text = "#Tool.wire_starfall_processor.name", Description = "#Tool.wire_starfall_processor.desc" })
 		
-		local modelPanel = WireDermaExts.ModelSelect(panel, "wire_starfall_processor_Model", list.Get("Wire_gate_Models"), 2)
+		local modelPanel = WireDermaExts.ModelSelect(panel, "wire_starfall_processor_Model", list.Get("Starfall_gate_Models"), 2)
 		panel:AddControl("Label", {Text = ""})
 		
 		local docbutton = vgui.Create("DButton" , panel)

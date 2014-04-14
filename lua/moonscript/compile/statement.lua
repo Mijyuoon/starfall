@@ -1,5 +1,4 @@
 local util = loadmodule("moonscript.util")
-local data = loadmodule("moonscript.data")
 local reversed, unpack
 reversed, unpack = util.reversed, util.unpack
 local ntype

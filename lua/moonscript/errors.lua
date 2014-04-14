@@ -1,5 +1,4 @@
 local util = loadmodule("moonscript.util")
-local lpeg = lpeg
 local concat, insert
 do
   local _obj_0 = table
