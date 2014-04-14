@@ -1,10 +1,12 @@
 local lpeg_load = pcall(require, "lpeg")
 if lpeg_load then
+	-- Use binary LPeg module
+	lpeg.re = loadmodule("moonscript.lpeg_re")
 	lpeg.L = function(val)
 		return #val
 	end
 else
-	-- Use LuLPeg
+	-- Use LuLPeg as replacement
 	loadmodule("moonscript.lulpeg"):register(_G)
 end
 local compile = loadmodule("moonscript.compile")

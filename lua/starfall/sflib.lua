@@ -10,6 +10,7 @@ SF = {}
 
 -- Do a couple of checks for retarded mods that disable the debug table
 -- and run it after all addons load
+--[[
 do
 	local function zassert(cond, str)
 		if not cond then error("STARFALL LOAD ABORT: "..str,0) end
@@ -40,6 +41,7 @@ do
 		__metatable = "nope.avi",
 	})
 end
+--]]
 
 -- Send files to client
 if SERVER then

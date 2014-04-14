@@ -59,10 +59,12 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 					return false, "MoonScript module not loaded, cannot compile"
 				end
 			else
+				--[[
 				local is_error = source:match("^!ERROR!(.+)$")
 				if is_error then
 					return false, is_error
 				end
+				--]]
 				local func = CompileString(source, "SF:"..filename, false)
 				if type(func) == "string" then
 					return false, func

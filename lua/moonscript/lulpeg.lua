@@ -1145,7 +1145,7 @@ local exp = m.P{ "Exp",
             + m.Cf(m.V"Seq" * ("/" * S * m.V"Seq")^0, mt.__add) );
   Seq = m.Cf(m.Cc(m.P"") * m.V"Prefix"^0 , mt.__mul)
         * (m.L(seq_follow) + patt_error);
-  Prefix = "&" * S * m.V"Prefix" / mt.__len
+  Prefix = "&" * S * m.V"Prefix" / lpeg.L
          + "!" * S * m.V"Prefix" / mt.__unm
          + m.V"Suffix";
   Suffix = m.Cf(m.V"Primary" * S *
@@ -2854,7 +2854,7 @@ end
 do
 packages['locale'] = function (...)
 
-local extend = require"util".extend
+local extend = require("util").extend
 return function(Builder, LL) -- Module wrapper {-------------------------------
 local R, S = LL.R, LL.S
 local locale = {}

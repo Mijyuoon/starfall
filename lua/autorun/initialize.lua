@@ -6,6 +6,7 @@ if SERVER then
 	AddCSLuaFile("moonscript/dump.lua")
 	AddCSLuaFile("moonscript/errors.lua")
 	AddCSLuaFile("moonscript/line_tables.lua")
+	AddCSLuaFile("moonscript/lpeg_re.lua")
 	AddCSLuaFile("moonscript/lulpeg.lua")
 	AddCSLuaFile("moonscript/parse.lua")
 	AddCSLuaFile("moonscript/transform.lua")
