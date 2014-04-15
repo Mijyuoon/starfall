@@ -11,8 +11,16 @@ local patt_mt = debug.getmetatable(lpeg.P(true))
 local lp_methods, lp_meta = SF.Typedef("Pattern")
 local wrap, unwrap = SF.CreateWrapper(lp_meta, true, true, patt_mt)
 
+local op_types = {
+	["number"] = true, ["string"] = true, 
+	["boolean"] = true, ["Pattern"] = true
+}
 local function getpatt(patt)
-	if SF.GetType(patt) == "Pattern" then
+	local vtype = SF.GetType(patt)
+	if not op_types[vtype] then
+		return nil
+	end
+	if vtype == "Pattern" then
 		return unwrap(patt)
 	end
 	return patt
@@ -23,11 +31,14 @@ local p_types = {
 	["boolean"] = true, ["table"] = true, 
 	["function"] = true, ["Pattern"] = true
 }
-function lpeg_lib.P(val)
-	if not p_types[SF.GetType(val)] then
+function lpeg_lib.P(patt)
+	local vtype = SF.GetType(patt)
+	if not p_types[vtype] then
 		SF.throw("Bad argument to pattern constructor",2)
 	end
-	local patt = getpt(val)
+	if vtype == "Pattern" then
+		patt = unwrap(patt)
+	end
 	return wrap(lpeg.P(patt))
 end
 
@@ -104,18 +115,27 @@ end
 function lp_meta.__add(pt1, pt2)
 	local pt1 = getpatt(pt1)
 	local pt2 = getpatt(pt2)
+	if pt1 == nil or pt2 == nil then
+		SF.throw("Bad argument to LPeg operator", 2)
+	end
 	return wrap(pt1 + pt2)
 end
 
 function lp_meta.__sub(pt1, pt2)
 	local pt1 = getpatt(pt1)
 	local pt2 = getpatt(pt2)
+	if pt1 == nil or pt2 == nil then
+		SF.throw("Bad argument to LPeg operator", 2)
+	end
 	return wrap(pt1 - pt2)
 end
 
 function lp_meta.__mul(pt1, pt2)
 	local pt1 = getpatt(pt1)
 	local pt2 = getpatt(pt2)
+	if pt1 == nil or pt2 == nil then
+		SF.throw("Bad argument to LPeg operator", 2)
+	end
 	return wrap(pt1 * pt2)
 end
 
@@ -131,7 +151,7 @@ local c_types = {
 }
 function lp_meta.__div(patt, val)
 	if not c_types[SF.GetType(val)] then
-		SF.throw("Bad argument to capture operator",2)
+		SF.throw("Bad argument to LPeg operator",2)
 	end
 	local patt = unwrap(patt)
 	return wrap(patt / val)
@@ -233,7 +253,7 @@ function lpeg_re.gsub(str, patt, repl)
 	SF.CheckType(str, "string")
 	SF.CheckType(patt, lp_meta)
 	if not gs_types[SF.GetType(repl)] then
-		SF.throw("Bad replacement value", 2)
+		SF.throw("Bad replacement value type", 2)
 	end
 	local patt = unwrap(patt)
 	return re_lib.gsub(str, patt, repl)
