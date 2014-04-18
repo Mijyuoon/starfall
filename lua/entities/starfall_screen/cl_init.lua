@@ -219,7 +219,14 @@ function ENT:Draw()
 	self:DrawModel()
 	Wire_Render(self)
 	
-	if self.renderfunc then
+	local no_redraw = false
+	if HudSF.ScrA and HudSF.ScrB == self then
+		no_redraw = true
+	elseif HudSF.ScrA == self then
+		no_redraw = true
+	end
+	
+	if not no_redraw and self.renderfunc then
 		self.GPU:RenderToGPU(self.renderfunc)
 	end
 	
