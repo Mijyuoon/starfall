@@ -2,49 +2,67 @@
 	Super library by Mijyuoon.
 ]]
 
-local super_lib, _ = SF.Libraries.Register("mij")
+local debug_lib, _ = SF.Libraries.Register("mij")
 
 local mijsf = {
-	Library  = super_lib,
+	Library  = debug_lib,
 	Password = false,
 	Allowed  = {},
 }
 SF.MijLib = mijsf
 
 function mijsf.CheckPly(ply)
+	if game.SinglePlayer() then return true end
 	local ply = ply or SF.instance.player
-	return (ply and mijsf.Allowed[ply:SteamID()])
+	if not IsValid(ply) then return false end
+	return mijsf.Allowed[ply:SteamID()]
 end
 
-function mijsf.AllowAccess(ply, pass, acc)
-	local ply = ply or SF.instance.player
-	if pass == mijsf.Password then
-		local acc = acc and true or false
-		mijsf.Allowed[ply:SteamID()] = acc
-		return true
+if SERVER then
+	util.AddNetworkString("SFhax_allow")
+	
+	function mijsf.AllowAccess(ply, pass, acc)
+		local ply = ply or SF.instance.player
+		if not IsValid(ply) then return false end
+		if pass == mijsf.Password then
+			local acc = acc and true or false
+			local ply_id = ply:SteamID()
+			mijsf.Allowed[ply_id] = acc
+			net.Start("SFhax_allow")
+				net.WriteString(ply_id)
+				net.WriteBit(acc)
+			net.Broadcast()
+			return true
+		end
+		return false
 	end
-	return false
-end
 
-if file.Exists("mijsf_password.txt", "DATA") then
-	mijsf.Password = file.Read("mijsf_password.txt", "DATA")
+	if file.Exists("mijsf_password.txt", "DATA") then
+		mijsf.Password = file.Read("mijsf_password.txt", "DATA")
+	end
+else
+	net.Receive("SFhax_allow", function()
+		local ply_id = net.ReadString()
+		local status = net.ReadBit() > 0
+		mijsf.Allowed[ply_id] = status
+	end)
 end
 
 local gmod_env = _G
-function super_lib.global()
+function debug_lib.global()
 	if not mijsf.CheckPly() then 
 		return nil
 	end
 	return gmod_env
 end
 
-function super_lib.allowAccess(pass, acc)
+function debug_lib.allowAccess(pass, acc)
 	SF.CheckType(pass, "string")
 	SF.CheckType(acc, "boolean")
 	return mijsf.AllowAccess(nil, pass, acc)
 end
 
-function super_lib.globalCtx(func, ...)
+function debug_lib.globalCtx(func, ...)
 	SF.CheckType(func, "function")
 	if not mijsf.CheckPly() then 
 		return nil
@@ -64,7 +82,7 @@ end
 
 --[[
 local gmod_env = _G
-function super_lib.globalCtx(func, ...)
+function debug_lib.globalCtx(func, ...)
 	if not mijsf.CheckPly() then 
 		return nil
 	end
@@ -78,21 +96,21 @@ function super_lib.globalCtx(func, ...)
 end
 --]]
 
-function super_lib.wrap(obj)
+function debug_lib.wrap(obj)
 	if not mijsf.CheckPly() then 
 		return nil
 	end
 	return SF.WrapObject(obj)
 end
 
-function super_lib.unwrap(obj)
+function debug_lib.unwrap(obj)
 	if not mijsf.CheckPly() then 
 		return nil
 	end
 	return SF.UnwrapObject(obj)
 end
 
-function super_lib.setfenv(fn, tab)
+function debug_lib.setfenv(fn, tab)
 	SF.CheckType(fn, "function")
 	SF.CheckType(tab, "table")
 	if not mijsf.CheckPly() then 
@@ -101,7 +119,7 @@ function super_lib.setfenv(fn, tab)
 	return setfenv(fn, tab)
 end
 
-function super_lib.getfenv(fn)
+function debug_lib.getfenv(fn)
 	if fn ~= nil then
 		SF.CheckType(fn, "function")
 	end

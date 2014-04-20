@@ -181,7 +181,7 @@ function lpeg_lib.Cf(patt, func)
 	SF.CheckType(patt, lp_meta)
 	SF.CheckType(func, "function")
 	local patt = unwrap(patt)
-	return wrap(lpeg.Cf(patt, name))
+	return wrap(lpeg.Cf(patt, func))
 end
 
 function lpeg_lib.Cg(patt, name)
