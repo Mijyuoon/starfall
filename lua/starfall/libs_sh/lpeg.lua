@@ -228,6 +228,9 @@ function lpeg_re.compile(patt, defs)
 	return wrap(re_lib.compile(patt, defs))
 end
 
+local pt_types = {
+	["string"] = true, ["Pattern" ] = true,
+}
 function lpeg_re.find(str, patt, pos)
 	SF.CheckType(str, "string")
 	SF.CheckType(patt, lp_meta)

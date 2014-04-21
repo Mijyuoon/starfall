@@ -267,25 +267,20 @@ end
 --]]
 
 function ENT:BuildDupeInfo()
-	local info = {}
-
+	local info = WireLib.BuildDupeInfo(self) or {}
 	if self.instance then
 		info.starfall = SF.SerializeCode(self.instance.source, self.instance.mainfile)
 	end
-
 	return info
 end
 
 function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
 	self.owner = ply
-	
 	if info.starfall then
-		-- Had to use hax
-		timer.Simple(0.05, function()
-			local code, main = SF.DeserializeCode(info.starfall)
-			self:CodeSent(ply, code, main)
-		end)
+		local code, main = SF.DeserializeCode(info.starfall)
+		self:CodeSent(ply, code, main)
 	end
+	WireLib.ApplyDupeInfo(ply, ent, info, GetEntByID)
 end
 
 local tmp_instance = {}
@@ -302,8 +297,15 @@ function ENT:PostEntityCopy()
 	self.instance = tmp_instance[self]
 end
 
-function ENT:PostEntityPaste(ply, ent)
+local function EntLookup(created)
+	return function(id, def)
+		local ent = created[id]
+		return (IsValid(ent) and ent or def)
+	end
+end
+
+function ENT:PostEntityPaste(ply, ent, created)
 	if ent.EntityMods and ent.EntityMods.SFDupeInfo then
-		ent:ApplyDupeInfo(ply, ent, ent.EntityMods.SFDupeInfo)
+		ent:ApplyDupeInfo(ply, ent, ent.EntityMods.SFDupeInfo, EntLookup(created))
 	end
 end
