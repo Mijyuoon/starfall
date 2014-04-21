@@ -265,3 +265,45 @@ function ENT:WriteCell(address, data)
 	SF.instance = instance
 end
 --]]
+
+function ENT:BuildDupeInfo()
+	local info = {}
+
+	if self.instance then
+		info.starfall = SF.SerializeCode(self.instance.source, self.instance.mainfile)
+	end
+
+	return info
+end
+
+function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
+	self.owner = ply
+	
+	if info.starfall then
+		-- Had to use hax
+		timer.Simple(0.05, function()
+			local code, main = SF.DeserializeCode(info.starfall)
+			self:CodeSent(ply, code, main)
+		end)
+	end
+end
+
+local tmp_instance = {}
+function ENT:PreEntityCopy()
+	local info = self:BuildDupeInfo()
+	tmp_instance[self] = self.instance
+	self.instance = nil
+	if info then
+		duplicator.StoreEntityModifier( self, "SFDupeInfo", info )
+	end
+end
+
+function ENT:PostEntityCopy()
+	self.instance = tmp_instance[self]
+end
+
+function ENT:PostEntityPaste(ply, ent)
+	if ent.EntityMods and ent.EntityMods.SFDupeInfo then
+		ent:ApplyDupeInfo(ply, ent, ent.EntityMods.SFDupeInfo)
+	end
+end
