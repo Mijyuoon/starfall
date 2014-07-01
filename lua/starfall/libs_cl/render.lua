@@ -87,6 +87,10 @@ local validfonts = {
 	"Stargate Address Glyphs Atl",
 }
 
+function SF.AddValidFont(name)
+	validfonts[#validfonts+1] = name
+end
+
 local defaultFont = "sf_screen_font_Default_16_400_9_0000"
 
 surface.CreateFont(defaultFont, {size = 16, weight = 400,
@@ -110,11 +114,13 @@ local function checkvertex(vert)
 	}
 end
 
+--[[
 function poly_methods:length()
 	SF.CheckType(self,poly_metamethods)
 	local poly = unwrappoly(self)
 	return poly and #poly or nil
 end
+--]]
 
 function poly_metamethods:__index(k)
 	SF.CheckType(self,poly_metamethods)
@@ -218,18 +224,18 @@ end
 
 --- Clears the surface
 -- @param clr Color type to clear with
-function render_library.clear ( clr )
+function render_library.clear(clr)
     if clr == nil then
         if not SF.instance.data.render.isRendering then
-			SF.throw( "Not in a rendering hook.", 2 )
+			SF.throw("Not in a rendering hook.", 2)
 		end
-        render.Clear( 0, 0, 0, 255 )
+        render.Clear(0, 0, 0, 255)
     else
-        SF.CheckType( clr, SF.Types[ "Color" ] )
+        SF.CheckType(clr, SF.Types["Color"])
         if not SF.instance.data.render.isRendering then
-			SF.throw( "Not in a rendering hook.", 2 )
+			SF.throw("Not in a rendering hook.", 2)
 		end
-        render.Clear( clr.r, clr.g, clr.b, clr.a )
+        render.Clear(clr.r, clr.g, clr.b, clr.a)
     end
 end
 
@@ -442,23 +448,54 @@ function render_library.drawPoly(poly)
 	surface.DrawPoly(poly)
 end
 
+--- Gets width and height of screen.
+function render_library.getViewport()
+	if not SF.instance.data.render.isRendering then
+		SF.throw("Not in a rendering hook.", 2)
+	end
+	return ScrW(), ScrH()
+end
+
+--- Draws image from another SF screen.
+function render_library.drawScreenRect(ent,x,y,w,h)
+	if not SF.instance.data.render.isRendering then
+		SF.throw("Not in a rendering hook.", 2)
+	end
+	local scrn = SF.Entities.Unwrap(ent)
+	if not IsValid(scrn) then return end
+	if scrn == SF.instance.data.entity then return end
+	if scrn:GetClass() ~= "starfall_screen" then return end
+	scrn:DrawScreen()
+	local vps = SF.instance.data.render.viewport
+	render.SetViewPort(vps.x, vps.y, vps.w, vps.h)
+	local OldTex = WireGPU_matScreen:GetTexture("$basetexture")
+	WireGPU_matScreen:SetTexture("$basetexture", scrn.GPU.RT)
+	surface.SetMaterial(WireGPU_matScreen)
+	surface.SetDrawColor(255, 255, 255, 255)
+	surface.DrawTexturedRectRotated(x+w/2, y+h/2, w, h, 0)
+	WireGPU_matScreen:SetTexture("$basetexture", OldTex)
+end
+
 --- Gets a 2D cursor position where ply is aiming.
-function render_library.cursorPos( ply )
+function render_library.cursorPos(ply)
 	-- Taken from EGPLib
 	local Normal, Pos, monitor, Ang
 	local screen = SF.instance.data.entity
 	if not screen then return nil end
 	
-	ply = SF.Entities.Unwrap( ply )
+	ply = SF.Entities.Unwrap(ply)
+	if not (IsValid(ply) and ply:IsPlayer()) then
+		return nil
+	end
 	
 	-- Get monitor screen pos & size
-	monitor = WireGPU_Monitors[ screen:GetModel() ]
+	monitor = WireGPU_Monitors[screen:GetModel()]
 		
 	-- Monitor does not have a valid screen point
 	if not monitor then return nil end
 		
-	Ang = screen:LocalToWorldAngles( monitor.rot )
-	Pos = screen:LocalToWorld( monitor.offset )
+	Ang = screen:LocalToWorldAngles(monitor.rot)
+	Pos = screen:LocalToWorld(monitor.offset)
 		
 	Normal = Ang:Up()
 	
@@ -471,8 +508,8 @@ function render_library.cursorPos( ply )
 	if A == 0 or A > 0 then return nil end
 	
 	local B = Normal:Dot(Pos-Start) / A
-		if (B >= 0) then
-		local HitPos = WorldToLocal( Start + Dir * B, Angle(), Pos, Ang )
+	if (B >= 0) then
+		local HitPos = WorldToLocal(Start + Dir * B, Angle(), Pos, Ang)
 		local x = (0.5+HitPos.x/(monitor.RS*512/monitor.RatioX)) * 512
 		local y = (0.5-HitPos.y/(monitor.RS*512)) * 512	
 		if x < 0 or x > 512 or y < 0 or y > 512 then return nil end -- Aiming off the screen 

@@ -31,16 +31,22 @@ else
 	list.Set( "Starfall_gate_Models", "models/spacecode/sfchip.mdl", true )
 	list.Set( "Starfall_gate_Models", "models/spacecode/sfchip_medium.mdl", true )
 	list.Set( "Starfall_gate_Models", "models/spacecode/sfchip_small.mdl", true )
+
+	HudSF = HudSF or {
+		Scale = 2,
+		DrawBG = true,
+		ScrA = false,
+		ScrB = false,
+	}
 	
 	local function DrawScreen(X,Y,RTarg,Scl)
-		local OldTex = WireGPU_matScreen:GetTexture("$basetexture")
-		WireGPU_matScreen:SetTexture("$basetexture", RTarg)
-		
+		local mat = WireGPU_matScreen
+		local OldTex = mat:GetTexture("$basetexture")
+		mat:SetTexture("$basetexture", RTarg)
 		surface.SetDrawColor(255,255,255,255)
-		surface.SetMaterial(WireGPU_matScreen)
+		surface.SetMaterial(mat)
 		surface.DrawTexturedRectRotated(X,Y,Scl,Scl,0)
-		
-		WireGPU_matScreen:SetTexture("$basetexture", OldTex)
+		mat:SetTexture("$basetexture", OldTex)
 	end
 
 	local function HudSF_Scale(mode, dbl)
@@ -55,32 +61,43 @@ else
 			return math.min(W/2, H)
 		end
 	end
+	
+	local function ValidScr(scrn)
+		return (IsValid(scrn) and scrn.GPU)
+	end
 
-	HudSF = HudSF or {
-		Scale = 2,
-		DrawBG = true,
-		ScrA = false,
-		ScrB = false,
-	}
-
-	hook.Add("HUDPaint", "SF_1", function()
+	hook.Add("Think", "SF_HUD", function()
+		local scra, scrb = HudSF.ScrA, HudSF.ScrB
+		if not ValidScr(scra) then
+			scra, scrb = ValidScr(scrb) and scrb, false
+			HudSF.ScrA, HudSF.ScrB = scra, false
+		end
+		if not ValidScr(scrb) then
+			scrb, HudSF.ScrB = false, false
+		end
+		if scra and not scrb then
+			scra:DrawScreen()
+		elseif scra and scrb then
+			scra:DrawScreen()
+			scrb:DrawScreen()
+		end
+	end)
+	
+	hook.Add("HUDPaint", "SF_HUD", function()
 		local W, H = ScrW(), ScrH()
 		local scra, scrb = HudSF.ScrA, HudSF.ScrB
-		if scra and not scrb then
+		if ValidScr(scra) and not ValidScr(scrb) then
 			if HudSF.DrawBG then
 				surface.SetDrawColor(0,0,0,240)
 				surface.DrawRect(0,0,W,H)
 			end
 			local offs = HudSF_Scale(HudSF.Scale, false)
-			scra.GPU:RenderToGPU(scra.renderfunc)
 			DrawScreen(W/2, H/2, scra.GPU.RT, offs*2)
-		elseif scra and scrb then
+		elseif ValidScr(scra) and ValidScr(scrb) then
 			if HudSF.DrawBG then
 				surface.SetDrawColor(0,0,0,240)
 				surface.DrawRect(0,0,W,H)
 			end
-			scra.GPU:RenderToGPU(scra.renderfunc)
-			scrb.GPU:RenderToGPU(scrb.renderfunc)
 			local offs = HudSF_Scale(HudSF.Scale, true)
 			DrawScreen(W/2 - offs, H/2, scra.GPU.RT, offs*2)
 			DrawScreen(W/2 + offs, H/2, scrb.GPU.RT, offs*2)
@@ -95,8 +112,9 @@ else
 		CHudAmmo = true,
 		CHudSecondaryAmmo = true,
 	}
-	hook.Add("HUDShouldDraw", "SF_1", function(name)
-		if HudSF.ScrA and disable_hud[name] then
+	
+	hook.Add("HUDShouldDraw", "SF_HUD", function(name)
+		if ValidScr(HudSF.ScrA) and disable_hud[name] then
 			return false
 		end
 	end)
@@ -114,7 +132,6 @@ else
 			HudSF.ScrB = IsValid(cent) and cent
 		end
 	end)
-
 end
 
 _MLOADED = {}
@@ -124,7 +141,9 @@ function loadmodule(name)
 	end
 	
 	local kname = name:gsub("%.","/") .. ".lua"
-	if not file.Exists(kname, "LUA") then
+	local is_sv = file.Exists(kname, "LUA")
+	local is_cl = file.Exists(kname, "LCL")
+	if not (is_sv or is_cl) then
 		error("cannot find module \"" .. name .. "\"")
 	end
 	

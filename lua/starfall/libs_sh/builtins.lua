@@ -66,7 +66,12 @@ SF.DefaultEnvironment.ipairs = ipairs
 -- @name SF.DefaultEnvironment.pairs
 -- @class function
 -- @param tbl
-SF.DefaultEnvironment.pairs = function(t) 
+SF.DefaultEnvironment.pairs = pairs
+--- Same as Lua's pairs but iterates over metatable's __index
+-- @name SF.DefaultEnvironment.pairs
+-- @class function
+-- @param tbl
+SF.DefaultEnvironment.mpairs = function(t) 
 	return mynext, t, nil
 end
 --- Same as Lua's type
@@ -108,7 +113,7 @@ end
 --- Same as Lua's pcall.
 SF.DefaultEnvironment.pcall = pcall
 --- Throws an error. Can't change the level yet.
-SF.DefaultEnvironment.error = function(msg) 
+SF.DefaultEnvironment.error = function(msg)
 	error(msg or "unspecified error occured",2) 
 end
 

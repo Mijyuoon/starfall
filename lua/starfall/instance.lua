@@ -63,7 +63,7 @@ function SF.Instance:runWithOps(func,...)
 	debug.sethook(nil)
 	
 	if SF.ShowExeTime then
-		MsgN("SF: Exectued "..(self.ops-beginops).." instructions in "..(SysTime()-begin).." seconds")
+		MsgN("SF: Exectued "..(self.ops-beginops).." instructions in "..(SysTime()-begin).."s")
 	end
 	
 	if ok then
@@ -128,8 +128,8 @@ end
 -- @return True if it executed ok, false if not or if there was no hook
 -- @return If the first return value is false then the error message or nil if no hook was registered
 function SF.Instance:runScriptHook(hook, ...)
-	for ok,err,traceback in self:iterTblScriptHook(hook,...) do
-		if not ok then return false,err,traceback end
+	for ok,err,traceback in self:iterTblScriptHook(hook, ...) do
+		if not ok then return false, err, traceback end
 	end
 	return true
 end
@@ -278,7 +278,7 @@ function SF.Instance:Error(msg,traceback)
 	
 	if self.runOnError then -- We have a custom error function, use that instead
 		self.runOnError( msg, traceback )
-		print "runOnError()"
+		--print "runOnError()"
 		return
 	end
 	

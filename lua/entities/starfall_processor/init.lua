@@ -9,7 +9,7 @@ assert(SF, "Starfall didn't load correctly!")
 ENT.WireDebugName = "Starfall Processor"
 ENT.OverlayDelay = 0
 
-local context = SF.CreateContext()
+local Context = SF.CreateContext()
 
 function ENT:UpdateState(state)
 	if self.name then
@@ -19,15 +19,18 @@ function ENT:UpdateState(state)
 	end
 end
 
+function ENT:SetContextBase()
+	self.SFContext = Context
+end
+
 function ENT:Initialize()
 	self:PhysicsInit(SOLID_VPHYSICS)
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	
-	---[[
+	self:SetContextBase()
 	self.Inputs = WireLib.CreateInputs(self, {})
 	self.Outputs = WireLib.CreateOutputs(self, {})
-	--]]
 	
 	self:UpdateState("Inactive (No code)")
 	local clr = self:GetColor()
@@ -40,7 +43,7 @@ function ENT:Compile(codetbl, mainfile)
 		self.instance:deinitialize() 
 	end
 	
-	local ok, instance = SF.Compiler.Compile(codetbl,context,mainfile,self.owner)
+	local ok, instance = SF.Compiler.Compile(codetbl,self.SFContext,mainfile,self.owner)
 	if not ok then self:Error(instance) return end
 	
 	instance.runOnError = function(inst,...) self:Error(...) end
@@ -118,40 +121,34 @@ function ENT:OnRemove()
 	self.instance = nil
 end
 
----[[
 function ENT:TriggerInput(key, value)
-	local instance = SF.instance
-	SF.instance = nil
 	self:runScriptHook("input", key, SF.Wire.InputConverters[self.Inputs[key].Type](value))
-	SF.instance = instance
 end
 
 function ENT:ReadCell(address)
-	local instance = SF.instance
-	SF.instance = nil
-	local res =  tonumber(self:runScriptHookForResult("readcell",address)) or 0
-	SF.instance = instance
-	return res
+	return tonumber(self:runScriptHookForResult("readcell",address)) or 0
 end
 
 function ENT:WriteCell(address, data)
-	local instance = SF.instance
-	SF.instance = nil
 	self:runScriptHook("writecell",address,data)
-	SF.instance = instance
 end
---]]
 
 function ENT:runScriptHook(hook, ...)
 	if self.instance and not self.instance.error and self.instance.hooks[hook:lower()] then
+		local instance = SF.instance
+		SF.instance = nil
 		local ok, rt = self.instance:runScriptHook(hook, ...)
+		SF.instance = instance
 		if not ok then self:Error(rt) end
 	end
 end
 
 function ENT:runScriptHookForResult(hook,...)
 	if self.instance and not self.instance.error and self.instance.hooks[hook:lower()] then
+		local instance = SF.instance
+		SF.instance = nil
 		local ok, rt = self.instance:runScriptHookForResult(hook, ...)
+		SF.instance = instance
 		if not ok then self:Error(rt)
 		else return rt end
 	end

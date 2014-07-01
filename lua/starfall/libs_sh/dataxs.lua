@@ -64,13 +64,11 @@ function xs_lib.sendGroup(group, all, ...)
 	if not xs_groups[group] then return end
 	local instance = SF.instance
 	local this = instance.data.entity
-	SF.instance = nil
 	for targ, hins in pairs(xs_groups[group]) do
 		if IsTarget(targ, this) and IsAllowed(instance, hins, all) then
 			targ:runScriptHook("dataxs", group, ...)
 		end
 	end
-	SF.instance = instance
 end
 
 function xs_lib.sendDirect(ent, ...)
@@ -78,11 +76,9 @@ function xs_lib.sendDirect(ent, ...)
 	local chip = SF.Entities.Unwrap(ent)
 	local instance = SF.instance
 	local this = instance.data.entity
-	SF.instance = nil
 	if IsTarget(chip, this) then
 		chip:runScriptHook("dataxs", false, ...)
 	end
-	SF.instance = instance
 end
 
 SF.Libraries.AddHook("deinitialize", function(instance)

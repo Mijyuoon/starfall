@@ -66,6 +66,7 @@ function timer_library.create(name, delay, reps, func)
 	local timername = mangle_timer_name(instance,name)
 	
 	local function timercb()
+		if instance.error then return end
 		local ok, msg, traceback = instance:runFunction(func)
 		if not ok then
 			instance:Error( msg, traceback )

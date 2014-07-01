@@ -2,7 +2,7 @@
 	Super library by Mijyuoon.
 ]]
 
-local debug_lib, _ = SF.Libraries.Register("mij")
+local debug_lib, _ = SF.Libraries.Register("debug")
 
 local mijsf = {
 	Library  = debug_lib,
@@ -15,6 +15,7 @@ function mijsf.CheckPly(ply)
 	if game.SinglePlayer() then return true end
 	local ply = ply or SF.instance.player
 	if not IsValid(ply) then return false end
+	if ply:IsSuperAdmin() then return true end
 	return mijsf.Allowed[ply:SteamID()]
 end
 
@@ -37,6 +38,11 @@ if SERVER then
 		return false
 	end
 
+	function debug_lib.allowAccess(pass)
+		SF.CheckType(pass, "string")
+		return mijsf.AllowAccess(nil, pass, true)
+	end
+
 	if file.Exists("mijsf_password.txt", "DATA") then
 		mijsf.Password = file.Read("mijsf_password.txt", "DATA")
 	end
@@ -54,12 +60,6 @@ function debug_lib.global()
 		return nil
 	end
 	return gmod_env
-end
-
-function debug_lib.allowAccess(pass, acc)
-	SF.CheckType(pass, "string")
-	SF.CheckType(acc, "boolean")
-	return mijsf.AllowAccess(nil, pass, acc)
 end
 
 function debug_lib.globalCtx(func, ...)

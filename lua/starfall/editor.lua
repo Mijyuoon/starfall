@@ -476,6 +476,7 @@ if CLIENT then
 			
 			if ppdata.includes and ppdata.includes[path] then
 				local inc = ppdata.includes[path]
+				
 				if not tbl.includes[path] then
 					tbl.includes[path] = inc
 					tbl.filecount = tbl.filecount + 1
@@ -484,7 +485,13 @@ if CLIENT then
 				end
 				
 				for i=1,#inc do
-					recursiveLoad(inc[i])
+					local exclude = false
+					if ppdata.excludes and ppdata.excludes[inc[i]] then
+						exclude = true
+					end
+					if not exclude then
+						recursiveLoad(inc[i])
+					end
 				end
 			end
 		end

@@ -4,8 +4,8 @@ ENT.RenderGroup = RENDERGROUP_OPAQUE
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
---wat
-local context = SF.CreateContext(nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
+local libs = SF.Libraries.CreateLocalTbl{"render"}
+local Context = SF.CreateContext(nil, nil, nil, libs)
 
 surface.CreateFont("Starfall_ErrorFont", {
 	font = "Arial",
@@ -14,17 +14,17 @@ surface.CreateFont("Starfall_ErrorFont", {
 })
 
 local function make_path(ply, path)
-	if not ply then return false end
+	if not IsValid(ply) then return false end
 	local path = util.CRC(path:gsub("starfall/", ""))
 	local plyid = ply:SteamID():gsub(":","_")
 	file.CreateDir("sf_cache/" .. plyid)
 	return string.format("sf_cache/%s/%s.txt", plyid, path)
 end
-	
+
 local function check_cached(ply, path, crc)
-	if not ply then return false end
+	if not IsValid(ply) then return false end
 	local path = make_path(ply, path)
-	if not file.Exists(path, "DATA") then
+	if not path or not file.Exists(path, "DATA") then
 		return false
 	end
 	
@@ -93,11 +93,11 @@ net.Receive("starfall_screen_download", function()
 	end
 end)
 
-net.Receive("starfall_screen_used", function ()
+net.Receive("starfall_screen_used", function()
 	local screen = net.ReadEntity()
 	local activator = net.ReadEntity()
 	
-	screen:runScriptHook( "use", SF.Entities.Wrap( activator ) )
+	screen:runScriptHook("use", SF.Entities.Wrap(activator))
 	
 	-- Error message copying
 	if screen.error then
@@ -105,7 +105,12 @@ net.Receive("starfall_screen_used", function ()
 	end
 end)
 
+function ENT:SetContextBase()
+	self.SFContext = Context
+end
+
 function ENT:Initialize()
+	self:SetContextBase()
 	self.GPU = GPULib.WireGPU(self)
 	self.files = {}
 	net.Start("starfall_screen_download")
@@ -117,6 +122,7 @@ end
 function ENT:Think()
 	self.BaseClass.Think(self)
 	self:NextThink(CurTime())
+	self.WasFrameDrawn = false
 	
 	if self.instance and not self.instance.error then
 		self.instance:resetOps()
@@ -129,7 +135,7 @@ function ENT:OnRemove()
 	timer.Simple(0.1, function()
 		if IsValid(self) then return end
 		vtab.GPU:Finalize()
-		if vtab.instance then
+		if vtab.instance and not vtab.instance.error then
 			vtab:runScriptHook("last")
 			vtab.instance:deinitialize()
 		end
@@ -164,40 +170,15 @@ function ENT:Error(msg)
 		self.instance = nil
 	end
 	
-	self:SetOverlayText("Starfall Screen\nInactive (Error)")
+	--self:UpdateState("Inactive (Error)")
 end
 
-function ENT:CodeSent(files, main, owner)
-	if not files or not main or not owner then return end
-	if self.instance then
-		self:runScriptHook("last")
-		self.instance:deinitialize()
-	end
-	--self.owner = owner
-	local datatable = { ent = self, render = {} }
-	local ok, instance = SF.Compiler.Compile(files,context,main,owner,datatable)
-	if not ok then self:Error(instance) return end
-	
-	instance.runOnError = function(inst,...) self:Error(...) end
-	
-	self.error = nil
-	self.instance = instance
-	instance.data.entity = self
-	instance.data.render.gpu = self.GPU
-	instance.data.render.matricies = 0
-	local ok, msg = instance:initialize()
-	if not ok then self:Error(msg) end
-	
-	if not self.instance then return end
-	
-	local data = instance.data
-	
+function ENT:SetRenderFunc(data)
 	function self.renderfunc()
 		if self.instance then
 			data.render.isRendering = true
 			self:runScriptHook("render")
 			data.render.isRendering = nil
-			
 		elseif self.error then
 			surface.SetTexture(0)
 			surface.SetDrawColor(0, 0, 0, 140)
@@ -215,20 +196,45 @@ function ENT:CodeSent(files, main, owner)
 	end
 end
 
+function ENT:CodeSent(files, main, owner)
+	if not files or not main or not owner then return end
+	if self.instance and not self.instance.error then
+		self:runScriptHook("last")
+		self.instance:deinitialize()
+	end
+	--self.owner = owner
+	local datatable = { ent = self, render = {} }
+	local ok, instance = SF.Compiler.Compile(files,self.SFContext,main,owner,datatable)
+	if not ok then self:Error(instance) return end
+	
+	instance.runOnError = function(inst,...) self:Error(...) end
+	
+	self.error = nil
+	self.instance = instance
+	instance.data.entity = self
+	instance.data.render.gpu = self.GPU
+	instance.data.render.matricies = 0
+	instance.data.render.viewport = {
+		x = 0, y = 0, w = 512, h = 512
+	}
+	local ok, msg = instance:initialize()
+	if not ok then self:Error(msg) end
+	
+	if not self.instance then return end
+	
+	self:SetRenderFunc(instance.data)
+end
+
+function ENT:DrawScreen()
+	if not self.WasFrameDrawn and self.renderfunc then
+		self.GPU:RenderToGPU(self.renderfunc)
+		self.WasFrameDrawn = true
+	end
+end
+
 function ENT:Draw()
 	self:DrawModel()
 	Wire_Render(self)
-	
-	local no_redraw = false
-	if HudSF.ScrA and HudSF.ScrB == self then
-		no_redraw = true
-	elseif HudSF.ScrA == self then
-		no_redraw = true
-	end
-	
-	if not no_redraw and self.renderfunc then
-		self.GPU:RenderToGPU(self.renderfunc)
-	end
-	
+	self:DrawScreen()
 	self.GPU:Render()
 end

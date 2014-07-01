@@ -1,11 +1,13 @@
-TOOL.Category		= "Wire - Display"
-TOOL.Name			= "Starfall - Screen"
+TOOL.Category		= "Visuals/Screens"
+TOOL.Name			= "SF Screen"
 TOOL.Command		= nil
 TOOL.ConfigName		= ""
 TOOL.Tab			= "Wire"
 
 -- ------------------------------- Sending / Recieving ------------------------------- --
 include("starfall/sflib.lua")
+
+local MakeSF
 
 TOOL.ClientConVar[ "Model" ] = "models/hunter/plates/plate2x2.mdl"
 cleanup.Register( "starfall_screen" )

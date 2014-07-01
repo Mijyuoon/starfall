@@ -5,15 +5,12 @@ include('shared.lua')
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
---wat
-local context = SF.CreateContext(nil, nil, nil, SF.Libraries.CreateLocalTbl{"render"})
-local screens = {}
+local libs = SF.Libraries.CreateLocalTbl{"render"}
+local Context = SF.CreateContext(nil, nil, nil, libs)
+local Requests, screens = {}, {}
 
 util.AddNetworkString("starfall_screen_download")
---util.AddNetworkString("starfall_screen_update")
 util.AddNetworkString("starfall_screen_used")
-
-local Requests = {}
 
 local function sendScreenCode(ply, screen)
 	net.Start("starfall_screen_download")
@@ -93,18 +90,22 @@ net.Receive("starfall_screen_download", function(len, ply)
 	end
 end)
 
+function ENT:SetContextBase()
+	self.SFContext = Context
+end
+
 function ENT:Initialize()
 	self:PhysicsInit(SOLID_VPHYSICS)
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	self:SetUseType( 3 )
 	
-	---[[
+	self:SetContextBase()
 	self.Inputs = WireLib.CreateInputs(self, {})
 	self.Outputs = WireLib.CreateOutputs(self, {})
-	--]]
 	
-	local r,g,b,a = self:GetColor()
+	-- What is this for.
+	-- local r,g,b,a = self:GetColor()
 end
 
 function ENT:OnRestore()
@@ -137,7 +138,7 @@ function ENT:Error(msg, override)
 		self.instance = nil
 	end
 	
-	self:UpdateName("Inactive (Error)")
+	--self:UpdateName("Inactive (Error)")
 	local r,g,b,a = self:GetColor()
 	self:SetColor(255, 0, 0, a)
 end
@@ -165,7 +166,7 @@ function ENT:CodeSent(ply, files, mainfile)
 	SF.Preprocessor.ParseDirectives(mainfile, files[mainfile], {}, ppdata)
 	
 	if ppdata.sharedscreen then		
-		local ok, instance = SF.Compiler.Compile(files,context,mainfile,ply)
+		local ok, instance = SF.Compiler.Compile(files,self.SFContext,mainfile,ply)
 		if not ok then self:Error(instance) return end
 		
 		instance.runOnError = function(inst,...) self:Error(...) end
@@ -187,7 +188,7 @@ function ENT:CodeSent(ply, files, mainfile)
 		
 		if not self.instance then return end
 		
-		self:UpdateName("")
+		--self:UpdateName("")
 		local r,g,b,a = self:GetColor()
 		self:SetColor(Color(255, 255, 255, a))
 		self.sharedscreen = true
@@ -196,19 +197,8 @@ end
 
 timer.Create("Starfall_RetryCodeReq", 0.66, 0, retryCodeRequests)
 
-local i = 0
 function ENT:Think()
 	self.BaseClass.Think(self)
-
-	--[[
-	i = i + 1
-
-	if i % 22 == 0 then
-		retryCodeRequests()
-		i = 0
-	end
-	--]]
-
 	self:NextThink(CurTime())
 	
 	if self.instance and not self.instance.error then
@@ -220,21 +210,21 @@ function ENT:Think()
 end
 
 -- Sends a umsg to all clients about the use.
-function ENT:Use( activator )
+function ENT:Use(activator)
 	if activator:IsPlayer() then
-		net.Start( "starfall_screen_used" )
-			net.WriteEntity( self )
-			net.WriteEntity( activator )
+		net.Start("starfall_screen_used")
+			net.WriteEntity(self)
+			net.WriteEntity(activator)
 		net.Broadcast()
 	end
 	if self.sharedscreen then
-		self:runScriptHook( "use", SF.Entities.Wrap( activator ) )
+		self:runScriptHook("use", SF.Entities.Wrap(activator))
 	end
 end
 
 function ENT:OnRemove()
 	if not self.instance then return end
-	if self.sharedscreen then
+	if not self.instance.error and self.sharedscreen then
 		self:runScriptHook("last")
 	end
 	screens[self] = nil
@@ -242,29 +232,27 @@ function ENT:OnRemove()
 	self.instance = nil
 end
 
----[[
 function ENT:TriggerInput(key, value)
-	local instance = SF.instance
-	SF.instance = nil
+	--local instance = SF.instance
+	--SF.instance = nil
 	self:runScriptHook("input", key, SF.Wire.InputConverters[self.Inputs[key].Type](value))
-	SF.instance = instance
+	--SF.instance = instance
 end
 
 function ENT:ReadCell(address)
-	local instance = SF.instance
-	SF.instance = nil
+	--local instance = SF.instance
+	--SF.instance = nil
 	local res =  tonumber(self:runScriptHookForResult("readcell",address)) or 0
-	SF.instance = instance
+	--SF.instance = instance
 	return res
 end
 
 function ENT:WriteCell(address, data)
-	local instance = SF.instance
-	SF.instance = nil
+	--local instance = SF.instance
+	--SF.instance = nil
 	self:runScriptHook("writecell",address,data)
-	SF.instance = instance
+	--SF.instance = instance
 end
---]]
 
 function ENT:BuildDupeInfo()
 	local info = WireLib.BuildDupeInfo(self) or {}
@@ -289,7 +277,7 @@ function ENT:PreEntityCopy()
 	tmp_instance[self] = self.instance
 	self.instance = nil
 	if info then
-		duplicator.StoreEntityModifier( self, "SFDupeInfo", info )
+		duplicator.StoreEntityModifier(self, "SFDupeInfo", info)
 	end
 end
 

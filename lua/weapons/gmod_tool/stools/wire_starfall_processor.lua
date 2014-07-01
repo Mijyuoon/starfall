@@ -1,5 +1,5 @@
-TOOL.Category		= "Wire - Control"
-TOOL.Name			= "Starfall - Processor"
+TOOL.Category		= "Chips, Gates"
+TOOL.Name			= "SF Processor"
 TOOL.Command		= nil
 TOOL.ConfigName		= ""
 TOOL.Tab			= "Wire"

@@ -141,6 +141,16 @@ local function directive_include(args, filename, data)
 end
 SF.Preprocessor.SetGlobalDirective("include",directive_include)
 
+local function directive_exclude(args, filename, data)
+	if not data.excludes then data.excludes = {} end
+	
+	if args:sub(-4,-1) ~= ".txt" then
+		args = args .. ".txt"
+	end
+	data.excludes[args] = true
+end
+SF.Preprocessor.SetGlobalDirective("exclude",directive_exclude)
+
 local function directive_name(args, filename, data)
 	if not data.scriptnames then data.scriptnames = {} end
 	data.scriptnames[filename] = args
@@ -149,7 +159,6 @@ SF.Preprocessor.SetGlobalDirective("name",directive_name)
 
 local function directive_sharedscreen(args, filename, data)
 	if not data.sharedscreen then data.sharedscreen = true end
-	
 end
 SF.Preprocessor.SetGlobalDirective("sharedscreen",directive_sharedscreen)
 

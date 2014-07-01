@@ -23,7 +23,7 @@ do
 end
 
 local materialBlacklist = {
-	[ "pp/copy" ] = true
+	["pp/copy"] = true
 }
 
 -- ------------------------- Internal functions ------------------------- --
@@ -57,17 +57,17 @@ local getPhysObject = SF.Entities.GetPhysObject
 --- Returns the entity representing a processor that this script is running on.
 -- May be nil
 -- @return Starfall entity
-function ents_lib.self ()
+function ents_lib.self()
 	local ent = SF.instance.data.entity
 	if ent then 
-		return SF.Entities.Wrap( ent )
+		return SF.Entities.Wrap(ent)
 	else return nil end
 end
 
 --- Returns whoever created the script
 -- @return Owner entity
-function ents_lib.owner ()
-	return SF.WrapObject( SF.instance.player )
+function ents_lib.owner()
+	return SF.WrapObject(SF.instance.player)
 end
 
 --- Same as ents_lib.owner() on the server. On the client, returns the local player
@@ -77,8 +77,8 @@ end
 if SERVER then
 	ents_lib.player = ents_lib.owner
 else
-	function ents_lib.player ()
-		return SF.WrapObject( LocalPlayer() )
+	function ents_lib.player()
+		return SF.WrapObject(LocalPlayer())
 	end
 end
 

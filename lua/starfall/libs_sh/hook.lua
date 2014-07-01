@@ -35,12 +35,12 @@ function hook_library.run(hookname, ...)
 	local lower = hookname:lower()
 	
 	SF.instance = nil -- Pretend we're not running an instance
-	local ret = {instance:runScriptHookForResult( lower, ... )}
+	local ret = {instance:runScriptHookForResult(lower, ... )}
 	SF.instance = instance -- Set it back
 	
-	local ok = table.remove( ret, 1 )
+	local ok = table.remove(ret, 1)
 	if not ok then
-		instance:Error( "Hook '" .. lower .. "' errored with " .. ret[1], ret[2] )
+		instance:Error("Hook '" .. lower .. "' errored with " .. ret[1], ret[2])
 		return
 	end
 	
@@ -51,7 +51,7 @@ end
 -- @shared
 -- @param hookname The hook name
 -- @param name The unique name for this hook
-function hook_library.remove( hookname, name )
+function hook_library.remove(hookname, name)
 	SF.CheckType(hookname,"string")
 	SF.CheckType(name,"string")
 	local instance = SF.instance
@@ -83,15 +83,15 @@ end)
 
 local wrapArguments = SF.Sanitize
 
-local function run( hookname, customfunc, ... )
-	for instance,_ in pairs( registered_instances ) do
-		local ret = {instance:runScriptHookForResult( hookname, ... )}
+local function run(hookname, customfunc, ...)
+	for instance,_ in pairs(registered_instances) do
+		local ret = {instance:runScriptHookForResult(hookname, ...)}
 		
-		local ok = table.remove( ret, 1 )
+		local ok = table.remove(ret, 1)
 		if not ok then
-			instance:Error( "Hook '" .. hookname .. "' errored with " .. ret[1], ret[2] )
+			instance:Error("Hook '" .. hookname .. "' errored with " .. ret[1], ret[2])
 		elseif customfunc then
-			local a,b,c,d,e,f,g,h = customfunc( instance, ret )
+			local a,b,c,d,e,f,g,h = customfunc(instance, ret)
 			if a ~= nil then
 				return a,b,c,d,e,f,g,h
 			end
@@ -105,11 +105,11 @@ local hooks = {}
 -- @shared
 -- @param hookname The hook name. In-SF hookname will be lowercased
 -- @param customfunc Optional custom function
-function SF.hookAdd( hookname, customfunc )
+function SF.hookAdd(hookname, customfunc)
 	hooks[#hooks+1] = hookname
 	local lower = hookname:lower()
-	hook.Add( hookname, "SF_" .. hookname, function(...)
-		return run( lower, customfunc, wrapArguments( ... ) )
+	hook.Add(hookname, "SF_" .. hookname, function(...)
+		return run(lower, customfunc, wrapArguments(...))
 	end)
 end
 
@@ -117,19 +117,24 @@ local add = SF.hookAdd
 
 if SERVER then
 	-- Server hooks
-	add( "GravGunOnPickedUp" )
-	add( "GravGunOnDropped" )
-	add( "OnPhysgunFreeze" )
-	add( "OnPhysgunReload" )
-	add( "PlayerDeath" )
-	add( "PlayerDisconnected" )
-	add( "PlayerInitialSpawn" )
-	add( "PlayerSpawn" )
-	add( "PlayerLeaveVehicle" )
-	add( "PlayerSay", function( instance, args ) if args then return args[1] end end )
-	add( "PlayerSpray" )
-	add( "PlayerUse" )
-	add( "PlayerSwitchFlashlight" )
+	local function filter_chat(inst, args)
+		if args then
+			return args[1]
+		end
+	end
+	add("GravGunOnPickedUp")
+	add("GravGunOnDropped")
+	add("OnPhysgunFreeze")
+	add("OnPhysgunReload")
+	add("PlayerDeath")
+	add("PlayerDisconnected")
+	add("PlayerInitialSpawn")
+	add("PlayerSpawn")
+	add("PlayerLeaveVehicle")
+	add("PlayerSay", filter_chat)
+	add("PlayerSpray")
+	add("PlayerUse")
+	add("PlayerSwitchFlashlight")
 else
 	-- Client hooks
 	-- todo
@@ -138,18 +143,18 @@ end
 -- Shared hooks
 
 -- Player hooks
-add( "PlayerHurt" )
-add( "PlayerNoClip" )
-add( "KeyPress" )
-add( "KeyRelease" )
-add( "GravGunPunt" )
-add( "PhysgunPickup" )
-add( "PhysgunDrop" )
+add("PlayerHurt")
+add("PlayerNoClip")
+add("KeyPress")
+add("KeyRelease")
+add("GravGunPunt")
+add("PhysgunPickup")
+add("PhysgunDrop")
 
 -- Entity hooks
-add( "OnEntityCreated" )
-add( "EntityRemoved" )
+add("OnEntityCreated")
+add("EntityRemoved")
 
 -- Other
-add( "EndEntityDriving" )
-add( "StartEntityDriving" )
+add("EndEntityDriving")
+add("StartEntityDriving")
