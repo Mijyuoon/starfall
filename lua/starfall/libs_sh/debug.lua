@@ -128,3 +128,7 @@ function debug_lib.getfenv(fn)
 	end
 	return getfenv(fn)
 end
+
+function debug_lib.hasErrored()
+	return SF.instance.error and true or false
+end
