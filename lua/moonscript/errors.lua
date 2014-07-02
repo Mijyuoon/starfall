@@ -65,7 +65,10 @@ local rewrite_traceback
 rewrite_traceback = function(text, err)
   local line_tables = loadmodule("moonscript.line_tables")
   local V, S, Ct, C
-  V, S, Ct, C = lpeg.V, lpeg.S, lpeg.Ct, lpeg.C
+  do
+    local _obj_0 = lpeg
+    V, S, Ct, C = _obj_0.V, _obj_0.S, _obj_0.Ct, _obj_0.C
+  end
   local header_text = "stack traceback:"
   local Header, Line = V("Header"), V("Line")
   local Break = lpeg.S("\n")
@@ -77,8 +80,8 @@ rewrite_traceback = function(text, err)
   local cache = { }
   local rewrite_single
   rewrite_single = function(trace)
-    local fname, line, msg = trace:match('^%[string "(.-)"]:(%d+): (.*)$')
-    local tbl = line_tables[fname]
+    local fname, line, msg = trace:match('^(.-):(%d+): (.*)$')
+    local tbl = line_tables["@" .. tostring(fname)]
     if fname and tbl then
       return concat({
         fname,

@@ -38,9 +38,12 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 	instance.mainfile = mainfile
 	
 	for filename, source in pairs(code) do
-		if not dontpreprocess then
+		if type(source) == "table" then
+			-- Hack for propagating Moonscript parse errors
+			return false, source.msg:gsub("\n", " ")
+		elseif not dontpreprocess then
 			instance.ppdata.moonscript = nil
-			SF.Preprocessor.ParseDirectives(filename,source,context.directives,instance.ppdata)
+			SF.Preprocessor.ParseDirectives(filename, source, context.directives, instance.ppdata)
 		end
 		
 		if string.match(source, "^[%s\n]*$") then
