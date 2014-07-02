@@ -1,3 +1,10 @@
+local updateCheckDone = false
+local updateUrl = "https://raw.github.com/Mijyuoon/starfall/master/lua/starfall/version.lua"
+local updateMsg = [[
+Your copy of Starfall is out of date!
+Your version: %d   Latest version: %d
+Please update to get new features and bug fixes!]]
+
 if SERVER then
 	AddCSLuaFile()
 	AddCSLuaFile("moonscript/base.lua")
@@ -132,12 +139,58 @@ else
 			HudSF.ScrB = IsValid(cent) and cent
 		end
 	end)
+	
+	--- Update check code ----------------------
+	--------------------------------------------
+	local function DisplayUpdateMsg(vCur, vLast)
+		local updateWnd = vgui.Create("DFrame")
+		updateWnd:SetTitle("Starfall update reminder")
+		updateWnd:SetSize(380, 120)
+		updateWnd:SetPos(100, 100)
+		updateWnd:SetVisible(true)
+		updateWnd:SetDraggable(true)
+		updateWnd:MakePopup()
+		local wndPaint = updateWnd.Paint
+		updateWnd.Paint = function(self, w, h)
+			wndPaint(self, w, h)
+			local msg = Format(updateMsg, vCur, vLast)
+			draw.DrawText(msg, "ScoreboardText", w/2, 30, color_white, 1)
+		end
+		
+		local updateWndB = vgui.Create("DButton", updateWnd)
+		updateWndB:SetText("Close")
+		updateWndB:SetPos(290, 85)
+		updateWndB:SetSize(80, 25)
+		updateWndB.DoClick = function()
+			updateWnd:Close()
+		end
+	end
+
+	local function GetVersion(dat)
+		dat = (dat or ""):match("^SF.Version=(%d+)$")
+		return tonumber(dat)
+	end
+	
+	local function CheckForUpdates(_, key)
+		if key ~= "+menu" then return end
+		if updateCheckDone then return end
+		http.Fetch(updateUrl, function(dat)
+			local last_ver = GetVersion(dat)
+			if last_ver and SF_Version < last_ver then
+				DisplayUpdateMsg(SF_Version, last_ver)
+			end
+			updateCheckDone = true
+		end)
+	end
+	
+	SF_Version = GetVersion(file.Read("lua/starfall/version.lua", "GAME"))
+	hook.Add("PlayerBindPress", "SF_UpdateCheck", CheckForUpdates)
 end
 
-_MLOADED = {}
+_MODLOAD = {}
 function loadmodule(name)
-	if _MLOADED[name] then
-		return _MLOADED[name]
+	if _MODLOAD[name] then
+		return _MODLOAD[name]
 	end
 	
 	local kname = name:gsub("%.","/") .. ".lua"
@@ -149,8 +202,8 @@ function loadmodule(name)
 	
 	local func = CompileFile(kname, name)
 	if func then
-		_MLOADED[name] = func() or true
-		return _MLOADED[name]
+		_MODLOAD[name] = func() or true
+		return _MODLOAD[name]
 	end
 end
 
