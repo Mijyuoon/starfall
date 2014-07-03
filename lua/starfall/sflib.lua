@@ -6,7 +6,7 @@ if SF ~= nil then return end
 SF = {}
 
 --jit.off() -- Needed so ops counting will work reliably.
--- I don't give a fuck.
+-- I don't give a fuck. ~Mijyuoon
 
 -- Do a couple of checks for retarded mods that disable the debug table
 -- and run it after all addons load
@@ -155,7 +155,7 @@ end
 -- @param permissions The permissions manager to use. Default is SF.DefaultPermissions
 -- @param ops Operations quota function. Default is specified by the convar "sf_defaultquota" and returned when calling ops()
 -- @param libs Additional (local) libraries for the script to access. Default is an empty table.
-SF.Quota = 300000
+SF.Quota = 1200000
 local function get_defaultquota()
 	--return SF.defaultquota:GetInt()
 	return SF.Quota
