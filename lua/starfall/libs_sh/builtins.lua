@@ -86,7 +86,12 @@ end
 -- @name SF.DefaultEnvironment.next
 -- @class function
 -- @param tbl
-SF.DefaultEnvironment.next = mynext
+SF.DefaultEnvironment.next = next
+--- Same as Lua's next but iterates over metatable's __index
+-- @name SF.DefaultEnvironment.next
+-- @class function
+-- @param tbl
+SF.DefaultEnvironment.mnext = mynext
 --- Same as Lua's assert. TODO: lua's assert doesn't work.
 -- @name SF.DefaultEnvironment.assert
 -- @class function
@@ -232,10 +237,9 @@ SF.DefaultEnvironment.Color = function(...)
 	return setmetatable(Color(...), color_metatable)
 end
 
-
 -- Math library
 local math_methods, math_metatable = SF.Typedef("Library: math")
-filterGmodLua(math,math_methods)
+filterGmodLua(math, math_methods)
 math_metatable.__newindex = function() end
 math_methods.clamp = math.Clamp
 math_methods.round = math.Round
@@ -247,7 +251,7 @@ math_methods.calcBSplineN = nil
 SF.DefaultEnvironment.math = setmetatable({},math_metatable)
 
 local table_methods, table_metatable = SF.Typedef("Library: table")
-filterGmodLua(table,table_methods)
+filterGmodLua(table, table_methods)
 table_metatable.__newindex = function() end
 --- Lua's (not glua's) table library
 -- @name SF.DefaultEnvironment.table
@@ -419,23 +423,6 @@ function SF.DefaultEnvironment.wrapContext(func)
 	end
 end
 
---[[
---- Lua's setfenv, modified for safe use in Starfall
--- Works like setfenv, but is restricted on functions
-function SF.DefaultEnvironment.setfenv( f, table )
-	if type( f ) ~= "function" then 
-		SF.throw("Main Thread is protected!", 2) 
-	end
-	return setfenv( f, table )
-end
-
---- Simple version of Lua's getfenv
--- Returns the current environment
-function SF.DefaultEnvironment.getfenv()
-	return getfenv()
-end
---]]
-
 -- ------------------------- Restrictions ------------------------- --
 -- Restricts access to builtin type's metatables
 
@@ -444,15 +431,13 @@ local _R = debug.getregistry()
 local function restrict(instance, hook, name, ok, err)
 	_R.Vector.__metatable = "Vector"
 	_R.Angle.__metatable = "Angle"
-	_R.VMatrix.__metatable = "VMatrix"
-	--dsetmeta("", string_metatable)
+	--_R.VMatrix.__metatable = "VMatrix"
 end
 
 local function unrestrict(instance, hook, name, ok, err)
 	_R.Vector.__metatable = nil
 	_R.Angle.__metatable = nil
-	_R.VMatrix.__metatable = nil
-	--dsetmeta("", _S)
+	--_R.VMatrix.__metatable = nil
 end
 
 SF.Libraries.AddHook("prepare", restrict)

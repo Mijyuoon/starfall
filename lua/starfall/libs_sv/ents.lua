@@ -168,7 +168,6 @@ end
 
 --- Applies linear force to the entity
 -- @param vec The force vector
--- @param offset An optional offset position (TODO: Local or world?)
 function ents_methods:applyForceCenter(vec)
 	SF.CheckType(self,ents_metatable)
 	SF.CheckType(vec,"Vector")

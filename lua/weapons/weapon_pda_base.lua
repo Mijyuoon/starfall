@@ -238,6 +238,18 @@ if CLIENT then
 		return pos, ang
 	end
 	
+	function SWEP:PrimaryAttack()
+		return false
+	end
+	
+	function SWEP:SecondaryAttack()
+		return false
+	end
+	
+	function SWEP:Reload()
+		return false
+	end
+	
 	hook.Add("HUDShouldDraw", "PDA.Crosshair", function(name)
 		if name ~= "CHudCrosshair" then return end
 		local cur_weapon = LocalPlayer():GetActiveWeapon()

@@ -7,8 +7,13 @@
 
 local von_lib, _ = SF.Libraries.Register("von")
 
+-- Hax. Remove when Color gets its metatable
+local function IsColor(col)
+	return (type(col) == "table" and col.a and col.r and col.g and col.b)
+end
+
 local function sf_wrap_object(col)
-	if type(col) == "table" and col.r and col.g and col.b and col.a then
+	if IsColor(col) then
 		return setmetatable(col, SF.ColorMetatable)
 	end
 	return (SF.WrapObject(col) or col)

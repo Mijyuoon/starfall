@@ -1,6 +1,6 @@
---[[
-	Serverside screenPos() by Mijyuoon.
-]]
+-------------------------------------------------------------------------------
+-- Serverside access to cursorPos()
+-------------------------------------------------------------------------------
 
 local render_library, _ = SF.Libraries.RegisterLocal("render")
 
