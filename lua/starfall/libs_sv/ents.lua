@@ -18,15 +18,16 @@ end
 -- Register privileges
 do
 	local P = SF.Permissions
-	P.registerPrivilege( "entities.parent", "Parent", "Allows the user to parent an entity to another entity" )
-	P.registerPrivilege( "entities.unparent", "Unparent", "Allows the user to remove the parent of an entity" ) -- TODO: maybe merge with entities.parent?
-	P.registerPrivilege( "entities.applyForce", "Apply force", "Allows the user to apply force to an entity" )
-	P.registerPrivilege( "entities.setPos", "Set Position", "Allows the user to teleport an entity to another location" )
-	P.registerPrivilege( "entities.setAngles", "Set Angles", "Allows the user to teleport an entity to another orientation" )
-	P.registerPrivilege( "entities.setVelocity", "Set Velocity", "Allows the user to change the velocity of an entity" )
-	P.registerPrivilege( "entities.setFrozen", "Set Frozen", "Allows the user to freeze and unfreeze an entity" )
-	P.registerPrivilege( "entities.setSolid", "Set Solid", "Allows the user to change the solidity of an entity" )
-	P.registerPrivilege( "entities.enableGravity", "Enable gravity", "Allows the user to change whether an entity is affected by gravity" )
+	P.registerPrivilege("entities.parent", "Parent", "Allows the user to parent an entity to another entity")
+	P.registerPrivilege("entities.unparent", "Unparent", "Allows the user to remove the parent of an entity") -- TODO: maybe merge with entities.parent?
+	P.registerPrivilege("entities.applyForce", "Apply force", "Allows the user to apply force to an entity")
+	P.registerPrivilege("entities.setPos", "Set Position", "Allows the user to teleport an entity to another location")
+	P.registerPrivilege("entities.setAngles", "Set Angles", "Allows the user to teleport an entity to another orientation")
+	P.registerPrivilege("entities.setVelocity", "Set Velocity", "Allows the user to change the velocity of an entity")
+	P.registerPrivilege("entities.setFrozen", "Set Frozen", "Allows the user to freeze and unfreeze an entity")
+	P.registerPrivilege("entities.setSolid", "Set Solid", "Allows the user to change the solidity of an entity")
+	P.registerPrivilege("entities.enableGravity", "Enable gravity", "Allows the user to change whether an entity is affected by gravity")
+	P.registerPrivilege("entities.getWirelink", "Get wirelink", "Allows the user to retrieve wirelink that represents an entity")
 end
 
 -- ------------------------- Internal Library ------------------------- --
@@ -110,20 +111,20 @@ function ents_methods:owner()
 	return wrap(getOwner(ent))
 end
 
-local function check( v )
+local function check(v)
 	return 	-math.huge < v.x and v.x < math.huge and
 			-math.huge < v.y and v.y < math.huge and
 			-math.huge < v.z and v.z < math.huge
 end
 
-local function checka( a )
+local function checka(a)
 	return 	-math.huge < v.p and v.p < math.huge and
 			-math.huge < v.y and v.y < math.huge and
 			-math.huge < v.r and v.r < math.huge
 end
 
-local function parent_check( child, parent )
-	while isValid( parent ) do
+local function parent_check(child, parent)
+	while isValid(parent) do
 		if (child == parent) then
 			return false
 		end
@@ -139,30 +140,41 @@ end
 local check_access = SF.Entities.CheckAccess
 --]]
 local function check_access(data, perm)
-	return SF.Permissions.check( SF.instance.player, data, perm )
+	return SF.Permissions.check(SF.instance.player, data, perm)
 end
 
-function ents_methods:parent( ent )
-	SF.CheckType( self, ents_metatable )
+function ents_methods:wirelink()
+	SF.CheckType(self, ents_metatable)
+	
+	local this = unwrap(self)
+	if not isValid(this) then return false, "entity not valid" end
+	if not check_access(this, "entities.getWirelink") then return false, "access denied" end
+	
+	this.extended = true -- What is this for?
+	return SF.Wire.WlWrap(this)
+end
 
-	local ent = unwrap( ent )
-	local this = unwrap( self )
+function ents_methods:parent(ent)
+	SF.CheckType(self, ents_metatable)
 
-	if not isValid( ent ) then return false, "entity not valid" end
-	if not parent_check( this, ent ) then return false, "cannot parent to self" end
+	local ent = unwrap(ent)
+	local this = unwrap(self)
+
+	if not isValid(ent) then return false, "entity not valid" end
+	if not parent_check(this, ent) then return false, "cannot parent to self" end
 	--print("getOwner: ,",ent:GetOwner())
 	if not check_access({this, ent}, "entities.parent") then return false, "access denied" end
 
-	this:SetParent( ent )
+	this:SetParent(ent)
 	return true
 end
 
 function ents_methods:unparent()
 
 	local this = unwrap(self)
-	if not isValid( ent ) then return false, "entity not valid" end
+	if not isValid(this) then return false, "entity not valid" end
 	if not check_access(this, "entities.unparent") then return false, "access denied" end
-	this:SetParent( nil )
+	this:SetParent(nil)
 	return true
 end
 
@@ -171,7 +183,7 @@ end
 function ents_methods:applyForceCenter(vec)
 	SF.CheckType(self,ents_metatable)
 	SF.CheckType(vec,"Vector")
-	if not check( vec ) then return false, "infinite vector" end
+	if not check(vec) then return false, "infinite vector" end
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
@@ -179,7 +191,7 @@ function ents_methods:applyForceCenter(vec)
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
-	phys:ApplyForceCenter( vec )
+	phys:ApplyForceCenter(vec)
 	
 	return true
 end
@@ -191,7 +203,7 @@ function ents_methods:applyForceOffset(vec, offset)
 	SF.CheckType(self,ents_metatable)
 	SF.CheckType(vec,"Vector")
 	SF.CheckType(offset,"Vector")
-	if not check( vec ) or not check( offset ) then return false, "infinite vector" end
+	if not check(vec) or not check(offset) then return false, "infinite vector" end
 	
 	local ent = unwrap(self)
 	if not isValid(ent) then return false, "entity not valid" end
@@ -199,7 +211,7 @@ function ents_methods:applyForceOffset(vec, offset)
 	local phys = getPhysObject(ent)
 	if not phys then return false, "entity has no physics object" end
 	
-	phys:ApplyForceOffset( vec, offset )
+	phys:ApplyForceOffset(vec, offset)
 	
 	return true
 end
@@ -225,22 +237,22 @@ function ents_methods:applyAngForce(ang)
 	-- apply pitch force
 	if ang.p ~= 0 then
 		local pitch = up      * (ang.p * 0.5)
-		phys:ApplyForceOffset( forward, pitch )
-		phys:ApplyForceOffset( forward * -1, pitch * -1 )
+		phys:ApplyForceOffset(forward, pitch)
+		phys:ApplyForceOffset(forward * -1, pitch * -1)
 	end
 	
 	-- apply yaw force
 	if ang.y ~= 0 then
 		local yaw   = forward * (ang.y * 0.5)
-		phys:ApplyForceOffset( left, yaw )
-		phys:ApplyForceOffset( left * -1, yaw * -1 )
+		phys:ApplyForceOffset(left, yaw)
+		phys:ApplyForceOffset(left * -1, yaw * -1)
 	end
 	
 	-- apply roll force
 	if ang.r ~= 0 then
 		local roll  = left    * (ang.r * 0.5)
-		phys:ApplyForceOffset( up, roll )
-		phys:ApplyForceOffset( up * -1, roll * -1 )
+		phys:ApplyForceOffset(up, roll)
+		phys:ApplyForceOffset(up * -1, roll * -1)
 	end
 	
 	return true
@@ -261,7 +273,7 @@ function ents_methods:applyTorque(tq)
 	local torqueamount = tq:Length()
 	
 	-- Convert torque from local to world axis
-	tq = phys:LocalToWorld( tq ) - phys:GetPos()
+	tq = phys:LocalToWorld(tq) - phys:GetPos()
 	
 	-- Find two vectors perpendicular to the torque axis
 	local off
@@ -272,11 +284,11 @@ function ents_methods:applyTorque(tq)
 	end
 	off = off:GetNormal() * torqueamount * 0.5
 	
-	local dir = ( tq:Cross(off) ):GetNormal()
+	local dir = (tq:Cross(off)):GetNormal()
 	
-	if not check( dir ) or not check( off ) then return end
-	phys:ApplyForceOffset( dir, off )
-	phys:ApplyForceOffset( dir * -1, off * -1 )
+	if not check(dir) or not check(off) then return end
+	phys:ApplyForceOffset(dir, off)
+	phys:ApplyForceOffset(dir * -1, off * -1)
 	
 	return true
 end
@@ -291,7 +303,7 @@ function ents_methods:setPos(vec)
 	if not isValid(ent) then return false, "entity not valid" end
 	if not check_access(ent, "entities.setPos") then return false, "access denied" end
 
-	SF.setPos( ent, vec )
+	SF.setPos(ent, vec)
 
 	return true
 end
@@ -306,7 +318,7 @@ function ents_methods:setAngles(ang)
 	if not isValid(ent) then return false, "entity not valid" end
 	if not check_access(ent, "entities.setAngles") then return false, "access denied" end
 
-	SF.setAng( ent, ang )
+	SF.setAng(ent, ang)
 
 	return true
 end
@@ -345,10 +357,10 @@ end
 
 --- Checks the entities frozen state
 function ents_methods:isFrozen()
-	SF.CheckType( self, ents_metatable )
+	SF.CheckType(self, ents_metatable)
 
-	local ent = unwrap( self )
-	if not isValid( ent ) then
+	local ent = unwrap(self)
+	if not isValid(ent) then
 		return false
 	end
 	local phys = ent:GetPhysicsObject()
@@ -400,7 +412,7 @@ function ents_methods:isWeldedTo()
 	if not isValid(this) then return nil end
 	if not constraint.HasConstraints(this) then return nil end
 
-	return wrap( ent1or2(this, constraint.FindConstraint(this, "Weld")) )
+	return wrap(ent1or2(this, constraint.FindConstraint(this, "Weld")))
 end
 
 --- Gets the entities up vector

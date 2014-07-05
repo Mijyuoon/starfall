@@ -96,7 +96,7 @@ end
 
 function ENT:Think()
 	self:NextThink(CurTime())
-	self.WasFrameDrawn = false
+	--self.WasFrameDrawn = false -- Wtf?
 	
 	if self.instance and not self.instance.error then
 		self.instance:resetOps()
@@ -112,10 +112,11 @@ function ENT:SetViewPort(x, y, w, h)
 end
 
 function ENT:DrawScreen()
-	if not self.WasFrameDrawn and self.renderfunc then
+	--if not self.WasFrameDrawn and self.renderfunc then -- Wtf?
+	if self.renderfunc then
 		local ok, err = xpcall(self.renderfunc, debug.traceback)
 		if not ok then WireLib.ErrorNoHalt(err) end
-		self.WasFrameDrawn = true
+		--self.WasFrameDrawn = true -- Wtf?
 	end
 end
 
