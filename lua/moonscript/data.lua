@@ -73,7 +73,8 @@ local lua_keywords = Set({
   'then',
   'true',
   'until',
-  'while'
+  'while',
+  'continue'
 })
 return {
   Set = Set,

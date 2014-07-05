@@ -4,7 +4,7 @@ ENT.RenderGroup = RENDERGROUP_OPAQUE
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
-local libs = SF.Libraries.CreateLocalTbl{"render", "input"}
+local libs = SF.Libraries.CreateLocalTbl{"render"}
 local Context = SF.CreateContext(nil, nil, nil, libs)
 
 surface.CreateFont("Starfall_ErrorFontBig", {

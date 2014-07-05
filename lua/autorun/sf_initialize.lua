@@ -142,6 +142,10 @@ else
 	
 	--- Update check code ----------------------
 	--------------------------------------------
+	surface.CreateFont("SFUpdateMsg", {
+		font = "Verdana", size = 16, weight = 700
+	})
+
 	local function DisplayUpdateMsg(vCur, vLast)
 		local updateWnd = vgui.Create("DFrame")
 		updateWnd:SetTitle("Starfall update reminder")
@@ -154,7 +158,7 @@ else
 		updateWnd.Paint = function(self, w, h)
 			wndPaint(self, w, h)
 			local msg = Format(updateMsg, vCur, vLast)
-			draw.DrawText(msg, "ScoreboardText", w/2, 30, color_white, 1)
+			draw.DrawText(msg, "SFUpdateMsg", w/2, 30, color_white, 1)
 		end
 		
 		local updateWndB = vgui.Create("DButton", updateWnd)
