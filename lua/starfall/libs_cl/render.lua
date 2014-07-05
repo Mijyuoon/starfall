@@ -406,9 +406,23 @@ function render_library.drawText(x,y,text,xal,yal)
 	draw.SimpleText(text, font, x, y, currentcolor, tonumber(xal) or 0, tonumber(yal) or 0)
 end
 
---- Creates a vertex for use with polygons. This just creates a table; it doesn't really do anything special
-function render_library.vertex(x,y,u,v)
-	return {x=x, y=y, u=u, v=v}
+--- Draws text using a font. Will expand newlines and tabs
+-- @param font Font table returned by createFont
+-- @param x X coordinate
+-- @param y Y coordinate
+-- @param text Text to draw
+-- @param xal Horizontal alignment
+function render_library.drawTextEx(x,y,text,xal)
+	if not SF.instance.data.render.isRendering then
+		SF.throw("Not in rendering hook.",2) 
+	end
+	SF.CheckType(text,"string")
+	SF.CheckType(x,"number")
+	SF.CheckType(y,"number")
+	
+	local font = SF.instance.data.render.font or defaultFont
+	
+	draw.DrawText(text, font, x, y, currentcolor, tonumber(xal) or 0)
 end
 
 --- Compiles a 2D poly. This is needed so that poly don't have to be
