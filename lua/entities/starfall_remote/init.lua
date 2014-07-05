@@ -1,11 +1,11 @@
-
 AddCSLuaFile('cl_init.lua')
 AddCSLuaFile('shared.lua')
 include('shared.lua')
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
-local Context = SF.CreateContext()
+local libs = SF.Libraries.CreateLocalTbl{"input"}
+local Context = SF.CreateContext(nil, nil, nil, libs)
 
 util.AddNetworkString("starfall_remote_link")
 util.AddNetworkString("starfall_remote_input")
@@ -50,13 +50,35 @@ function ENT:SetContextBase()
 	self.SFContext = Context
 end
 
-function ENT:MouseKeyInput(key)
-	net.Start("starfall_remote_input")
-		net.WriteEntity(self)
-		net.WriteBit(true)
-		net.WriteUInt(key, 8)
-	net.Broadcast()
+function ENT:HandleButtonPress(ply, vkey)
+	local ins = self.instance
+	if not ins or ins.data.clSendInput then
+		net.Start("starfall_remote_input")
+			net.WriteEntity(self)
+			net.WriteBit(true)
+			net.WriteUInt(vkey, 8)
+			net.WriteEntity(ply)
+		net.Broadcast()
+	end
 	if self.sharedscreen then
-		self:runScriptHook("click", key)
+		local ply2 = SF.WrapObject(ply)
+		self:runScriptHook("button", ply2, vkey)
+	end
+end
+
+function ENT:HandleKeyInput(ply, vkey, st)
+	local ins = self.instance
+	if not ins or ins.data.clSendInput then
+		net.Start("starfall_remote_input")
+			net.WriteEntity(self)
+			net.WriteBit(false)
+			net.WriteUInt(vkey, 8)
+			net.WriteBit(st)
+			net.WriteEntity(ply)
+		net.Broadcast()
+	end
+	if self.sharedscreen then
+		local ply2 = SF.WrapObject(ply)
+		self:runScriptHook("keyinput", ply2, vkey, st)
 	end
 end

@@ -4,7 +4,7 @@ ENT.RenderGroup = RENDERGROUP_OPAQUE
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
-local libs = SF.Libraries.CreateLocalTbl{"render"}
+local libs = SF.Libraries.CreateLocalTbl{"render", "input"}
 local Context = SF.CreateContext(nil, nil, nil, libs)
 
 surface.CreateFont("Starfall_ErrorFontBig", {
@@ -35,8 +35,14 @@ net.Receive("starfall_remote_input", function()
 	local screen = net.ReadEntity()
 	local mode = (net.ReadBit() > 0)
 	if mode then
-		local mkey = net.ReadUInt(8)
-		screen:runScriptHook("click", mkey)
+		local keyid = net.ReadUInt(8)
+		local ply = SF.WrapObject(net.ReadEntity())
+		screen:runScriptHook("button", ply, keyid)
+	else
+		local vkey = net.ReadUInt(8)
+		local st = (net.ReadBit() > 0)
+		local ply = SF.WrapObject(net.ReadEntity())
+		screen:runScriptHook("keyinput", ply, vkey, st)
 	end
 end)
 
@@ -114,7 +120,7 @@ function ENT:DrawScreen()
 end
 
 function ENT:Draw()
-	--self.BaseClass.BaseClass.Draw(self)
+	--self.BaseClass.BaseClass.Draw(self) -- Fuck.
 	self:DrawModel()
 	Wire_Render(self)
 end

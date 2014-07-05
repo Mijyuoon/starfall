@@ -73,9 +73,15 @@ if CLIENT then
 end
 
 if SERVER then
-	function SWEP:HandleKeyInput(vkey)
+	function SWEP:HandleButtonPress(ply, vkey)
 		local link = self.Owner.SFRemote_Link
 		if not IsValid(link) then return end
-		link:MouseKeyInput(vkey)
+		link:HandleButtonPress(ply, vkey)
+	end
+	
+	function SWEP:HandleKeyInput(ply, vkey, st)
+		local link = self.Owner.SFRemote_Link
+		if not IsValid(link) then return end
+		link:HandleKeyInput(ply, vkey, st)
 	end
 end

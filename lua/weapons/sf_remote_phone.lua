@@ -57,24 +57,6 @@ if CLIENT then
 	}
 end
 
---[[
-if CLIENT then
-	local m_font = scr.CreateFont(nil,"OCR A Extended",48,400)
-	local m_color = Color(0,255,155)
-	
-	function SWEP:RenderScreenFunc(wid, hgt)
-		local mt_text = "<UNKNOWN>"
-		local mt_date = os.date("%d/%m/%y %H:%M:%S")
-		if IsValid(self.Owner) then
-			mt_text = self.Owner:Name()
-		end
-		scr.DrawRectOL(10,10,wid-20,hgt-20,m_color,6)
-		scr.DrawText(wid/2,hgt/2,mt_text,1,2,m_color,m_font)
-		scr.DrawText(wid/2,hgt/2,mt_date,1,0,m_color,m_font)
-	end
-end
---]]
-
 if CLIENT then
 	function SWEP:ScreenShouldDraw()
 		if not IsValid(self.Owner.SFRemote_Link) then
@@ -91,9 +73,15 @@ if CLIENT then
 end
 
 if SERVER then
-	function SWEP:HandleKeyInput(vkey)
+	function SWEP:HandleButtonPress(ply, vkey)
 		local link = self.Owner.SFRemote_Link
 		if not IsValid(link) then return end
-		link:MouseKeyInput(vkey)
+		link:HandleButtonPress(ply, vkey)
+	end
+	
+	function SWEP:HandleKeyInput(ply, vkey, st)
+		local link = self.Owner.SFRemote_Link
+		if not IsValid(link) then return end
+		link:HandleKeyInput(ply, vkey, st)
 	end
 end

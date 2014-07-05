@@ -1,4 +1,4 @@
-/********************************************************
+--[[*******************************************************
 	SWEP Construction Kit base code
 		Created by Clavus
 	Available for public use, thread at:
@@ -16,7 +16,7 @@
 		The SWEP.VElements, SWEP.WElements and
 		SWEP.ViewModelBoneMods tables are all optional
 		and only have to be visible to the client.
-********************************************************/
+*******************************************************--]]
 
 AddCSLuaFile()
 
@@ -44,77 +44,132 @@ SWEP.WorldModel = "models/weapons/w_pistol.mdl"
 
 SWEP.ShowViewModel = true
 SWEP.ShowWorldModel = false
-SWEP.IronSightsEnable = false
+SWEP.IronSightsEnabled = false
+SWEP.KeyboardEnabled = false
 
 if SERVER then
 	SWEP.InputKeyMap = {
-		[IN_ATTACK] = {
+		pri = {
 			norm = 1,
-			use = 4,
-			walk = 6,
+			use  = 4,
+			walk = -2,
 		},
-		[IN_ATTACK2] = {
+		sec = {
 			norm = 2,
-			use = -1,
-			walk = 7,
+			use  = 5,
+			walk = -1,
 		},
-		[IN_RELOAD] = {
+		rel = {
 			norm = 3,
-			use = 5,
-			walk = 8,
+			use  = 6,
+			walk = 0,
 		},
 	}
+	SWEP.ActionKeyMap = {
+		[-1] = function(self)
+			if not self.IronSightsPos then return end
+			self.IronSightsEnabled = not self.IronSightsEnabled
+			self:SetDTBool(1, self.IronSightsEnabled)
+		end;
+		[-2] = function(self)
+			self:EnableKeyboard(true)
+		end;
+	}
 	
-	function SWEP:InputKeyPressed(index)
-		local keymap = self.InputKeyMap
-		if self.Owner:KeyDownLast(index) then
-			return false
-		elseif self.Owner:KeyDown(IN_WALK) then
-			return keymap[index].walk
-		elseif self.Owner:KeyDown(IN_USE) then
-			return keymap[index].use
+	util.AddNetworkString("pdasys_blockinput")
+	function SWEP:EnableKeyboard(flag)
+		if flag == self.KeyboardEnabled then return end
+		self.KeyStateBuffer = {}
+		self.IgnoreFirstKey = true
+		self.KeyboardEnabled = flag
+		net.Start("pdasys_blockinput")
+			net.WriteEntity(self)
+			net.WriteBit(flag)
+			if flag then
+				local vkey = self.Owner:GetInfoNum("wire_keyboard_leavekey", KEY_LALT)
+				net.WriteUInt(vkey, 8)
+			end
+		net.Send(self.Owner)
+	end
+	
+	function SWEP:ProcKeyboard(keyid, flag)
+		self.KeyStateBuffer[keyid] = flag and true or nil
+		if self.HandleKeyInput then
+			self:HandleKeyInput(self.Owner, keyid, flag)
+		end
+	end
+	
+	function SWEP:Think()
+		if not self.KeyboardEnabled then
+			self:NextThink(CurTime() + 0.3)
+			return true
+		elseif self.IgnoreFirstKey then
+			if table.Count(self.Owner.keystate) == 0 then
+				self.IgnoreFirstKey = false
+			end
 		else
-			return keymap[index].norm
+			local keystate, keybuffer = self.Owner.keystate, self.KeyStateBuffer
+			local leavekey = self.Owner:GetInfoNum("wire_keyboard_leavekey", KEY_LALT)
+			
+			for key, _ in pairs(keybuffer) do
+				if not keystate[key] then self:ProcKeyboard(key, false) end
+			end
+			
+			if not keystate[leavekey] then
+				for key, _ in pairs(keystate) do
+					if not keybuffer[key] then self:ProcKeyboard(key, true) end
+				end
+			else
+				self:EnableKeyboard(false)
+			end
+		end
+		self:NextThink(CurTime())
+		return true
+	end
+	
+	local vmap = { pri = IN_ATTACK, sec = IN_ATTACK2, rel = IN_RELOAD }
+	function SWEP:ProcButtonInput(index)
+		local keyvalue = nil
+		local keymap = self.InputKeyMap
+		if self.Owner:KeyDownLast(vmap[index]) then
+			keyvalue = false
+		elseif self.Owner:KeyDown(IN_WALK) then
+			keyvalue = keymap[index].walk
+		elseif self.Owner:KeyDown(IN_USE) then
+			keyvalue = keymap[index].use
+		else
+			keyvalue = keymap[index].norm
+		end
+		if not keyvalue then return end
+		if keyvalue < 0 and self.ActionKeyMap[keyvalue] then
+			self.ActionKeyMap[keyvalue](self)
+		elseif keyvalue > 0 and self.HandleButtonPress then
+			self:HandleButtonPress(self.Owner, keyvalue)
 		end
 	end
 
 	function SWEP:PrimaryAttack()
-		local vkey = self:InputKeyPressed(IN_ATTACK)
-		if not vkey then return false end
-		if vkey > 0 and self.HandleKeyInput then
-			self:HandleKeyInput(vkey)
-		end
+		self:ProcButtonInput("pri")
 		return false
 	end
 
 	function SWEP:SecondaryAttack()
-		local vkey = self:InputKeyPressed(IN_ATTACK2)
-		if vkey == -1 and self.IronSightsPos then
-			self.IronSightsEnable = not self.IronSightsEnable
-			self:SetDTBool(1, self.IronSightsEnable)
-		elseif vkey > 0 and self.HandleKeyInput then
-			self:HandleKeyInput(vkey)
-		end
+		self:ProcButtonInput("sec")
 		return false
 	end
 
 	function SWEP:Reload()
-		local vkey = self:InputKeyPressed(IN_RELOAD)
-		if not vkey then return false end
-		if vkey > 0 and self.HandleKeyInput then
-			self:HandleKeyInput(vkey)
-		end
+		self:ProcButtonInput("rel")
 		return false
 	end
 end
---
+
 if CLIENT then
 	RT_PdaSystem = GetRTManager("PdaSys", 1024, 1024)
 
 	function SWEP:RenderScreenHelper(e_draw, e_clear)
-		if not self.RT then return end
 		local vp = self.RenderViewPort
-		if not vp then return end
+		if not (self.RT and vp) then return end
 		local matScreen = Material(self.RenderTexture)
 		matScreen:SetTexture("$basetexture", self.RT)
 		render.PushRenderTarget(self.RT, vp.Left, vp.Top, vp.Width, vp.Height)
@@ -132,11 +187,8 @@ if CLIENT then
 	function SWEP:ScreenShouldDraw()
 		return true, true
 	end
-end
 
-if CLIENT then
 	local IRONSIGHT_TIME = 0.2
-	
 	function SWEP:GetViewModelPosition(pos, ang)
 		local bIron = self:GetDTBool(1)
 		
@@ -186,43 +238,59 @@ if CLIENT then
 		return pos, ang
 	end
 	
-	hook.Add("HUDShouldDraw", "PDA_Crosshair", function(name)
+	hook.Add("HUDShouldDraw", "PDA.Crosshair", function(name)
 		if name ~= "CHudCrosshair" then return end
 		local cur_weapon = LocalPlayer():GetActiveWeapon()
 		if cur_weapon and cur_weapon.IsPdaSystem then
 			return false
 		end
 	end)
+	
+	hook.Add("PlayerBindPress", "PDA.BlockInput", function(ply, bind)
+		assert(LocalPlayer() == ply, "What the fuck?!")
+		local cur_weapon = LocalPlayer():GetActiveWeapon()
+		if cur_weapon and cur_weapon.IsPdaSystem then
+			return cur_weapon.KeyboardEnabled or nil
+		end
+	end)
+	
+	net.Receive("pdasys_blockinput", function()
+		local target = net.ReadEntity()
+		local flag = (net.ReadBit() > 0)
+		target.KeyboardEnabled = flag
+		if not flag then return end
+		local vkey = input.GetKeyName(net.ReadUInt(8)):upper()
+		chat.AddText("Keyboard enabled - press "..vkey.." to disable")
+	end)
 end
 
 function SWEP:Initialize()
 
-	// other initialize code goes here
+	-- other initialize code goes here
 
 	if CLIENT then
-		// Create a new table for every weapon instance
 		self.RT = RT_PdaSystem:GetRT()
-		self.VElements = table.FullCopy( self.VElements )
-		self.WElements = table.FullCopy( self.WElements )
-		self.ViewModelBoneMods = table.FullCopy( self.ViewModelBoneMods )
-
-		self:CreateModels(self.VElements) // create viewmodels
-		self:CreateModels(self.WElements) // create worldmodels
+		self.VElements = table.FullCopy(self.VElements)
+		self.WElements = table.FullCopy(self.WElements)
+		self.ViewModelBoneMods = table.FullCopy(self.ViewModelBoneMods)
 		
-		// init view model bone build function
+		self:CreateModels(self.VElements) -- create viewmodels
+		self:CreateModels(self.WElements) -- create worldmodels
+		
+		-- init view model bone build function
 		if IsValid(self.Owner) then
 			local vm = self.Owner:GetViewModel()
 			if IsValid(vm) then
 				self:ResetBonePositions(vm)
 				
-				// Init viewmodel visibility
+				-- Init viewmodel visibility
 				if (self.ShowViewModel == nil or self.ShowViewModel) then
 					vm:SetColor(Color(255,255,255,255))
 				else
-					// we set the alpha to 1 instead of 0 because else ViewModelDrawn stops being called
+					-- we set the alpha to 1 instead of 0 because else ViewModelDrawn stops being called
 					vm:SetColor(Color(255,255,255,1))
-					// ^ stopped working in GMod 13 because you have to do Entity:SetRenderMode(1) for translucency to kick in
-					// however for some reason the view model resets to render mode 0 every frame so we just apply a debug material to prevent it from drawing
+					-- ^ stopped working in GMod 13 because you have to do Entity:SetRenderMode(1) for translucency to kick in
+					-- however for some reason the view model resets to render mode 0 every frame so we just apply a debug material to prevent it from drawing
 					vm:SetMaterial("Debug/hsv")			
 				end
 			end
@@ -230,14 +298,24 @@ function SWEP:Initialize()
 	end
 end
 
+function SWEP:Deploy()
+	if IsValid(self.Owner) then 
+		self.Owner.ActivePdaSystem = self
+	end
+	return true
+end
+
 function SWEP:Holster()
 	if CLIENT and IsValid(self.Owner) then
+		self.Owner.ActivePdaSystem = nil
 		local vm = self.Owner:GetViewModel()
 		if IsValid(vm) then
 			self:ResetBonePositions(vm)
 		end
+	elseif SERVER and IsValid(self.Owner) then
+		self.Owner.ActivePdaSystem = nil
+		self:EnableKeyboard(false)
 	end
-	
 	return true
 end
 
@@ -268,7 +346,7 @@ if CLIENT then
 
 		if (!self.vRenderOrder) then
 			
-			// we build a render order because sprites need to be drawn after models
+			-- we build a render order because sprites need to be drawn after models
 			self.vRenderOrder = {}
 
 			for k, v in pairs( self.VElements ) do
@@ -395,7 +473,7 @@ if CLIENT then
 		if (IsValid(self.Owner)) then
 			bone_ent = self.Owner
 		else
-			// when the weapon is dropped
+			-- when the weapon is dropped
 			bone_ent = self
 		end
 		
@@ -495,8 +573,8 @@ if CLIENT then
 			
 			if (!v) then return end
 			
-			// Technically, if there exists an element with the same name as a bone
-			// you can get in an infinite loop. Let's just hope nobody's that stupid.
+			-- Technically, if there exists an element with the same name as a bone
+			-- you can get in an infinite loop. Let's just hope nobody's that stupid.
 			pos, ang = self:GetBoneOrientation( basetab, v, ent )
 			
 			if (!pos) then return end
@@ -520,7 +598,7 @@ if CLIENT then
 			
 			if (IsValid(self.Owner) and self.Owner:IsPlayer() and 
 				ent == self.Owner:GetViewModel() and self.ViewModelFlip) then
-				ang.r = -ang.r // Fixes mirrored models
+				ang.r = -ang.r -- Fixes mirrored models
 			end
 		
 		end
@@ -532,7 +610,7 @@ if CLIENT then
 
 		if (!tab) then return end
 
-		// Create the clientside models here because Garry says we can't do it in the render hook
+		-- Create the clientside models here because Garry says we can't do it in the render hook
 		for k, v in pairs( tab ) do
 			if (v.type == "Model" and v.model and v.model != "" and (!IsValid(v.modelEnt) or v.createdModel != v.model) and 
 					string.find(v.model, ".mdl") and file.Exists (v.model, "GAME") ) then
@@ -553,7 +631,7 @@ if CLIENT then
 				
 				local name = v.sprite.."-"
 				local params = { ["$basetexture"] = v.sprite }
-				// make sure we create a unique name based on the selected options
+				-- make sure we create a unique name based on the selected options
 				local tocheck = { "nocull", "additive", "vertexalpha", "vertexcolor", "ignorez" }
 				for i, j in pairs( tocheck ) do
 					if (v[j]) then
@@ -581,8 +659,8 @@ if CLIENT then
 			
 			if (!vm:GetBoneCount()) then return end
 			
-			// !! WORKAROUND !! //
-			// We need to check all model names :/
+			-- !! WORKAROUND !! --
+			-- We need to check all model names :/
 			local loopthrough = self.ViewModelBoneMods
 			if (!hasGarryFixedBoneScalingYet) then
 				allbones = {}
@@ -601,13 +679,13 @@ if CLIENT then
 				
 				loopthrough = allbones
 			end
-			// !! ----------- !! //
+			-- !! ----------- !! --
 			
 			for k, v in pairs( loopthrough ) do
 				local bone = vm:LookupBone(k)
 				if (!bone) then continue end
 				
-				// !! WORKAROUND !! //
+				-- !! WORKAROUND !! --
 				local s = Vector(v.scale.x,v.scale.y,v.scale.z)
 				local p = Vector(v.pos.x,v.pos.y,v.pos.z)
 				local ms = Vector(1,1,1)
@@ -621,7 +699,7 @@ if CLIENT then
 				end
 				
 				s = s * ms
-				// !! ----------- !! //
+				-- !! ----------- !! --
 				
 				if vm:GetManipulateBoneScale(bone) != s then
 					vm:ManipulateBoneScale( bone, s )
@@ -650,21 +728,19 @@ if CLIENT then
 		
 	end
 
-	/**************************
+	--[[--------------------------
 		Global utility code
-	**************************/
+	----------------------------]]
 
-	// Fully copies the table, meaning all tables inside this table are copied too and so on (normal table.Copy copies only their reference).
-	// Does not copy entities of course, only copies their reference.
-	// WARNING: do not use on tables that contain themselves somewhere down the line or you'll get an infinite loop
+	-- Fully copies the table, meaning all tables inside this table are copied too and so on (normal table.Copy copies only their reference).
+	-- Does not copy entities of course, only copies their reference.
+	-- WARNING: do not use on tables that contain themselves somewhere down the line or you'll get an infinite loop
 	function table.FullCopy( tab )
-
-		if (!tab) then return nil end
-		
+		if not tab then return nil end
 		local res = {}
 		for k, v in pairs( tab ) do
 			if (type(v) == "table") then
-				res[k] = table.FullCopy(v) // recursion ho!
+				res[k] = table.FullCopy(v) -- recursion ho!
 			elseif (type(v) == "Vector") then
 				res[k] = Vector(v.x, v.y, v.z)
 			elseif (type(v) == "Angle") then
@@ -673,9 +749,7 @@ if CLIENT then
 				res[k] = v
 			end
 		end
-		
 		return res
-		
 	end
-	
+
 end

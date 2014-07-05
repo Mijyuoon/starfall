@@ -1,7 +1,11 @@
-if SERVER or scr then return end
+--[[
+	ScrLib (C) Mijyuoon 2014-2020
+	Contains useful drawing functions
+]]
 
 scr = {
 	-- Constants here
+	-- Nothing for now
 }
 
 function scr.Clear(col)
@@ -184,6 +188,10 @@ end
 function scr.DrawText(x,y,text,xal,yal,col,font)
     if yal == 2 then yal = 4 end
 	draw.SimpleText(text, font, x, y, col, xal, yal)
+end
+
+function scr.DrawTextEx(x,y,text,xal,col,font)
+	draw.DrawText(text, font, x, y, col, xal)
 end
 
 function scr.TextSize(text,font)
