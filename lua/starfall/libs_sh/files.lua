@@ -11,19 +11,22 @@ local files_library, _ = SF.Libraries.Register("files")
 -- Register privileges
 do
 	local P = SF.Permissions
-	P.registerPrivilege( "file.read", "Read files", "Allows the user to read files from data/sf_files directory" )
-	P.registerPrivilege( "file.write", "Write files", "Allows the user to write files to data/sf_files directory" )
-	P.registerPrivilege( "file.exists", "File existence check", "Allows the user to determine whether a file in data/sf_files exists" )
+	P.registerPrivilege("file.read", "Read files", "Allows the user to read files from data/sf_files directory")
+	P.registerPrivilege("file.write", "Write files", "Allows the user to write files to data/sf_files directory")
+	P.registerPrivilege("file.exists", "File existence check", "Allows the user to determine whether a file in data/sf_files exists")
+	P.registerPrivilege("file.getList", "Get list of files", "Allows the user to get list of files in data/sf_files")
 end
 
 file.CreateDir("sf_files/")
 
 local function check_access(path, perm)
-	return SF.Permissions.check( SF.instance.player, path, perm )
+	return SF.Permissions.check(SF.instance.player, path, perm)
 end
 
-local function make_path(path)
-	local path = path:gsub("[^%w%._]", "_")
+local function make_path(path, raw)
+	if not raw then
+		path = path:gsub("[^%w%._]", "_")
+	end
 	if CLIENT then
 		return (path .. ".txt")
 	end
@@ -115,4 +118,18 @@ function files_library.delete(path)
 	end
 	file.Delete("sf_files/"..file_path)
 	return true
+end
+
+--- Gets list of files in data/sf_files
+-- @return List of files
+function files_library.getList()
+	if not check_access(path, "file.getList") then 
+		return nil, "access denied"
+	end
+	local file_path = make_path("*", true)
+	local files = file.Find("sf_files/"..file_path, "DATA")
+	for key, fname in ipairs(files) do
+		files[key] = fname:sub(1, -5)
+	end
+	return files
 end
