@@ -14,7 +14,8 @@ local NEUTRAL = SF.Permissions.Result.NEUTRAL
 local keys = {
 	[ "file.read" ] = true,
 	[ "file.write" ] = true,
-	[ "file.exists" ] = true
+	[ "file.exists" ] = true,
+	[ "file.getList" ] = true,
 }
 
 function P:check ( principal, target, key )
