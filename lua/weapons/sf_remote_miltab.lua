@@ -29,6 +29,7 @@ SWEP.Slot		= 0
 SWEP.SlotPos	= 9
 SWEP.Weight		= 5
 
+SWEP.DeviceName = "Tablet-A"
 SWEP.DeviceModel = "models/nirrti/tablet/tablet_sfm.mdl"
 if util.IsValidModel(SWEP.DeviceModel) then
 	SWEP.Spawnable	= true
@@ -59,16 +60,16 @@ end
 
 if CLIENT then
 	function SWEP:ScreenShouldDraw()
-		if not IsValid(self.Owner.SFRemote_Link) then
-			return false, true
+		if IsValid(self.Owner.SFRemote_Link) then
+			return true, false
 		end
-		return true, false
+		return false, true
 	end
 	function SWEP:RenderScreenFunc(wid, hgt)
 		local link = self.Owner.SFRemote_Link
 		local vp = self.RenderViewPort
 		link:SetViewPort(vp.Left, vp.Top, vp.Width, vp.Height)
-		link:DrawScreen()
+		link:DrawScreen(self.Owner)
 	end
 end
 

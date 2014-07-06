@@ -4,7 +4,7 @@ ENT.RenderGroup = RENDERGROUP_OPAQUE
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
-local libs = SF.Libraries.CreateLocalTbl{"render"}
+local libs = SF.Libraries.CreateLocalTbl{"render", "input"}
 local Context = SF.CreateContext(nil, nil, nil, libs)
 
 surface.CreateFont("Starfall_ErrorFontBig", {
@@ -54,7 +54,7 @@ function ENT:SetRenderFunc(data)
 	function self.renderfunc()
 		if self.instance then
 			data.render.isRendering = true
-			self:runScriptHook("render")
+			self:runScriptHook("render", self.DrawTarget)
 			data.render.isRendering = nil
 			
 		elseif self.error then
@@ -111,9 +111,10 @@ function ENT:SetViewPort(x, y, w, h)
 	vp.x, vp.y, vp.w, vp.h = x, y, w, h
 end
 
-function ENT:DrawScreen()
+function ENT:DrawScreen(ply)
 	--if not self.WasFrameDrawn and self.renderfunc then -- Wtf?
 	if self.renderfunc then
+		self.DrawTarget = SF.WrapObject(ply)
 		local ok, err = xpcall(self.renderfunc, debug.traceback)
 		if not ok then WireLib.ErrorNoHalt(err) end
 		--self.WasFrameDrawn = true -- Wtf?

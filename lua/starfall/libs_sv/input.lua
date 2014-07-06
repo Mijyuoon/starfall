@@ -54,8 +54,18 @@ function input_lib.getKeyState(ply, key)
 	SF.CheckType(ply, SF.Types["Player"])
 	SF.CheckType(key, "number")
 	
-	local pda = getPdaObject(ply)
+	local _, pda = getPdaObject(ply)
 	if not pda then return nil end
 	
 	return pda.KeyStateBuffer[key] and true or false
+end
+
+--- Returns name of active input device
+function input_lib.getDeviceName(ply)
+	SF.CheckType(ply, SF.Types["Player"])
+	
+	local _, pda = getPdaObject(ply)
+	if not pda then return nil end
+	
+	return pda.DeviceName or "<unknown>"
 end

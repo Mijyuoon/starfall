@@ -310,22 +310,42 @@ function SWEP:Initialize()
 	end
 end
 
+local function SetActivePdaSystem(targ, opt)
+	if CLIENT then return end
+	targ.Owner.ActivePdaSystem = targ
+	net.Start("pdasys_setactive")
+		net.WriteEntity(targ.Owner)
+		net.WriteEntity(opt and targ or NULL)
+	net.Broadcast()
+end
+
+if CLIENT then
+	net.Receive("pdasys_setactive", function()
+		local ply = net.ReadEntity()
+		local ent = net.ReadEntity()
+		ply.ActivePdaSystem = IsValid(ent) and ent
+	end)
+else
+	util.AddNetworkString("pdasys_setactive")
+end
+
 function SWEP:Deploy()
-	if IsValid(self.Owner) then 
-		self.Owner.ActivePdaSystem = self
+	if SERVER and IsValid(self.Owner) then
+		--self.Owner.ActivePdaSystem = self
+		SetActivePdaSystem(self, true)
 	end
 	return true
 end
 
 function SWEP:Holster()
 	if CLIENT and IsValid(self.Owner) then
-		self.Owner.ActivePdaSystem = nil
 		local vm = self.Owner:GetViewModel()
 		if IsValid(vm) then
 			self:ResetBonePositions(vm)
 		end
 	elseif SERVER and IsValid(self.Owner) then
-		self.Owner.ActivePdaSystem = nil
+		--self.Owner.ActivePdaSystem = nil
+		SetActivePdaSystem(self, false)
 		self:EnableKeyboard(false)
 	end
 	return true
