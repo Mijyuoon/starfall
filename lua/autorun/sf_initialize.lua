@@ -178,6 +178,7 @@ else
 	local function CheckForUpdates(_, key)
 		if key ~= "+menu" then return end
 		if updateCheckDone then return end
+		if not SF_Version then return end
 		http.Fetch(updateUrl, function(dat)
 			local last_ver = GetVersion(dat)
 			if last_ver and SF_Version < last_ver then
