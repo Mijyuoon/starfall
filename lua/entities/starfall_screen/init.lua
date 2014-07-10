@@ -144,9 +144,6 @@ function ENT:Error(msg, override)
 end
 
 function ENT:CodeSent(ply, files, mainfile)
-	if not IsValid(self.owner) then
-		self.owner = ply
-	end
 	if ply ~= self.owner then return end
 	local update = (self.mainfile ~= nil)
 
@@ -166,10 +163,10 @@ function ENT:CodeSent(ply, files, mainfile)
 	SF.Preprocessor.ParseDirectives(mainfile, files[mainfile], {}, ppdata)
 	
 	if ppdata.sharedscreen then		
-		local ok, instance = SF.Compiler.Compile(files,self.SFContext,mainfile,ply)
+		local ok, instance = SF.Compiler.Compile(files, self.SFContext, mainfile, ply)
 		if not ok then self:Error(instance) return end
 		
-		instance.runOnError = function(inst,...) self:Error(...) end
+		instance.runOnError = function(inst, ...) self:Error(...) end
 
 		if self.instance then
 			self:runScriptHook("last")

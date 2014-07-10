@@ -52,6 +52,9 @@ function TOOL:LeftClick( trace )
 		if not SF.RequestCode(ply, function(mainfile, files)
 			if not mainfile then return end
 			if not IsValid(ent) then return end -- Probably removed during transfer
+			if not IsValid(ent.owner) then
+				ent.owner = ply
+			end
 			ent:Compile(files, mainfile)
 		end) then
 			WireLib.AddNotify(ply,"Cannot upload SF code, please wait for the current upload to finish.",NOTIFY_ERROR,7,NOTIFYSOUND_ERROR1)
