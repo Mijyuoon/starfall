@@ -115,7 +115,7 @@ local add = SF.hookAdd
 if SERVER then
 	-- Server hooks
 	local function filter_chat(inst, args, ply)
-		if SF.instance.player ~= ply then return end
+		--if SF.instance.player ~= ply then return end
 		if args then return args[1] end
 	end
 	add("GravGunOnPickedUp")
