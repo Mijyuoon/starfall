@@ -68,7 +68,7 @@ SF.DefaultEnvironment.ipairs = ipairs
 -- @param tbl
 SF.DefaultEnvironment.pairs = pairs
 --- Same as Lua's pairs but iterates over metatable's __index
--- @name SF.DefaultEnvironment.pairs
+-- @name SF.DefaultEnvironment.mpairs
 -- @class function
 -- @param tbl
 SF.DefaultEnvironment.mpairs = function(t) 
@@ -88,7 +88,7 @@ end
 -- @param tbl
 SF.DefaultEnvironment.next = next
 --- Same as Lua's next but iterates over metatable's __index
--- @name SF.DefaultEnvironment.next
+-- @name SF.DefaultEnvironment.mnext
 -- @class function
 -- @param tbl
 SF.DefaultEnvironment.mnext = mynext
@@ -200,21 +200,12 @@ end
 local string_methods, string_metatable = SF.Typedef("Library: string")
 filterGmodLua(string, string_methods)
 string_metatable.__newindex = function() end
---[[
-string_metatable.__index = function(key)
-	local tkey = type(key)
-	if string_methods[key] then
-		return string_methods[key]
-	elseif tkey == "number" then
-		return self:sub( key, key )
-	else
-		error( "bad key to string index (number expected, got " .. tkey .. ")", 2 )
-	end
+
+string_methods.explode = function(str,sep,patt)
+	return string.Explode(sep,str,patt) 
 end
---]]
-string_methods.explode = function(str,sep,patt) return 
-	string.Explode(sep,str,patt) 
-end
+string_methods.compress = util.Compress
+string_methods.decompress = util.Decompress
 --- Lua's (not glua's) string library
 -- @name SF.DefaultEnvironment.string
 -- @class table
@@ -305,9 +296,10 @@ end
 if SERVER then
 	--- Prints a message to the player's chat.
 	function SF.DefaultEnvironment.print(...)
-		local buffer, tabl = "", {...}
-		for key, val in ipairs(tabl) do
-			tabl[key] = tostring(val)
+		local buffer, tabl = nil, {...}
+		local maxidx = select("#", ...)
+		for key = 1, maxidx do
+			tabl[key] = tostring(tabl[key])
 		end
 		buffer = table.concat(tabl, "\t")
 		SF.instance.player:ChatPrint(buffer)
@@ -316,9 +308,10 @@ else
 	--- Prints a message to the player's chat.
 	function SF.DefaultEnvironment.print(...)
 		if SF.instance.player ~= LocalPlayer() then return end
-		local buffer, tabl = "", {...}
-		for key, val in ipairs(tabl) do
-			tabl[key] = tostring(val)
+		local buffer, tabl = nil, {...}
+		local maxidx = select("#", ...)
+		for key = 1, maxidx do
+			tabl[key] = tostring(tabl[key])
 		end
 		buffer = table.concat(tabl, "\t")
 		LocalPlayer():ChatPrint(buffer)

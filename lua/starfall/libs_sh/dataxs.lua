@@ -43,7 +43,7 @@ local function leaveGroup(instance, name)
 end
 
 function xs_lib.leaveGroup(name)
-	SF.ChckType(name, "string")
+	SF.CheckType(name, "string")
 	return leaveGroup(SF.instance, name)
 end
 

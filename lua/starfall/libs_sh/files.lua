@@ -15,6 +15,7 @@ do
 	P.registerPrivilege("file.write", "Write files", "Allows the user to write files to data/sf_files directory")
 	P.registerPrivilege("file.exists", "File existence check", "Allows the user to determine whether a file in data/sf_files exists")
 	P.registerPrivilege("file.getList", "Get list of files", "Allows the user to get list of files in data/sf_files")
+	P.registerPrivilege("file.transfer", "Transfer files", "Allows user to transfer files between client and server")
 end
 
 file.CreateDir("sf_files/")
@@ -23,16 +24,16 @@ local function check_access(path, perm)
 	return SF.Permissions.check(SF.instance.player, path, perm)
 end
 
-local function make_path(path, raw)
-	if not raw then
-		path = path:gsub("[^%w%._]", "_")
-	end
-	if CLIENT then
-		return (path .. ".txt")
-	end
+local function make_path_raw(path, inv)
+	local is_client = CLIENT
+	if inv then is_client = SERVER end
+	if is_client then return (path .. ".txt") end
 	local plyid = SF.instance.player:SteamID():gsub(":","_")
 	file.CreateDir("sf_files/"..plyid)
 	return (plyid .. "/" .. path .. ".txt")
+end
+local function make_path(path, inv)
+	return make_path_raw(path:gsub("[^%w%._]", "_"), inv)
 end
 
 --- Reads a file from path
@@ -122,14 +123,85 @@ end
 
 --- Gets list of files in data/sf_files
 -- @return List of files
+-- @return Error message if applicable
 function files_library.getList()
-	if not check_access(path, "file.getList") then 
+	if not check_access(false, "file.getList") then 
 		return nil, "access denied"
 	end
-	local file_path = make_path("*", true)
+	local file_path = make_path_raw("*")
 	local files = file.Find("sf_files/"..file_path, "DATA")
 	for key, fname in ipairs(files) do
 		files[key] = fname:sub(1, -5)
 	end
 	return files
+end
+
+local net_send_func
+if CLIENT then
+	net_send_func = net.SendToServer
+else
+	net_send_func = function()
+		net.Send(SF.instance.player)
+	end
+end
+
+local function send_filedata(fname, fdata)
+	if #data > 65000 then return end
+	net.Start("SF_filetransfer")
+		net.WriteInt(SF_UPLOAD_DATA, 8)
+		net.WriteString(fname)
+		net.WriteString(fdata)
+	net_send_func()
+end
+
+net.Receive("SF_filetransfer", function()
+	local action = net.ReadInt(8)
+	if action == SF_UPLOAD_INIT then
+		local fpath, upath = net.ReadString(), net.ReadString()
+		if file.Exists("sf_files/"..fpath, "DATA") then
+			send_filedata(upath, file.Read("sf_files/"..fpath, "DATA"))
+		end
+	elseif action == SF_UPLOAD_DATA then
+		local fpath = net.ReadString()
+		file.Write("sf_files/"..fpath, net.ReadString())
+	end
+end)
+
+if SERVER then
+	util.AddNetworkString("SF_filetransfer")
+	
+	--- Downloads file from server to client
+	-- @param fname Filepath relative to data/sf_files/. Cannot contain '..'
+	-- @return True if successful, nil if error
+	-- @return Error message if applicable
+	function files_library.download(fname)
+		SF.CheckType(fname, "string")
+		if not check_access(fname, "file.transfer") then 
+			return nil, "access denied"
+		end
+		local fpath = make_path(fname)
+		if not file.Exists("sf_files/"..fpath, "DATA") then 
+			return nil, "file not found"
+		end
+		local upath = make_path(fname, true)
+		send_filedata(upath, file.Read("sf_files/"..fpath, "DATA"))
+		return true
+	end
+	
+	--- Uploads file from client to server
+	-- @param fname Filepath relative to data/sf_files/. Cannot contain '..'
+	-- @return True if successful, nil if error
+	-- @return Error message if applicable
+	function files_library.upload(fname)
+		SF.CheckType(fname, "string")
+		if not check_access(fname, "file.transfer") then 
+			return nil, "access denied"
+		end
+		net.Start("SF_filetransfer")
+			net.WriteInt(SF_UPLOAD_INIT, 8)
+			net.WriteString(make_path(fname, true))
+			net.WriteString(make_path(fname, false))
+		net_send_func()
+		return true
+	end
 end

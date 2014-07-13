@@ -153,7 +153,7 @@ end
 -- @param env The environment metatable to use for the script. Default is SF.DefaultEnvironmentMT
 -- @param directives Additional Preprocessor directives to use. Default is an empty table
 -- @param permissions The permissions manager to use. Default is SF.DefaultPermissions
--- @param ops Operations quota function. Default is specified by the convar "sf_defaultquota" and returned when calling ops()
+-- @param ops Operations quota function. Default is returned when calling ops()
 -- @param libs Additional (local) libraries for the script to access. Default is an empty table.
 SF.Quota = 1200000
 local function get_defaultquota()
@@ -175,7 +175,7 @@ end
 -- @param level Level at which to error at. 3 is added to this value. Default is 0.
 -- @param default A value to return if val is nil.
 function SF.CheckType(val, typ, level, default)
-	if val == nil and default then return default
+	if val == nil and default ~= nil then return default
 	elseif type(val) == typ then return val
 	else
 		local meta = dgetmeta(val)

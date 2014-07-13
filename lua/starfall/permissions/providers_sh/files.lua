@@ -16,6 +16,7 @@ local keys = {
 	[ "file.write" ] = true,
 	[ "file.exists" ] = true,
 	[ "file.getList" ] = true,
+	[ "file.transfer" ] = true,
 }
 
 function P:check ( principal, target, key )
@@ -23,7 +24,7 @@ function P:check ( principal, target, key )
 
 	-- allow if the localplayer is trying to write a file to their computer
 	--if keys[ key ] and principal == LocalPlayer() then
-	if keys[ key ] then
+	if keys[ key ] and (SERVER or principal == LocalPlayer()) then
 		return ALLOW
 	else
 		return NEUTRAL
