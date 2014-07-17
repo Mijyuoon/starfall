@@ -37,25 +37,30 @@ end
 -- @shared
 -- @return True if player alive
 function player_methods:isAlive()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:Alive()
 end
 
---- Returns the players armor
+--- Returns the player's armor
 -- @shared
 -- @return Armor
 function player_methods:getArmor()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:Armor()
+end
+
+--- Returns the player's health
+-- @shared
+-- @return Health
+function player_methods:getHealth()
+	local ent = SF.Entities.Unwrap(self)
+	return ent and ent:Health()
 end
 
 --- Returns whether the player is crouching
 -- @shared
 -- @return True if player crouching
 function player_methods:isCrouching()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:Crouching()
 end
@@ -64,7 +69,6 @@ end
 -- @shared
 -- @return Amount of deaths
 function player_methods:getDeaths()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:Deaths()
 end
@@ -73,7 +77,6 @@ end
 -- @shared
 -- @return True if player has flashlight on
 function player_methods:isFlashlightOn()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:FlashlightIsOn()
 end
@@ -82,7 +85,6 @@ end
 -- @shared
 -- @return Amount of kills
 function player_methods:getFrags()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:Frags()
 end
@@ -91,16 +93,14 @@ end
 -- @shared
 -- @return Name of weapon
 function player_methods:getActiveWeapon()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
-	return ent and ent:GetActiveWeapon():ClassName()
+	return ent and ent:GetActiveWeapon():GetClass()
 end
 
 --- Returns the player's aim vector
 -- @shared
 -- @return Aim vector
 function player_methods:getAimVector()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:GetAimVector()
 end
@@ -109,7 +109,6 @@ end
 -- @shared
 -- @return Field of view
 function player_methods:getFOV()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:GetFOV()
 end
@@ -118,7 +117,6 @@ end
 -- @shared
 -- @return Jump power
 function player_methods:getJumpPower()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:GetJumpPower()
 end
@@ -127,7 +125,6 @@ end
 -- @shared
 -- @return Maximum speed
 function player_methods:getMaxSpeed()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:GetMaxSpeed()
 end
@@ -136,7 +133,6 @@ end
 -- @shared
 -- @return Name
 function player_methods:getName()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:GetName()
 end
@@ -145,7 +141,6 @@ end
 -- @shared
 -- @return Running speed
 function player_methods:getRunSpeed()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:GetRunSpeed()
 end
@@ -154,7 +149,6 @@ end
 -- @shared
 -- @return Shoot position
 function player_methods:getShootPos()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:GetShootPos()
 end
@@ -163,7 +157,6 @@ end
 -- @shared
 -- @return True if player in vehicle
 function player_methods:inVehicle()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:InVehicle()
 end
@@ -172,7 +165,6 @@ end
 -- @shared
 -- @return True if player is admin
 function player_methods:isAdmin()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:IsAdmin()
 end
@@ -181,7 +173,6 @@ end
 -- @shared
 -- @return True if player is a bot
 function player_methods:isBot()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:IsBot()
 end
@@ -190,7 +181,6 @@ end
 -- @shared
 -- @return True if player is connected
 function player_methods:isConnected()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:IsConnected()
 end
@@ -199,34 +189,14 @@ end
 -- @shared
 -- @return True if player is frozen
 function player_methods:isFrozen()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:IsFrozen()
-end
-
---- Returns whether the player is an NPC
--- @shared
--- @return True if player is an NPC
-function player_methods:isNPC()
-	SF.CheckType(self, player_metamethods)
-	local ent = SF.Entities.Unwrap(self)
-	return ent and ent:IsNPC()
-end
-
---- Returns whether the player is a player
--- @shared
--- @return True if player is player
-function player_methods:isPlayer()
-	SF.CheckType(self, player_metamethods)
-	local ent = SF.Entities.Unwrap(self)
-	return ent and ent:IsPlayer()
 end
 
 --- Returns whether the player is a super admin
 -- @shared
 -- @return True if player is super admin
 function player_methods:isSuperAdmin()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:IsSuperAdmin()
 end
@@ -236,7 +206,6 @@ end
 -- @param group Group to check against
 -- @return True if player belongs to group
 function player_methods:isUserGroup(group)
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:IsUserGroup(group)
 end
@@ -245,7 +214,6 @@ end
 -- @shared
 -- @return ping
 function player_methods:getPing()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:Ping()
 end
@@ -254,7 +222,6 @@ end
 -- @shared
 -- @return steam ID
 function player_methods:getSteamID()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:SteamID()
 end
@@ -263,7 +230,6 @@ end
 -- @shared
 -- @return community ID
 function player_methods:getSteamID64()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:SteamID64()
 end
@@ -272,7 +238,6 @@ end
 -- @shared
 -- @return team
 function player_methods:getTeam()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:Team()
 end
@@ -281,7 +246,6 @@ end
 -- @shared
 -- @return team name
 function player_methods:getTeamName()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and team.GetName(ent:Team())
 end
@@ -290,7 +254,6 @@ end
 -- @shared
 -- @return unique ID
 function player_methods:getUniqueID()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:UniqueID()
 end
@@ -299,7 +262,6 @@ end
 -- @shared
 -- @return user ID
 function player_methods:getUserID()
-	SF.CheckType(self, player_metamethods)
 	local ent = SF.Entities.Unwrap(self)
 	return ent and ent:UserID()
 end

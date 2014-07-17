@@ -31,6 +31,7 @@ local p_types = {
 	["boolean"] = true, ["table"] = true, 
 	["function"] = true, ["Pattern"] = true
 }
+
 function lpeg_lib.P(patt)
 	local vtype = SF.GetType(patt)
 	if not p_types[vtype] then

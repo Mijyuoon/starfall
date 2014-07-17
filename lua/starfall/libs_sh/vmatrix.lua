@@ -3,7 +3,7 @@ SF.VMatrix = {}
 
 --- VMatrix type
 local vmatrix_methods, vmatrix_metamethods = SF.Typedef("VMatrix")
-local wrap, unwrap = SF.CreateWrapper( vmatrix_metamethods, true, false )
+local wrap, unwrap = SF.CreateWrapper(vmatrix_metamethods, true, false)
 
 SF.VMatrix.Methods = vmatrix_methods
 SF.VMatrix.Metatable = vmatrix_metamethods
@@ -36,61 +36,61 @@ end
 
 --- Rotate the matrix
 -- @param ang Angle to rotate by
-function vmatrix_methods:rotate( ang )
-	SF.CheckType( ang, "Angle")
+function vmatrix_methods:rotate(ang)
+	SF.CheckType(ang, "Angle")
 
 	local v = unwrap(self)
-	v:Rotate( ang )
+	v:Rotate(ang)
 
 end
 
 --- Scale the matrix
 -- @param vec Vector to scale by
-function vmatrix_methods:scale( vec )
-	SF.CheckType( vec, "Vector" )
+function vmatrix_methods:scale(vec)
+	SF.CheckType(vec, "Vector")
 
 	local v = unwrap(self)
-	v:Scale( vec )
+	v:Scale(vec)
 end
 
 --- Scales the absolute translation
 -- @param num Amount to scale by
-function vmatrix_methods:scaleTranslation( num )
-	SF.CheckType( num, "number" )
+function vmatrix_methods:scaleTranslation(num)
+	SF.CheckType(num, "number")
 
 	local v = unwrap(self)
-	v:ScaleTranslation( num )
+	v:ScaleTranslation(num)
 end
 
 --- Sets the angles
 -- @param ang New angles
-function vmatrix_methods:setAngles( ang )
-	SF.CheckType( ang, "Angle" )
+function vmatrix_methods:setAngles(ang)
+	SF.CheckType(ang, "Angle")
 
 	local v = unwrap(self)
-	v:SetAngles( ang )
+	v:SetAngles(ang)
 end
 
 --- Sets the translation
 -- @param vec New translation
-function vmatrix_methods:setTranslation( vec )
-	SF.CheckType( vec, "Vector" )
+function vmatrix_methods:setTranslation(vec)
+	SF.CheckType(vec, "Vector")
 
 	local v = unwrap(self)
-	v:SetTranslation( vec )
+	v:SetTranslation(vec)
 end
 
 --- Translate the matrix
 -- @param vec Vector to translate by
-function vmatrix_methods:translate( vec )
-	SF.CheckType( vec, "Vector" )
+function vmatrix_methods:translate(vec)
+	SF.CheckType(vec, "Vector")
 
 	local v = unwrap(self)
-	v:Translate( vec )
+	v:Translate(vec)
 end
 
-function vmatrix_metamethods.__mul( lhs, rhs )
-	SF.CheckType( rhs, vmatrix_metamethods )
+function vmatrix_metamethods.__mul(lhs, rhs)
+	SF.CheckType(rhs, vmatrix_metamethods)
 
 	return wrap(unwrap(lhs) * unwrap(rhs))
 end

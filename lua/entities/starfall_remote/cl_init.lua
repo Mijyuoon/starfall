@@ -33,6 +33,7 @@ end)
 
 net.Receive("starfall_remote_input", function()
 	local screen = net.ReadEntity()
+	if not IsValid(screen) then return end
 	local mode = (net.ReadBit() > 0)
 	if mode then
 		local keyid = net.ReadUInt(8)

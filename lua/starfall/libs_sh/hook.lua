@@ -91,7 +91,8 @@ local function run(hookname, customfunc, ...)
 		if not ok then
 			instance:Error("Hook '" .. hookname .. "' errored with " .. ret[1], ret[2])
 		elseif customfunc then
-			return customfunc(instance, ret, ...)
+			local a,b,c,d,e,f,g,h = customfunc(instance, ret, ...)
+			if a ~= nil then return a,b,c,d,e,f,g,h end
 		end
 	end
 end
@@ -115,7 +116,7 @@ local add = SF.hookAdd
 if SERVER then
 	-- Server hooks
 	local function filter_chat(inst, args, ply)
-		--if SF.instance.player ~= ply then return end
+		if inst.player ~= ply then return end
 		if args then return args[1] end
 	end
 	add("GravGunOnPickedUp")

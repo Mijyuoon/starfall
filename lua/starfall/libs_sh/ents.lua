@@ -16,10 +16,10 @@ local ents_lib, _ = SF.Libraries.Register("ents")
 -- Register privileges
 do
 	local P = SF.Permissions
-	P.registerPrivilege( "entities.setColor", "Set Color", "Allows the user to change the color of an entity" )
-	P.registerPrivilege( "entities.setMaterial", "Set Material", "Allows the user to change the material of an entity" )
-	P.registerPrivilege( "entities.setBodyGroup", "Set Body Group", "Allows the user to change body groups of an entity" )
-	P.registerPrivilege( "entities.setSkin", "Set Skin", "Allows the user to change the skin of an entity" )
+	P.registerPrivilege("ents.setColor", "Set Color", "Allows the user to change the color of an entity")
+	P.registerPrivilege("ents.setMaterial", "Set Material", "Allows the user to change the material of an entity")
+	P.registerPrivilege("ents.setBodyGroup", "Set Body Group", "Allows the user to change body groups of an entity")
+	P.registerPrivilege("ents.setSkin", "Set Skin", "Allows the user to change the skin of an entity")
 end
 
 local materialBlacklist = {
@@ -36,19 +36,19 @@ SF.Entities.Library = ents_lib
 
 --- Returns true if valid and is not the world, false if not
 -- @param entity Entity to check
-function SF.Entities.IsValid ( entity )
+function SF.Entities.IsValid(entity)
 	return entity and entity:IsValid() and not entity:IsWorld()
 end
 local isValid = SF.Entities.IsValid
 
 local function check_access(data, perm)
-	return SF.Permissions.check( SF.instance.player, data, perm )
+	return SF.Permissions.check(SF.instance.player, data, perm)
 end
 
 --- Gets the physics object of the entity
 -- @return The physobj, or nil if the entity isn't valid or isn't vphysics
-function SF.Entities.GetPhysObject ( ent )
-	return ( isValid( ent ) and ent:GetMoveType() == MOVETYPE_VPHYSICS and ent:GetPhysicsObject() ) or nil
+function SF.Entities.GetPhysObject(ent)
+	return(isValid(ent) and ent:GetMoveType() == MOVETYPE_VPHYSICS and ent:GetPhysicsObject()) or nil
 end
 local getPhysObject = SF.Entities.GetPhysObject
 
@@ -73,7 +73,7 @@ end
 --- Same as ents_lib.owner() on the server. On the client, returns the local player
 -- @name ents_lib.player
 -- @class function
--- @return Either the owner (server) or the local player (client)
+-- @return Either the owner(server) or the local player(client)
 if SERVER then
 	ents_lib.player = ents_lib.owner
 else
@@ -87,153 +87,181 @@ end
 -- @class function
 -- @param num Entity index
 -- @return entity
-function ents_lib.entity ( num )
-	SF.CheckType( num, "number" )
+function ents_lib.entity(num)
+	SF.CheckType(num, "number")
 	
-	return SF.WrapObject( Entity( num ) )
+	return SF.WrapObject(Entity(num))
 end
 
 -- ------------------------- Methods ------------------------- --
 
 --- To string
 -- @shared
-function ents_metamethods:__tostring ()
-	local ent = unwrap( self )
+function ents_metamethods:__tostring()
+	local ent = unwrap(self)
 	if not ent then return "(null entity)"
-	else return tostring( ent ) end
+	else return tostring(ent) end
 end
 
 --- Sets the color of the entity
 -- @shared
 -- @param clr New color
-function ents_methods:setColor ( clr )
-	SF.CheckType( clr, SF.Types["Color"] )
+function ents_methods:setColor(clr)
+	SF.CheckType(clr, SF.Types["Color"])
 
-	local this = unwrap( self )
-	if not isValid( this ) then return nil, "invalid entity" end
-	if not check_access(this, "entities.setColor") then return nil, "access denied" end
-	this:SetColor( clr )
-	this:SetRenderMode( clr.a == 255 and RENDERMODE_NORMAL or RENDERMODE_TRANSALPHA )
+	local this = unwrap(self)
+	if not isValid(this) then
+		return nil, "invalid entity"
+	end
+	if not check_access(this, "ents.setColor") then
+		SF.throw("Insufficient permissions", 2)
+	end
+	this:SetColor(clr)
+	this:SetRenderMode(clr.a == 255 and RENDERMODE_NORMAL or RENDERMODE_TRANSALPHA)
 	return true
 end
 
 --- Gets the color of an entity
 -- @shared
 -- @return Color
-function ents_methods:getColor ()
-	local this = unwrap( self )
+function ents_methods:getColor()
+	local this = unwrap(self)
 	return this:GetColor()
 end
 
 --- Checks if an entity is valid.
 -- @shared
 -- @return True if valid, false if not
-function ents_methods:isValid ()
-	SF.CheckType( self, ents_metamethods )
-	return isValid( unwrap( self ) )
+function ents_methods:isValid()
+	return isValid(unwrap(self))
+end
+
+--- Returns if an entity is a player
+-- @shared
+-- @return True if player is player
+function ents_methods:isPlayer()
+	local ent = SF.Entities.Unwrap(self)
+	return ent and ent:IsPlayer()
+end
+
+--- Returns if an entity is a NPC
+-- @shared
+-- @return True if player is player
+function ents_methods:isNPC()
+	local ent = SF.Entities.Unwrap(self)
+	return ent and ent:IsNPC()
 end
 
 --- Returns the EntIndex of the entity
 -- @shared
 -- @return The numerical index of the entity
-function ents_methods:entIndex ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:entIndex()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:EntIndex()
 end
 
 --- Returns the class of the entity
 -- @shared
 -- @return The string class name
-function ents_methods:getClass ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getClass()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:GetClass()
 end
 
 --- Returns the position of the entity
 -- @shared
 -- @return The position vector
-function ents_methods:getPos ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getPos()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:GetPos()
 end
 
---- Returns the x, y, z size of the entity's outer bounding box (local to the entity)
+--- Returns the x, y, z size of the entity's outer bounding box(local to the entity)
 -- @shared
 -- @return The outer bounding box size
-function ents_methods:obbSize ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:obbSize()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:OBBMaxs() - ent:OBBMins()
 end
 
 --- Returns the local position of the entity's outer bounding box
 -- @shared
 -- @return The position vector of the outer bounding box center
-function ents_methods:obbCenter ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:obbCenter()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:OBBCenter()
 end
 
 --- Returns the world position of the entity's outer bounding box
 -- @shared
 -- @return The position vector of the outer bounding box center
-function ents_methods:obbCenterW ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
-	return ent:LocalToWorld( ent:OBBCenter() )
+function ents_methods:obbCenterW()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity" 
+	end
+	return ent:LocalToWorld(ent:OBBCenter())
 end
 
 --- Returns the local position of the entity's mass center
 -- @shared
 -- @return The position vector of the mass center
-function ents_methods:getMassCenter ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	local phys = getPhysObject( ent )
-	if not phys or not phys:IsValid() then return nil, "entity has no physics object or is not valid" end
+function ents_methods:getMassCenter()
+	local ent = unwrap(self)
+	local phys = getPhysObject(ent)
+	if not phys or not phys:IsValid() then
+		return nil, "invalid physobj"
+	end
 	return phys:GetMassCenter()
 end
 
 --- Returns the world position of the entity's mass center
 -- @shared
 -- @return The position vector of the mass center
-function ents_methods:getMassCenterW ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	local phys = getPhysObject( ent )
-	if not phys or not phys:IsValid() then return nil, "entity has no physics object or is not valid" end
-	return ent:LocalToWorld( phys:GetMassCenter() )
+function ents_methods:getMassCenterW()
+	local ent = unwrap(self)
+	local phys = getPhysObject(ent)
+	if not phys or not phys:IsValid() then
+		return nil, "invalid physobj"
+	end
+	return ent:LocalToWorld(phys:GetMassCenter())
 end
 
 --- Returns the angle of the entity
 -- @shared
 -- @return The angle
-function ents_methods:getAngles ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getAngles()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:GetAngles()
 end
 
 --- Returns the mass of the entity
 -- @shared
 -- @return The numerical mass
-function ents_methods:getMass ()
-	SF.CheckType( self, ents_metamethods )
-	
-	local ent = unwrap( self )
-	local phys = getPhysObject( ent )
-	if not phys or not phys:IsValid() then return nil, "entity has no physics object or is not valid" end
+function ents_methods:getMass()
+	local ent = unwrap(self)
+	local phys = getPhysObject(ent)
+	if not phys or not phys:IsValid() then
+		return nil, "invalid physobj"
+	end
 	
 	return phys:GetMass()
 end
@@ -241,12 +269,12 @@ end
 --- Returns the principle moments of inertia of the entity
 -- @shared
 -- @return The principle moments of inertia as a vector
-function ents_methods:getInertia ()
-	SF.CheckType( self, ents_metamethods )
-	
-	local ent = unwrap( self )
-	local phys = getPhysObject( ent )
-	if not phys or not phys:IsValid() then return nil, "entity has no physics object or is not valid" end
+function ents_methods:getInertia()
+	local ent = unwrap(self)
+	local phys = getPhysObject(ent)
+	if not phys or not phys:IsValid() then
+		return nil, "invalid physobj" 
+	end
 	
 	return phys:GetInertia()
 end
@@ -254,20 +282,22 @@ end
 --- Returns the velocity of the entity
 -- @shared
 -- @return The velocity vector
-function ents_methods:getVelocity ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getVelocity()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:GetVelocity()
 end
 
 --- Returns the angular velocity of the entity
 -- @shared
 -- @return The angular velocity vector
-function ents_methods:getAngleVelocity ()
-	SF.CheckType( self, ents_metamethods )
-	local phys = getPhysObject( unwrap( self ) )
-	if not phys or not phys:IsValid() then return nil, "entity has no physics object or is not valid" end	
+function ents_methods:getAngleVelocity()
+	local phys = getPhysObject(unwrap(self))
+	if not phys or not phys:IsValid() then
+		return nil, "invalid physobj"
+	end	
 	return phys:GetAngleVelocity()
 end
 
@@ -275,71 +305,77 @@ end
 -- @shared
 -- @param data Local space vector
 -- @return data as world space vector
-function ents_methods:localToWorld( data )
-	SF.CheckType( self, ents_metamethods )
-	SF.CheckType( data, "Vector" )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:localToWorld(data)
+	SF.CheckType(data, "Vector")
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	
-	return ent:LocalToWorld( data )
+	return ent:LocalToWorld(data)
 end
 
 --- Converts an angle in entity local space to world space
 -- @shared
 -- @param data Local space angle
 -- @return data as world space angle
-function ents_methods:localToWorldAngles ( data )
-	SF.CheckType( self, ents_metamethods )
-	SF.CheckType( data, "Angle" )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:localToWorldAngles(data)
+	SF.CheckType(data, "Angle")
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	
-	return ent:LocalToWorldAngles( data )
+	return ent:LocalToWorldAngles(data)
 end
 
 --- Converts a vector in world space to entity local space
 -- @shared
 -- @param data World space vector
 -- @return data as local space vector
-function ents_methods:worldToLocal ( data )
-	SF.CheckType( self, ents_metamethods )
-	SF.CheckType( data, "Vector" )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:worldToLocal(data)
+	SF.CheckType(data, "Vector")
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	
-	return ent:WorldToLocal( data )
+	return ent:WorldToLocal(data)
 end
 
 --- Converts an angle in world space to entity local space
 -- @shared
 -- @param data World space angle
 -- @return data as local space angle
-function ents_methods:worldToLocalAngles ( data )
-	SF.CheckType( self, ents_metamethods )
-	SF.CheckType( data, "Angle" )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:worldToLocalAngles(data)
+	SF.CheckType(data, "Angle")
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	
-	return ent:WorldToLocalAngles( data )
+	return ent:WorldToLocalAngles(data)
 end
 
 --- Gets the model of an entity
 -- @shared
 -- @return Model of the entity
-function ents_methods:getModel ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getModel()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:GetModel()
 end
 
 --- Gets the entitiy's eye angles
 -- @shared
 -- @return Angles of the entity's eyes
-function ents_methods:getEyeAngles ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getEyeAngles()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:EyeAngles()
 end
 
@@ -347,10 +383,11 @@ end
 -- @shared
 -- @return Eye position of the entity
 -- @return In case of a ragdoll, the position of the other eye
-function ents_methods:getEyePos ()
-	SF.CheckType( self, ents_metamethods )
-	local ent = unwrap( self )
-	if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getEyePos()
+	local ent = unwrap(self)
+	if not isValid(ent) then
+		return nil, "invalid entity"
+	end
 	return ent:EyePos()
 end
 
@@ -358,9 +395,11 @@ end
 -- @shared
 -- @class function
 -- @return Material
-function ents_methods:getMaterial ()
-    local ent = unwrap( self )
-    if not isValid( ent ) then return nil, "invalid entity" end
+function ents_methods:getMaterial()
+    local ent = unwrap(self)
+    if not isValid(ent) then
+		return nil, "invalid entity"
+	end
     return ent:GetMaterial() or ""
 end
 
@@ -369,15 +408,21 @@ end
 -- @class function
 -- @param material, string, New material name.
 -- @return The Entity being modified.
-function ents_methods:setMaterial ( material )
-    SF.CheckType( material, "string" )
-    if materialBlacklist[ material ] then SF.throw( "This material has been blacklisted", 2 ) end
+function ents_methods:setMaterial(material)
+    SF.CheckType(material, "string")
+    if materialBlacklist[material] then
+		SF.throw("This material has been blacklisted", 2)
+	end
 
-    local ent = unwrap( self )
-    if not isValid( ent ) then return nil, "invalid entity" end
-	if not check_access(ent, "entities.setColor") then return nil, "access denied" end
-    ent:SetMaterial( material )
-    return wrap( ent )
+    local ent = unwrap(self)
+    if not isValid(ent) then
+		return nil, "invalid entity"
+	end
+	if not check_access(ent, "ents.setMaterial") then
+		SF.throw("Insufficient permissions", 2)
+	end
+    ent:SetMaterial(material)
+    return wrap(ent)
 end
 
 --- Sets an entities' bodygroup
@@ -386,17 +431,21 @@ end
 -- @param bodygroup Number, The ID of the bodygroup you're setting.
 -- @param value Number, The value you're setting the bodygroup to.
 -- @return The Entity being modified.
-function ents_methods:setBodygroup ( bodygroup, value )
-    SF.CheckType( bodygroup, "number" )
-    SF.CheckType( value, "number" )
+function ents_methods:setBodygroup(bodygroup, value)
+    SF.CheckType(bodygroup, "number")
+    SF.CheckType(value, "number")
 
-    local ent = unwrap( self )
-    if not isValid( ent ) then return nil, "invalid entity" end
-	if not check_access(ent, "entities.setBodyGroup") then return nil, "access denied" end
+    local ent = unwrap(self)
+    if not isValid(ent) then
+		return nil, "invalid entity"
+	end
+	if not check_access(ent, "ents.setBodyGroup") then
+		SF.throw("Insufficient permissions", 2)
+	end
 
-    ent:SetBodyGroup( bodygroup, value )
+    ent:SetBodyGroup(bodygroup, value)
 
-    return wrap( ent )
+    return wrap(ent)
 end
 
 --- Sets the skin of the entity
@@ -404,28 +453,32 @@ end
 -- @class function
 -- @param skinIndex Number, Index of the skin to use.
 -- @return The Entity being modified.
-function ents_methods:setSkin ( skinIndex )
-    SF.CheckType( skinIndex, "number" )
+function ents_methods:setSkin(skinIndex)
+    SF.CheckType(skinIndex, "number")
 
-    local ent = unwrap( self )
-    if not isValid( ent ) then return nil, "invalid entity" end
-	if not check_access(ent, "entities.setSkin") then return nil, "access denied" end
+    local ent = unwrap(self)
+    if not isValid(ent) then
+		return nil, "invalid entity"
+	end
+	if not check_access(ent, "ents.setSkin") then
+		SF.throw("Insufficient permissions", 2)
+	end
 
-    ent:SetSkin( skinIndex )
-    return wrap( ent )
+    ent:SetSkin(skinIndex)
+    return wrap(ent)
 end
 
 --- Gets the entities up vector
-function ents_methods:getUp ()
-	return unwrap( self ):GetUp ()
+function ents_methods:getUp()
+	return unwrap(self):GetUp()
 end
 
 --- Gets the entities right vector
-function ents_methods:getRight ()
-	return unwrap( self ):GetRight ()
+function ents_methods:getRight()
+	return unwrap(self):GetRight()
 end
 
 --- Gets the entities forward vector
-function ents_methods:getForward ()
-	return unwrap( self ):GetForward  ()
+function ents_methods:getForward()
+	return unwrap(self):GetForward()
 end

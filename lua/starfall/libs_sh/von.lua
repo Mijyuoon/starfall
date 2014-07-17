@@ -1,17 +1,21 @@
---[[
-	SF vON library by Wiremod Devs. I only made stupid wrapper.
-]]
+--[[--------------------------------------------------------
+	SF vON library by Vercas. I only made stupid wrapper.
+----------------------------------------------------------]]
 
 --- vON library, allows for serializing/deserializing tables.
 -- @shared
 
 local von_lib, _ = SF.Libraries.Register("von")
 
--- Hax. Remove when Color gets its metatable
-local function IsColor(col)
-	return (type(col) == "table" and col.a and col.r and col.g and col.b)
+local function IsColor(obj)
+	if type(obj) ~= "table" then
+		return false
+	end
+	if not (obj.a and obj.r and obj.g and obj.b) then 
+		return false 
+	end
+	return true
 end
-
 local function sf_wrap_object(col)
 	if IsColor(col) then
 		return setmetatable(col, SF.ColorMetatable)

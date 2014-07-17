@@ -184,8 +184,8 @@ else
 			if last_ver and SF_Version < last_ver then
 				DisplayUpdateMsg(SF_Version, last_ver)
 			end
-			updateCheckDone = true
 		end)
+		updateCheckDone = true
 	end
 	
 	SF_Version = GetVersion(file.Read("lua/starfall/version.lua", "GAME"))

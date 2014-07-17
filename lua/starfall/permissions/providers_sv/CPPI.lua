@@ -7,25 +7,32 @@ local DENY = SF.Permissions.Result.DENY
 local NEUTRAL = SF.Permissions.Result.NEUTRAL
 
 local canTool = {
-	[ "entities.parent" ] = true,
-	[ "entities.unparent" ] = true,
-	[ "entities.setSolid" ] = true,
-	[ "entities.enableGravity" ] = true,
-	[ "entities.setColor" ] = true,
-	[ "entities.getWirelink" ] = true
+	[ "ents.parent" ] = true,
+	[ "ents.unparent" ] = true,
+	[ "ents.setSolid" ] = true,
+	[ "ents.enableGravity" ] = true,
+	[ "ents.setColor" ] = true,
+	[ "ents.getWirelink" ] = true
 }
 
 local canPhysgun = {
-	[ "entities.applyForce" ] = true,
-	[ "entities.setPos" ] = true,
-	[ "entities.setAngles" ] = true,
-	[ "entities.setVelocity" ] = true,
-	[ "entities.setFrozen" ] = true
+	[ "ents.applyForce" ] = true,
+	[ "ents.setPos" ] = true,
+	[ "ents.setAngles" ] = true,
+	[ "ents.setVelocity" ] = true,
+	[ "ents.setFrozen" ] = true
+}
+
+local target_type = {
+	Entity = true,
+	Player = true,
+	Vehicle = true,
+	NPC = true,
 }
 
 function P:check ( principal, target, key )
 	if not CPPI then return NEUTRAL end
-	if type( target ) ~= "Entity" and type( target ) ~= "Player" then return NEUTRAL end
+	if not target_type[type(target)] then return NEUTRAL end
 
 	if canTool[ key ] then
 		if target:CPPICanTool( principal, "starfall_ent_lib" ) then return ALLOW end

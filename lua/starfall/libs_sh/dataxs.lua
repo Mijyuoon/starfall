@@ -1,6 +1,9 @@
---[[
+--[[-----------------------------
 	DataXS library by Mijyuoon.
-]]
+-------------------------------]]
+
+--- DataXS library, allows for sending data between Starfall instances.
+-- @shared
 
 local xs_lib, _ = SF.Libraries.Register("dataxs")
 
@@ -10,6 +13,9 @@ SF.DataXS = {
 	Groups  = xs_groups,
 }
 
+--- Starts listening for messages from a group
+-- @param name Group name to join
+-- @return Whether joining was successful
 function xs_lib.joinGroup(name)
 	SF.CheckType(name, "string")
 	if #name < 1 then
@@ -42,6 +48,9 @@ local function leaveGroup(instance, name)
 	return true
 end
 
+--- Stops listening for messages from a group
+-- @param name Group name to leave
+-- @return Whether leaving was successful
 function xs_lib.leaveGroup(name)
 	SF.CheckType(name, "string")
 	return leaveGroup(SF.instance, name)
@@ -57,6 +66,10 @@ local function IsTarget(target, this)
 	return (IsValid(target) and target ~= this)
 end
 
+--- Broadcasts a message to everyone in a group
+-- @param group Target group name
+-- @param all Broadcast to other people's instances?
+-- @param ... List of data to send
 function xs_lib.sendGroup(group, all, ...)
 	SF.CheckType(group, "string")
 	SF.CheckType(all, "boolean")
@@ -71,6 +84,9 @@ function xs_lib.sendGroup(group, all, ...)
 	end
 end
 
+--- Sends a message to specific instance
+-- @param ent Entity to send message to
+-- @param ... List of data to send
 function xs_lib.sendDirect(ent, ...)
 	SF.CheckType(ent, SF.Entities.Metatable)
 	local chip = SF.Entities.Unwrap(ent)

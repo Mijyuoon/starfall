@@ -71,12 +71,12 @@ SF.defaultquota = CreateConVar("sf_defaultquota", "300000", {FCVAR_ARCHIVE,FCVAR
 local dgetmeta = debug.getmetatable
 
 --- Throws an error like the throw function in builtins
--- @param msg Message
+-- @param msg Error message
 -- @param level Which level in the stacktrace to blame
 -- @param uncatchable Makes this exception uncatchable
-function SF.throw ( msg, level, uncatchable )
-	local info = debug.getinfo( 1 + ( level or 1 ), "Sl" )
-	local filename = info.short_src:match( "^SF:(.*)$" ) or info.short_src
+function SF.throw (msg, level, uncatchable)
+	local info = debug.getinfo(1 + (level or 1), "Sl")
+	local filename = info.short_src:match("^SF:(.*)$") or info.short_src
 	local err = {
 		uncatchable = false,
 		file = filename,
@@ -84,7 +84,7 @@ function SF.throw ( msg, level, uncatchable )
 		message = msg,
 		uncatchable = uncatchable
 	}
-	error( err )
+	error(err)
 end
 
 --- Creates a type that is safe for SF scripts to use. Instances of the type
@@ -115,7 +115,7 @@ function SF.Typedef(name, supermeta)
 	return methods, metamethods
 end
 
-function SF.GetTypeDef( name )
+function SF.GetTypeDef(name)
 	return SF.Types[name]
 end
 
@@ -142,7 +142,7 @@ function SF.RunScriptHook(hook,...)
 			if not ok then
 				instance.error = 7
 				if instance.runOnError then
-					instance:runOnError( err )
+					instance:runOnError(err)
 				end
 			end
 		end
@@ -200,7 +200,7 @@ end
 
 --- Gets the type of val.
 -- @param val The value to be checked.
-function SF.GetType( val )
+function SF.GetType(val)
 	local mt = dgetmeta(val)
 	return (mt and mt.__metatable and type(mt.__metatable) == "string") and mt.__metatable or type(val)
 end
@@ -263,7 +263,7 @@ end
 -- @param object_meta metatable of object
 -- @param sf_object_meta starfall metatable of object
 -- @param wrapper function that wraps object
-function SF.AddObjectWrapper( object_meta, sf_object_meta, wrapper )
+function SF.AddObjectWrapper(object_meta, sf_object_meta, wrapper)
 	sf_object_meta.__wrap = wrapper
 	object_wrappers[object_meta] = wrapper
 end
@@ -271,7 +271,7 @@ end
 --- Helper function for adding custom unwrappers
 -- @param object_meta metatable of object
 -- @param unwrapper function that unwraps object
-function SF.AddObjectUnwrapper( object_meta, unwrapper )
+function SF.AddObjectUnwrapper(object_meta, unwrapper)
 	object_meta.__unwrap = unwrapper
 end
 
@@ -281,7 +281,7 @@ end
 -- @param object the object needing to get wrapped as it's passed into starfall
 -- @return returns nil if the object doesn't have a known wrapper,
 -- or returns the wrapped object if it does have a wrapper.
-function SF.WrapObject( object )
+function SF.WrapObject(object)
 	local metatable = dgetmeta(object)
 	
 	local wrap = object_wrappers[metatable]
@@ -292,11 +292,11 @@ end
 -- @param object the wrapped starfall object, should work on any starfall
 -- wrapped object.
 -- @return the unwrapped starfall object
-function SF.UnwrapObject( object )
+function SF.UnwrapObject(object)
 	local metatable = dgetmeta(object)
 	
 	if metatable and metatable.__unwrap then
-		return metatable.__unwrap( object )
+		return metatable.__unwrap(object)
 	end
 end
 
@@ -306,11 +306,11 @@ local wrappedfunctions2instance = setmetatable({},{__mode="kv"})
 -- @param func The starfall function getting wrapped
 -- @param instance The instance the function originated from
 -- @return a function That when called will call the wrapped starfall function
-function SF.WrapFunction( func, instance )
+function SF.WrapFunction(func, instance)
 	if wrappedfunctions[func] then return wrappedfunctions[func] end
 	
-	local function returned_func( ... )
-		return SF.Unsanitize( instance:runFunction( func, SF.Sanitize(...) ) )
+	local function returned_func(...)
+		return SF.Unsanitize(instance:runFunction(func, SF.Sanitize(...)))
 	end
 	wrappedfunctions[func] = returned_func
 	wrappedfunctions2instance[returned_func] = instance
@@ -345,13 +345,13 @@ local safe_types = {
 -- not available objects will be replaced with nil, so as to prevent
 -- any possiblitiy of leakage. Functions will always be replaced with
 -- nil as there is no way to verify that they are safe.
-function SF.Sanitize( ... )
+function SF.Sanitize(...)
 	-- Sanitize ALL the things.
 	local return_list = {}
 	local args = {...}
 	
 	for key, value in pairs(args) do
-		local typ = type( value )
+		local typ = type(value)
 		if safe_types[ typ ] then
 			return_list[key] = value
 		elseif (typ == "table" or typ == "Entity" or typ == "Player" or typ == "NPC") and SF.WrapObject(value) then
@@ -372,12 +372,12 @@ end
 
 --- Takes output from starfall and does it's best to make the output
 -- fully usable outside of starfall environment
-function SF.Unsanitize( ... )
+function SF.Unsanitize(...)
 	local return_list = {}
 	
 	local args = {...}
 	
-	for key, value in pairs( args ) do
+	for key, value in pairs(args) do
 		local typ = type(value)
 		if typ == "table" and SF.UnwrapObject(value) then
 			return_list[key] = SF.UnwrapObject(value)
@@ -392,7 +392,7 @@ function SF.Unsanitize( ... )
 		end
 	end
 
-	return unpack( return_list )
+	return unpack(return_list)
 end
 
 -- ------------------------------------------------------------------------- --

@@ -49,7 +49,7 @@ setmetatable(quat_lib, quat_metamethods)]]
 
 local function quicknew(r, i, j, k)
 	local new = {r, i, j, k}
-	setmetatable( new, quat_metamethods )
+	setmetatable(new, quat_metamethods)
 	return new
 end
 
@@ -73,7 +73,7 @@ local function qexp(q)
 		u = { 0, 0, 0 }
 	end
 	local r = exp(q[1])
-	return quicknew( r*cos(m), r*u[1], r*u[2], r*u[3] )
+	return quicknew(r*cos(m), r*u[1], r*u[2], r*u[3])
 end
 
 local function qlog(q)
@@ -83,9 +83,9 @@ local function qlog(q)
 	local a = acos(u[1])
 	local m = sqrt(u[2]*u[2] + u[3]*u[3] + u[4]*u[4])
 	if abs(m) > delta then
-		return quicknew( log(l), a*u[2]/m, a*u[3]/m, a*u[4]/m )
+		return quicknew(log(l), a*u[2]/m, a*u[3]/m, a*u[4]/m)
 	else
-		return quicknew( log(l), 0, 0, 0 )  --when m is 0, u[2], u[3] and u[4] are 0 too
+		return quicknew(log(l), 0, 0, 0)  --when m is 0, u[2], u[3] and u[4] are 0 too
 	end
 end
 
@@ -161,10 +161,10 @@ end
 --- Converts an Entity to a Quaternion format for generation
 -- @param args Table, containing an Entity to be used at the first index.
 argTypesToQuat["Entity"] = function(ent)
-	ent = SF.UnwrapObject( ent )
+	ent = SF.UnwrapObject(ent)
 	
-	if not isValid( ent ) then
-		return quicknew( 0, 0, 0, 0 )
+	if not isValid(ent) then
+		return quicknew(0, 0, 0, 0)
 	end
 
 	local ang = ent:GetAngles()
@@ -183,73 +183,53 @@ end
 --- Creates a new Quaternion given a variety of inputs
 -- @param ... A series of arguments which lead to valid generation of a quaternion.
 -- See argTypesToQuat table for examples of acceptable inputs.
-function quat_lib.New( self, ...)
+function quat_lib.new(self, ...)
 	local args = {...}
 	
 	local argtypes = ""
-	for i=1,min(#args,4) do
-		argtypes = argtypes .. SF.GetType( args[i] )
+	for i=1, min(#args, 4) do
+		argtypes = argtypes .. SF.GetType(args[i])
 	end
 	
 	return argTypesToQuat[argtypes] and argTypesToQuat[argtypes](...) or quicknew(0,0,0,0)
 end
 
-quat_lib_metamethods.__call = quat_lib.New
+quat_lib_metamethods.__call = quat_lib.new
 
 
 local function format(value)
-	local r,i,j,k,dbginfo
-
-	r = ""
-	i = ""
-	j = ""
-	k = ""
+	local dbginfo = ""
 
 	if abs(value[1]) > 0.0005 then
-		r = Round(value[1]*1000)/1000
+		local r = Round(value[1]*1000)/1000
+		dbginfo = dbginfo .. r
 	end
-
-	dbginfo = r
 
 	if abs(value[2]) > 0.0005 then
-		i = tostring(Round(value[2]*1000)/1000)
-
-		if string.sub(i,1,1) ~= "-" and dbginfo ~= "" then i = "+"..i end
-
-		i = i .. "i"
+		local i = tostring(Round(value[2]*1000)/1000)
+		if i[1] ~= "-" and dbginfo ~= "" then i = "+"..i end
+		dbginfo = dbginfo .. i .. "i"
 	end
 
-	dbginfo = dbginfo .. i
 
 	if abs(value[3]) > 0.0005 then
-		j = tostring(Round(value[3]*1000)/1000)
-
-		if string.sub(j,1,1) ~= "-" and dbginfo ~= "" then j = "+"..j end
-
-		j = j .. "j"
+		local j = tostring(Round(value[3]*1000)/1000)
+		if j[1] ~= "-" and dbginfo ~= "" then j = "+"..j end
+		dbginfo = dbginfo .. j .. "j"
 	end
-
-	dbginfo = dbginfo .. j
 
 	if abs(value[4]) > 0.0005 then
-		k = tostring(Round(value[4]*1000)/1000)
-
-		if string.sub(k,1,1) ~= "-" and dbginfo ~= "" then k = "+"..k end
-
-		k = k .. "k"
+		local k = tostring(Round(value[4]*1000)/1000)
+		if k[1] ~= "-" and dbginfo ~= "" then k = "+"..k end
+		dbginfo = dbginfo .. k .. "k"
 	end
 
-	dbginfo = dbginfo .. k
-
-	if dbginfo == "" then dbginfo = "0 LAWL" end
+	if #dbginfo < 1 then return "0" end
 
 	return dbginfo
 end
 
-
 quat_metamethods.__tostring = format
-
-
 
 
 --- Returns Quaternion <n>*i
@@ -267,35 +247,26 @@ function quat_lib.qk(n)
 	return quicknew(0, 0, 0, n or 1)
 end
 
-
-
-
 quat_metamethods.__unm = function(q)
-	return quicknew( -q[1], -q[2], -q[3], -q[4] )
+	return quicknew(-q[1], -q[2], -q[3], -q[4])
 end
 
-
 quat_metamethods.__add = function(lhs, rhs)
-
-	SF.CheckType(lhs, quat_metamethods)
-	SF.CheckType(rhs, quat_metamethods)
-
 	local ltype = SF.GetType(lhs)
 	local rtype = SF.GetType(rhs)
 
 	if ltype == "Quaternion" then
 		if rtype == "Quaternion" then
-			return quicknew( lhs[1] + rhs[1], lhs[2] + rhs[2], lhs[3] + rhs[3], lhs[4] + rhs[4] )
+			return quicknew(lhs[1] + rhs[1], lhs[2] + rhs[2], lhs[3] + rhs[3], lhs[4] + rhs[4])
 		elseif rtype == "number" then
-			return quicknew( lhs[1] + rhs, lhs[2], lhs[3], lhs[4] )
+			return quicknew(lhs[1] + rhs, lhs[2], lhs[3], lhs[4])
 		end
 	elseif ltype == "number" and rtype == "Quaternion" then
-		return quicknew( lhs + rhs[1], rhs[2], rhs[3], rhs[4] )
+		return quicknew(lhs + rhs[1], rhs[2], rhs[3], rhs[4])
 	end
 
-	Error("Tried to add a " .. ltype .. " to a " .. rtype .. "not ")
+	SF.throw("Bad argument to quaternion operator", 2)
 end
-
 
 quat_metamethods.__sub = function(lhs, rhs)
 	local ltype = SF.GetType(lhs)
@@ -303,15 +274,15 @@ quat_metamethods.__sub = function(lhs, rhs)
 
 	if ltype == "Quaternion" then
 		if rtype == "Quaternion" then
-			return quicknew( lhs[1] - rhs[1], lhs[2] - rhs[2], lhs[3] - rhs[3], lhs[4] - rhs[4] )
+			return quicknew(lhs[1] - rhs[1], lhs[2] - rhs[2], lhs[3] - rhs[3], lhs[4] - rhs[4])
 		elseif rtype == "number" then
-			return quicknew( lhs[1] - rhs, lhs[2], lhs[3], lhs[4] )
+			return quicknew(lhs[1] - rhs, lhs[2], lhs[3], lhs[4])
 		end
 	elseif ltype == "number" and rtype == "Quaternion" then
-		return quicknew( lhs - rhs[1], -rhs[2], -rhs[3], -rhs[4] )
+		return quicknew(lhs - rhs[1], -rhs[2], -rhs[3], -rhs[4])
 	end
 
-	Error("Tried to subtract a " .. ltype .. " from a " .. rtype .. "not ")
+	SF.throw("Bad argument to quaternion operator", 2)
 end
 
 
@@ -330,10 +301,10 @@ quat_metamethods.__mul = function(lhs, rhs)
 			lhs1 * rhs4 + lhs4 * rhs1 + lhs2 * rhs3 - lhs3 * rhs2
 			)
 		elseif rtype == "number" then
-			return quicknew( lhs[1] * rhs, lhs[2] * rhs, lhs[3] * rhs, lhs[4] * rhs )
+			return quicknew(lhs[1] * rhs, lhs[2] * rhs, lhs[3] * rhs, lhs[4] * rhs)
 		elseif rtype == "Vector" then
 			local lhs1, lhs2, lhs3, lhs4 = lhs[1], lhs[2], lhs[3], lhs[4]
-			local rhs2, rhs3, rhs4 = rhs[1], rhs[2], rhs[3]
+			local rhs2, rhs3, rhs4 = rhs.x, rhs.y, rhs.z
 			return quicknew(
 			-lhs2 * rhs2 - lhs3 * rhs3 - lhs4 * rhs4,
 			lhs1 * rhs2 + lhs3 * rhs4 - lhs4 * rhs3,
@@ -343,9 +314,9 @@ quat_metamethods.__mul = function(lhs, rhs)
 		end
 	elseif rtype == "Quaternion" then
 		if ltype == "number" then
-			return quicknew( lhs * rhs[1], lhs * rhs[2], lhs * rhs[3], lhs * rhs[4] )
+			return quicknew(lhs * rhs[1], lhs * rhs[2], lhs * rhs[3], lhs * rhs[4])
 		elseif ltype == "Vector" then
-			local lhs2, lhs3, lhs4 = lhs[1], lhs[2], lhs[3]
+			local lhs2, lhs3, lhs4 = lhs.x, lhs.y, lhs.z
 			local rhs1, rhs2, rhs3, rhs4 = rhs[1], rhs[2], rhs[3], rhs[4]
 			return quicknew(
 			-lhs2 * rhs2 - lhs3 * rhs3 - lhs4 * rhs4,
@@ -356,14 +327,11 @@ quat_metamethods.__mul = function(lhs, rhs)
 		end
 	end
 
-	Error("Tried to multiply a " .. ltype .. " with a " .. rtype .. "not \n")
+	SF.throw("Bad argument to quaternion operator", 2)
 end
 
 
 quat_metamethods.__div = function(lhs, rhs)
-	SF.CheckType(lhs, quat_metamethods)
-	SF.CheckType(rhs, quat_metamethods)
-
 	local ltype = SF.GetType(lhs)
 	local rtype = SF.GetType(rhs)
 
@@ -373,7 +341,7 @@ quat_metamethods.__div = function(lhs, rhs)
 			local rhs1, rhs2, rhs3, rhs4 = rhs[1], rhs[2], rhs[3], rhs[4]
 			local l = rhs1*rhs1 + rhs2*rhs2 + rhs3*rhs3 + rhs4*rhs4
 			return quicknew(
-			( lhs1 * rhs1 + lhs2 * rhs2 + lhs3 * rhs3 + lhs4 * rhs4)/l,
+			(lhs1 * rhs1 + lhs2 * rhs2 + lhs3 * rhs3 + lhs4 * rhs4)/l,
 			(-lhs1 * rhs2 + lhs2 * rhs1 - lhs3 * rhs4 + lhs4 * rhs3)/l,
 			(-lhs1 * rhs3 + lhs3 * rhs1 - lhs4 * rhs2 + lhs2 * rhs4)/l,
 			(-lhs1 * rhs4 + lhs4 * rhs1 - lhs2 * rhs3 + lhs3 * rhs2)/l
@@ -392,7 +360,7 @@ quat_metamethods.__div = function(lhs, rhs)
 			local rhs1, rhs2, rhs3, rhs4 = rhs[1], rhs[2], rhs[3], rhs[4]
 			local l = rhs1*rhs1 + rhs2*rhs2 + rhs3*rhs3 + rhs4*rhs4
 			return quicknew(
-			( lhs * rhs1)/l,
+			(lhs * rhs1)/l,
 			(-lhs * rhs2)/l,
 			(-lhs * rhs3)/l,
 			(-lhs * rhs4)/l
@@ -400,52 +368,40 @@ quat_metamethods.__div = function(lhs, rhs)
 		end
 	end
 
-	error("Tried to divide a " .. ltype .. " with a " .. rtype)
+	SF.throw("Bad argument to quaternion operator", 2)
 end
 
-
 quat_metamethods.__pow = function(lhs, rhs)
-	SF.CheckType(lhs, quat_metamethods)
-	SF.CheckType(rhs, quat_metamethods)
-
-
 	local ltype = SF.GetType(lhs)
 	local rtype = SF.GetType(rhs)
 
 	if ltype == "Quaternion" and rtype == "number" then
 		if lhs == 0 then return { 0, 0, 0, 0 } end
-
 		local l = log(lhs)
 		return qexp({ l*rhs[1], l*rhs[2], l*rhs[3], l*rhs[4] })
 	elseif rtype == "Quaternion" and ltype == "number" then
 		local l = qlog(lhs)
 		return qexp({ l[1]*rhs, l[2]*rhs, l[3]*rhs, l[4]*rhs })
 	end
-
-	Error("Tried to exponentiate a " .. ltype .. " with a " .. rtype .. "not ")
+	
+	SF.throw("Bad argument to quaternion operator", 2)
 end
 
 
 --[[****************************************************************************]]
-
 quat_metamethods.__eq = function(lhs, rhs)
 	local ltype = SF.GetType(lhs)
 	local rtype = SF.GetType(rhs)
 
 	if ltype == "Quaternion" and rtype == "Quaternion" then
 		local rvd1, rvd2, rvd3, rvd4 = lhs[1] - rhs[1], lhs[2] - rhs[2], lhs[3] - rhs[3], lhs[4] - rhs[4]
-		if rvd1 <= delta and rvd1 >= -delta and
+		return rvd1 <= delta and rvd1 >= -delta and
 			rvd2 <= delta and rvd2 >= -delta and
 			rvd3 <= delta and rvd3 >= -delta and
 			rvd4 <= delta and rvd4 >= -delta
-		then
-			return 1
-		else
-			return 0
-		end
 	end
 
-	Error("Tried to compare a " .. ltype .. " with a " .. rtype .. "not ")
+	return false
 end
 
 --- Returns absolute value of <q>
@@ -461,16 +417,16 @@ end
 --- Returns the inverse of <q>
 function quat_lib.inv(q)
 	local l = q[1]*q[1] + q[2]*q[2] + q[3]*q[3] + q[4]*q[4]
-	return quicknew( q[1]/l, -q[2]/l, -q[3]/l, -q[4]/l )
+	return quicknew(q[1]/l, -q[2]/l, -q[3]/l, -q[4]/l)
 end
 
 --- Returns the conj of self
 function quat_methods:conj()
-	return quat_lib.conj( self )
+	return quat_lib.conj(self)
 end
 
 function quat_methods:inv()
-	return quat_lib.inv( self )
+	return quat_lib.inv(self)
 end
 
 --- Returns the real component of the quaternion
@@ -528,11 +484,11 @@ function quat_lib.slerp(q0, q1, t)
 
 	local l = q0[1]*q0[1] + q0[2]*q0[2] + q0[3]*q0[3] + q0[4]*q0[4]
 
-	if l==0 then return quicknew( 0, 0, 0, 0 ) end
+	if l==0 then return quicknew(0, 0, 0, 0) end
 
 	local invq0 = { q0[1]/l, -q0[2]/l, -q0[3]/l, -q0[4]/l }
 	local logq = qlog(qmul(invq0,q11))
-	local q = qexp( { logq[1]*t, logq[2]*t, logq[3]*t, logq[4]*t } )
+	local q = qexp({ logq[1]*t, logq[2]*t, logq[3]*t, logq[4]*t })
 
 	return qmul(q0,q)
 end
@@ -583,21 +539,21 @@ function quat_lib.qRotation(axis, ang)
 	ax:Normalize()
 	local ang2 = ang*deg2rad*0.5
 
-	return quicknew( cos(ang2), ax.x*sin(ang2), ax.y*sin(ang2), ax.z*sin(ang2) )
+	return quicknew(cos(ang2), ax.x*sin(ang2), ax.y*sin(ang2), ax.z*sin(ang2))
 end
 
 --- Construct a quaternion from the rotation vector <rv1>. Vector direction is axis of rotation, magnitude is angle in degress (by coder0xff)
 function quat_lib.qRotation(rv1)
 	local angSquared = rv1.x * rv1.x + rv1.y * rv1.y + rv1.z * rv1.z
 
-	if angSquared == 0 then return quicknew( 1, 0, 0, 0 ) end
+	if angSquared == 0 then return quicknew(1, 0, 0, 0) end
 
 	local len = sqrt(angSquared)
 	local ang = (len + 180) % 360 - 180
 	local ang2 = ang*deg2rad*0.5
 	local sang2len = sin(ang2) / len
 
-	return quicknew( cos(ang2), rv1.x * sang2len , rv1.y * sang2len, rv1.z * sang2len )
+	return quicknew(cos(ang2), rv1.x * sang2len , rv1.y * sang2len, rv1.z * sang2len)
 end
 
 --- Returns the angle of rotation in degrees (by coder0xff)
@@ -618,33 +574,33 @@ end
 function quat_lib.rotationAxis(q)
 	local m2 = q[2] * q[2] + q[3] * q[3] + q[4] * q[4]
 
-	if m2 == 0 then return Vector( 0, 0, 1 ) end
+	if m2 == 0 then return Vector(0, 0, 1) end
 
 	local m = sqrt(m2)
-	return Vector( q[2] / m, q[3] / m, q[4] / m)
+	return Vector(q[2] / m, q[3] / m, q[4] / m)
 end
 
 --- Returns the rotation vector - rotation axis where magnitude is the angle of rotation in degress (by coder0xff)
 function quat_lib.rotationVector(q)
-	SF.CheckType( q, quat_metamethods )
+	SF.CheckType(q, quat_metamethods)
 	local l2 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3] + q[4]*q[4]
-	local m2 = math.max( q[2]*q[2] + q[3]*q[3] + q[4]*q[4], 0 )
+	local m2 = math.max(q[2]*q[2] + q[3]*q[3] + q[4]*q[4], 0)
 
-	if l2 == 0 or m2 == 0 then return Vector( 0, 0, 0 ) end
+	if l2 == 0 or m2 == 0 then return Vector(0, 0, 0) end
 
-	local s = 2 * acos( math.Clamp( q[1] / sqrt(l2), -1, 1 ) ) * rad2deg
+	local s = 2 * acos(math.Clamp(q[1] / sqrt(l2), -1, 1)) * rad2deg
 
 	if s > 180 then s = s - 360 end
 
 	s = s / sqrt(m2)
-	return Vector( q[2] * s, q[3] * s, q[4] * s )
+	return Vector(q[2] * s, q[3] * s, q[4] * s)
 end
 
 --[[****************************************************************************]]
 
 --- Converts <q> to a vector by dropping the real component
 function quat_lib.vec(q)
-	return Vector( q[2], q[3], q[4] )
+	return Vector(q[2], q[3], q[4])
 end
 
 --[[****************************************************************************]]
