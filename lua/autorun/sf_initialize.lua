@@ -192,29 +192,6 @@ else
 	hook.Add("PlayerBindPress", "SF_UpdateCheck", CheckForUpdates)
 end
 
-_MODLOAD = {}
-function loadmodule(name)
-	if _MODLOAD[name] then
-		return _MODLOAD[name]
-	end
-	
-	local kname = name:gsub("%.","/") .. ".lua"
-	local is_sv = file.Exists(kname, "LUA")
-	local is_cl = file.Exists(kname, "LCL")
-	if not (is_sv or is_cl) then
-		error("cannot find module \"" .. name .. "\"")
-	end
-	
-	local func = CompileFile(kname, name)
-	if func then
-		_MODLOAD[name] = func() or true
-		return _MODLOAD[name]
-	end
-end
-
-package.moonpath = ""
-moonscript = loadmodule "moonscript.base"
-
 if not util.Base64Decode then
 	local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 

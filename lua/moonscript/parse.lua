@@ -1,8 +1,6 @@
 
 local util = loadmodule("moonscript.util")
 
-local debug_grammar = false
-
 local data = loadmodule("moonscript.data")
 local types = loadmodule("moonscript.types")
 
@@ -73,38 +71,6 @@ end
 local function wrap_env(fn)
 	local env = getfenv(fn)
 	local wrap_name = V
-
-	if debug_grammar then
-		local indent = 0
-		local indent_char = "  "
-
-		local function iprint(...)
-			local args = {...}
-			for i=1,#args do
-				args[i] = tostring(args[i])
-			end
-
-			io.stdout:write(indent_char:rep(indent) .. table.concat(args, ", ") .. "\n")
-		end
-
-		wrap_name = function(name)
-			local v = V(name)
-			v = Cmt("", function()
-				iprint("* " .. name)
-				indent = indent + 1
-				return true
-			end) * Cmt(v, function(str, pos, ...)
-				iprint(name, true)
-				indent = indent - 1
-				return true, ...
-			end) + Cmt("", function()
-				iprint(name, false)
-				indent = indent - 1
-				return false
-			end)
-			return v
-		end
-	end
 
 	return setfenv(fn, setmetatable({}, {
 		__index = function(self, name)
@@ -358,8 +324,8 @@ local build_grammar = wrap_env(function()
 
 	local KeyName = SelfName + Space * _Name / mark"key_literal"
 	local VarArg = Space * P"..." / trim
-
-	local g = lpeg.P{
+	
+	local g = P{
 		File,
 		File = Shebang^-1 * (Block + Ct""),
 		Block = Ct(Line * (Break^1 * Line)^0),
@@ -576,7 +542,7 @@ local build_grammar = wrap_env(function()
 		ArgBlock = ArgLine * (sym"," * SpaceBreak * ArgLine)^0 * PopIndent,
 		ArgLine = CheckIndent * ExpList
 	}
-
+	
 	return {
 		_g = White * g * White * -1,
 		match = function(self, str, ...)
@@ -624,6 +590,7 @@ local build_grammar = wrap_env(function()
 	}
 end)
 
+--[[--- What a load of garbage ------------------
 return {
 	extract_line = extract_line,
 
@@ -634,4 +601,17 @@ return {
 		return g:match(str)
 	end
 }
+-----------------------------------------------]]
 
+local ret; ret = {
+	extract_line = extract_line,
+	
+	string = function(str)
+		if not ret._grammar then
+			ret._grammar = build_grammar()
+		end
+		return ret._grammar:match(str)
+	end
+}
+
+return ret

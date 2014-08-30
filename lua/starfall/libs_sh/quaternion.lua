@@ -2,6 +2,7 @@
 
 --- Quaternion library
 -- @deprecated Pure Lua implementation. This can be done with a user library.
+-- @deprecated Deprecated my ass. ~Mijyuoon
 local quat_lib, quat_lib_metamethods = SF.Libraries.Register("quaternion")
 
 --[[
@@ -436,7 +437,7 @@ end
 
 --- Alias for :real() as r is easier
 function quat_methods:r()
-	return self:real()
+	return self[1]
 end
 
 

@@ -1,7 +1,7 @@
---[[
+--[[---------------------------------------------
 	RenderTarget manager, copied from WireMod's WireGPU.
 	By Mijyuoon.
-]]
+-----------------------------------------------]]
 
 local RT_Manager = {}
 RT_Manager.__index = RT_Manager
@@ -81,5 +81,5 @@ function RT_Manager:FreeRT(rt)
 	end
 
 	rt = rt and rt:GetName() or "(nil)"
-	ErrorNoHalt("Render target ",rt," could not be freed!\n")
+	ErrorNoHalt("Render target "..rt.." could not be freed!\n")
 end

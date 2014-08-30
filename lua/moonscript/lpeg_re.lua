@@ -13,24 +13,17 @@ local mm = m
 -- pattern's metatable
 local mt = getmetatable(mm.P(0))
 
-
-
 -- No more global accesses after this point
 local version = _VERSION
 if version == "Lua 5.2" then _ENV = nil end
 
-
 local any = m.P(1)
-
 
 -- Pre-defined names
 local Predef = { nl = m.P"\n" }
 
-
-local mem
-local fmem
-local gmem
-
+local mem, fmem, gmem
+local mt = {__mode = "v"}
 
 local function updatelocale ()
   mm.locale(Predef)
@@ -54,29 +47,18 @@ local function updatelocale ()
   Predef.U = any - Predef.u
   Predef.W = any - Predef.w
   Predef.X = any - Predef.x
-  mem = {}    -- restart memoization
-  fmem = {}
-  gmem = {}
-  local mt = {__mode = "v"}
-  setmetatable(mem, mt)
-  setmetatable(fmem, mt)
-  setmetatable(gmem, mt)
+  mem = setmetatable({}, mt)
+  fmem = setmetatable({}, mt)
+  gmem = setmetatable({}, mt)
 end
 
-
 updatelocale()
-
-
-
-local I = m.P(function (s,i) print(i, s:sub(1, i-1)); return i end)
-
 
 local function getdef (id, defs)
   local c = defs and defs[id]
   if not c then error("undefined name: " .. id) end
   return c
 end
-
 
 local function patt_error (s, i)
   local msg = (#s < i + 20) and s:sub(i)
@@ -101,17 +83,11 @@ local function equalcap (s, i, c)
   if s:sub(i, e - 1) == c then return e else return nil end
 end
 
-
 local S = (Predef.space + "--" * (any - Predef.nl)^0)^0
-
 local name = m.R("AZ", "az", "__") * m.R("AZ", "az", "__", "09")^0
-
 local arrow = S * "<-"
-
 local seq_follow = m.P"/" + ")" + "}" + ":}" + "~}" + "|}" + (name * arrow) + -1
-
 name = m.C(name)
-
 
 -- a defined name only have meaning in a given environment
 local Def = name * m.Carg(1)
@@ -121,7 +97,6 @@ local num = m.C(m.R"09"^1) * S / tonumber
 local String = "'" * m.C((any - "'")^0) * "'" +
                '"' * m.C((any - '"')^0) * '"'
 
-
 local defined = "%" * Def / function (c,Defs)
   local cat =  Defs and Defs[c] or Predef[c]
   if not cat then error ("name '" .. c .. "' undefined") end
@@ -129,7 +104,6 @@ local defined = "%" * Def / function (c,Defs)
 end
 
 local Range = m.Cs(any * (m.P"-"/"") * (any - "]")) / mm.R
-
 local item = defined + Range + m.C(any)
 
 local Class =
@@ -139,7 +113,7 @@ local Class =
                           function (c, p) return c == "^" and any - p or p end
   * "]"
 
-local function adddef (t, k, exp)
+local function adddef(t, k, exp)
   if t[k] then
     error("'"..k.."' already defined as a rule")
   else
@@ -148,16 +122,14 @@ local function adddef (t, k, exp)
   return t
 end
 
-local function firstdef (n, r) return adddef({n}, n, r) end
+local function firstdef(n, r) return adddef({n}, n, r) end
 
-
-local function NT (n, b)
+local function NT(n, b)
   if not b then
     error("rule '"..n.."' used outside a grammar")
   else return mm.V(n)
   end
 end
-
 
 local exp = m.P{ "Exp",
   Exp = S * ( m.V"Grammar"
@@ -201,7 +173,6 @@ local exp = m.P{ "Exp",
 }
 
 local pattern = S * m.Cg(m.Cc(false), "G") * exp / mm.P * (-any + patt_error)
-
 
 local function compile (p, defs)
   if mm.type(p) == "pattern" then return p end   -- already compiled

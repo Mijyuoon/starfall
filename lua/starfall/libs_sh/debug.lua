@@ -62,40 +62,6 @@ function debug_lib.global()
 	return gmod_env
 end
 
-function debug_lib.globalCtx(func, ...)
-	SF.CheckType(func, "function")
-	if not mijsf.CheckPly() then 
-		return nil
-	end
-	local old_env = getfenv(func)
-	local new_env = setmetatable({}, {
-		__index = function(_, key)
-			return gmod_env[key] or old_env[key]
-		end,
-		__newindex = function(_, key, val)
-			old_env[key] = val
-		end
-	})
-	setfenv(func, new_env)
-	return func(...)
-end
-
---[[
-local gmod_env = _G
-function debug_lib.globalCtx(func, ...)
-	if not mijsf.CheckPly() then 
-		return nil
-	end
-	local old_env = getfenv(func)
-	setfenv(func, gmod_env)
-	local res, err = pcall(func)
-	setfenv(old_env)
-	if not res then
-		error(err, 2)
-	end
-end
---]]
-
 function debug_lib.wrap(obj)
 	if not mijsf.CheckPly() then 
 		return nil

@@ -17,7 +17,7 @@ local lookup_line
 lookup_line = function(fname, pos, cache)
   if not cache[fname] then
     do
-      local _with_0 = io.open(fname)
+      local _with_0 = assert(io.open(fname))
       cache[fname] = _with_0:read("*a")
       _with_0:close()
     end
@@ -65,10 +65,7 @@ local rewrite_traceback
 rewrite_traceback = function(text, err)
   local line_tables = loadmodule("moonscript.line_tables")
   local V, S, Ct, C
-  do
-    local _obj_0 = lpeg
-    V, S, Ct, C = _obj_0.V, _obj_0.S, _obj_0.Ct, _obj_0.C
-  end
+  V, S, Ct, C = lpeg.V, lpeg.S, lpeg.Ct, lpeg.C
   local header_text = "stack traceback:"
   local Header, Line = V("Header"), V("Line")
   local Break = lpeg.S("\n")

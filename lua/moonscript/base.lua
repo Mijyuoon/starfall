@@ -1,15 +1,3 @@
-local lpeg_load = pcall(require, "lpeg")
-if lpeg_load then
-  lpeg.L = function(v)
-    return #v
-  end
-else
-  do
-    local _with_0 = loadmodule("moonscript.lulpeg")
-    _with_0:register(_G)
-  end
-end
-lpeg.re = loadmodule("moonscript.lpeg_re")
 local compile = loadmodule("moonscript.compile")
 local parse = loadmodule("moonscript.parse")
 local concat, insert, remove
@@ -22,19 +10,9 @@ do
   local _obj_0 = loadmodule("moonscript.util")
   split, dump, get_options, unpack = _obj_0.split, _obj_0.dump, _obj_0.get_options, _obj_0.unpack
 end
-local dirsep, line_tables, create_moonpath, to_lua, loadstring, loadfile, dofile
+local dirsep, line_tables, to_lua, loadstring, loadfile, dofile
 dirsep = "/"
 line_tables = loadmodule("moonscript.line_tables")
-create_moonpath = function(package_path)
-  local paths = split(package_path, ";")
-  for i, path in ipairs(paths) do
-    local p = path:match("^(.-)%.lua$")
-    if p then
-      paths[i] = p .. ".moon"
-    end
-  end
-  return concat(paths, ";")
-end
 to_lua = function(text, options)
   if options == nil then
     options = { }
@@ -55,7 +33,7 @@ to_lua = function(text, options)
 end
 loadstring = function(...)
   local options, str, chunk_name = get_options(...)
-  chunk_name = chunk_name or "LoadStringMs"
+  chunk_name = chunk_name or "LoadStringMS"
   local code, ltable_or_err = to_lua(str, options)
   if not (code) then
     return nil, ltable_or_err

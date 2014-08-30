@@ -3,13 +3,27 @@
 	Contains useful drawing functions
 ]]
 
+local mat_lit2d = CreateMaterial("Lit2D", "VertexLitGeneric", {
+	["$basetexture"] = "", ["$translucent"] = 1,
+})
 scr = {
-	-- Constants here
-	-- Nothing for now
+	-- Constants
+	LIT_2D = mat_lit2d,
 }
 
 function scr.Clear(col)
     render.Clear(col.r,col.g,col.b,col.a)
+end
+
+function scr.EnableTexture(tex)
+	local m_type = TypeID(tex)
+	if m_type == 21 then
+		surface.SetMaterial(tex)
+	elseif m_type == 3 then
+		surface.SetTexture(m_type)
+	else
+		surface.SetTexture(0)
+	end
 end
 
 function scr.DrawRect(x,y,w,h,col)
@@ -19,14 +33,7 @@ end
 
 function scr.DrawTexRect(x,y,w,h,tex,col)
 	surface.SetDrawColor(col or color_white)
-	local m_type = type(tex)
-	if m_type == "IMaterial" then
-		surface.SetMaterial(tex)
-	elseif m_type == "number" then
-		surface.SetTexture(m_type)
-	else
-		surface.SetTexture(0)
-	end
+	scr.EnableTexture(tex)
 	x, y = x+w/2, y+h/2
 	surface.DrawTexturedRectRotated(x,y,w,h,0)
 end
@@ -41,15 +48,15 @@ function scr.DrawLine(x1,y1,x2,y2,col,sz)
 	end
     surface.SetDrawColor(col)
     if x1 == x2 then
-        -- vertical line
+        -- vertical lines
         local wid =  (sz or 1) / 2
         surface.DrawRect(x1-wid, y1, wid*2, y2-y1)
     elseif y1 == y2 then
-        -- horizontal line
+        -- horizontal lines
         local wid =  (sz or 1) / 2
         surface.DrawRect(x1, y1-wid, x2-x1, wid*2)
     else
-        -- other lines
+        -- non-axial lines
         local x3 = (x1 + x2) / 2
         local y3 = (y1 + y2) / 2
         local wx = math.sqrt((x2-x1) ^ 2 + (y2-y1) ^ 2)
@@ -129,9 +136,9 @@ function scr.DrawTriang(x1,y1,x2,y2,x3,y3,col)
 	scr.DrawPoly(verts,col)
 end
 
-function scr.DrawPoly(poly,col)
-    surface.SetDrawColor(col)
-    surface.SetTexture(0)
+function scr.DrawPoly(poly,col,tex)
+    surface.SetDrawColor(col or color_white)
+	scr.EnableTexture(tex)
     surface.DrawPoly(poly)
 end
 
@@ -140,6 +147,21 @@ function scr.DrawPolyOL(poly,col,sz)
         local va, vb = poly[i], (poly[i+1] or poly[1])
         scr.DrawLine(va.x, va.y, vb.x, vb.y, col, sz)
     end
+end
+
+function scr.DrawQuadUnlit(pos, norm, wid, hgt, tex, ang)
+	render.SetMaterial(tex)
+	render.DrawQuadEasy(pos, norm, wid, hgt, nil, ang or 180)
+end
+
+function scr.DrawQuadLit2D(pos, norm, wid, hgt, tex, ang)
+	local lm = render.ComputeLighting(pos, norm)
+	render.SetLightingOrigin(pos)
+	render.ResetModelLighting(lm.x, lm.y, lm.z)
+	local vtex = tex:GetTexture("$basetexture")
+	mat_lit2d:SetTexture("$basetexture", vtex)
+	scr.DrawQuadUnlit(pos, norm, wid, hgt, mat_lit2d, ang)
+	render.SuppressEngineLighting(false)
 end
 
 local font_bits = {
@@ -187,10 +209,14 @@ end
 
 function scr.DrawText(x,y,text,xal,yal,col,font)
     if yal == 2 then yal = 4 end
+	col = col or color_white
+	font = font or "Default"
 	draw.SimpleText(text, font, x, y, col, xal, yal)
 end
 
 function scr.DrawTextEx(x,y,text,xal,col,font)
+	col = col or color_white
+	font = font or "Default"
 	draw.DrawText(text, font, x, y, col, xal)
 end
 
