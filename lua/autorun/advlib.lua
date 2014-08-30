@@ -114,11 +114,13 @@ function adv.TblFiltN(tbl, func)
 	return res
 end
 
-function adv.TblSlice(tbl, from, to)
+function adv.TblSlice(tbl, from, to, step)
 	local res = {}
-	from, to = from or 1, to or #tbl
-	for i = from, to do
-		res[i] = tbl[i]
+	from = from or 1
+	to = to or #tbl
+	step = step or 1
+	for i = from, to, step do
+		res[#res+1] = tbl[i]
 	end
 	return res
 end
@@ -314,9 +316,7 @@ adv.Markup.Tags = {
 		if #args < 1 then return "" end
 		adv.TblMap(args, function(v) 
 			local fn = v:gsub("\"", "")
-			if not fn:match(" ") then
-				return fn
-			end
+			if not fn:match(" ") then return fn end
 			return adv.StrFormat{"&quot;$1$quot;", fn}
 		end)
 		local temp = table.concat(args, ", ")
