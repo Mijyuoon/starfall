@@ -318,33 +318,73 @@ function SF.DefaultEnvironment.getLibraries()
 	return ret
 end
 
-
-
-if SERVER then
-	--- Prints a message to the player's chat.
-	function SF.DefaultEnvironment.print(...)
-		local buffer, tabl = nil, {...}
-		local maxidx = select("#", ...)
-		for key = 1, maxidx do
-			tabl[key] = tostring(tabl[key])
-		end
-		buffer = table.concat(tabl, "\t")
-		SF.instance.player:ChatPrint(buffer)
+local function printfmt(...)
+	local buffer, tabl = nil, {...}
+	local maxidx = select("#", ...)
+	for key = 1, maxidx do
+		tabl[key] = tostring(tabl[key])
 	end
-else
-	--- Prints a message to the player's chat.
-	function SF.DefaultEnvironment.print(...)
-		if SF.instance.player ~= LocalPlayer() then return end
-		local buffer, tabl = nil, {...}
-		local maxidx = select("#", ...)
-		for key = 1, maxidx do
-			tabl[key] = tostring(tabl[key])
-		end
-		buffer = table.concat(tabl, "\t")
-		LocalPlayer():ChatPrint(buffer)
-	end
+	buffer = table.concat(tabl, "\t")
+	return buffer
 end
 
+if SERVER then
+	util.AddNetworkString("SF_PrintMsg")
+	
+	--- Prints a message to the player's chat
+	function SF.DefaultEnvironment.print(...)
+		local buffer = printfmt(...)
+		net.Start("SF_PrintMsg")
+			net.WriteUInt(1, 8)
+			net.WriteString(buffer)
+		net.Send(SF.instance.player)
+	end
+	
+	-- Prints a message to player's console
+	function SF.DefaultEnvironment.printCon(...)
+		local buffer = printfmt(...)
+		net.Start("SF_PrintMsg")
+			net.WriteUInt(0, 8)
+			net.WriteString(buffer)
+		net.Send(SF.instance.player)
+	end
+else
+	--- Prints a message to the player's chat
+	function SF.DefaultEnvironment.print(...)
+		if SF.instance.player == LocalPlayer() then
+			chat.AddText(printfmt(...))
+		end
+	end
+	
+	-- Prints a message to player's console
+	function SF.DefaultEnvironment.printCon(...)
+		if SF.instance.player == LocalPlayer() then
+			MsgN(printfmt(...))
+		end
+	end
+	
+	net.Receive("SF_PrintMsg", function()
+		local typ = net.ReadUInt(8)
+		if typ == 0 then
+			MsgN(net.ReadString())
+		elseif typ == 1 then
+			chat.AddText(net.ReadString())
+		--[[-----
+		elseif typ == 2 then
+			local buffer = {}
+			while true do
+				local vt = net.ReadUInt(8)
+				if vt < 0 then break end
+				local val = net.ReadType(vt)
+				buffer[#buffer+1] = val
+			end
+			chat.AddText(unpack(buffer))
+		-------]]
+		end
+	end)
+end
+
+--[[---- Very shitty code -------------------------
 local function printTableX(target, t, indent, alreadyprinted)
 	for k,v in SF.DefaultEnvironment.pairs(t) do
 		if SF.GetType(v) == "table" and not alreadyprinted[v] then
@@ -364,6 +404,7 @@ function SF.DefaultEnvironment.printTable(t)
 
 	printTableX(ply, t, 0, {[t] = true})
 end
+-----------------------------------------------]]
 
 --- Runs an --@include'd script and caches the result.
 -- Works pretty much like standard Lua require()

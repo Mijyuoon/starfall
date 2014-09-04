@@ -19,12 +19,15 @@ local function getPdaObject(ply)
 end
 
 --- Enables sending of input data to client
+-- @param flag Enable/disable sending
 function input_lib.sendToClient(flag)
 	SF.CheckType(flag, "boolean")
 	SF.instance.data.clSendInput = flag
 end
 
 --- Remaps key scancode to ASCII char code
+-- @param ply Player
+-- @param key Key code
 function input_lib.keyToChar(ply, key, opt)
 	SF.CheckType(ply, SF.Types["Player"])
 	SF.CheckType(key, "number")
@@ -50,6 +53,8 @@ function input_lib.keyToChar(ply, key, opt)
 end
 
 --- Returns state of key with given scancode
+-- @param ply Player
+-- @param key Key code
 function input_lib.getKeyState(ply, key)
 	SF.CheckType(ply, SF.Types["Player"])
 	SF.CheckType(key, "number")
@@ -61,6 +66,7 @@ function input_lib.getKeyState(ply, key)
 end
 
 --- Returns name of active input device
+-- @param ply Player
 function input_lib.getDeviceName(ply)
 	SF.CheckType(ply, SF.Types["Player"])
 	

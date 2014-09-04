@@ -12,19 +12,8 @@
 -- that you be in the rendering hook to call, otherwise an error is
 -- thrown. +x is right, +y is down
 -- @entity wire_starfall_screen
--- @field TEXT_ALIGN_LEFT
--- @field TEXT_ALIGN_CENTER
--- @field TEXT_ALIGN_RIGHT
--- @field TEXT_ALIGN_TOP
--- @field TEXT_ALIGN_BOTTOM
 
 local render_library, _ = SF.Libraries.RegisterLocal("render")
-
-render_library.TEXT_ALIGN_LEFT = TEXT_ALIGN_LEFT
-render_library.TEXT_ALIGN_CENTER = TEXT_ALIGN_CENTER
-render_library.TEXT_ALIGN_RIGHT = TEXT_ALIGN_RIGHT
-render_library.TEXT_ALIGN_TOP = TEXT_ALIGN_TOP
-render_library.TEXT_ALIGN_BOTTOM = TEXT_ALIGN_BOTTOM
 
 --- Vertex format
 -- @name Vertex Format
@@ -101,7 +90,6 @@ local defined_fonts = {
 	[defaultFont] = true
 }
 
-
 local poly_methods, poly_metamethods = SF.Typedef("Polygon")
 local wrappoly, unwrappoly = SF.CreateWrapper(poly_metamethods)
 
@@ -162,7 +150,7 @@ function render_library.pushMatrix(m)
 	SF.CheckType(m,matrix_meta)
 	local renderdata = SF.instance.data.render
 	if not renderdata.isRendering then
-		SF.throw("Not in rendering hook.",2) 
+		SF.throw("Not in rendering hook",2) 
 	end
 	local id = #matrix_stack
 	if id + 1 > MATRIX_STACK_LIMIT then
@@ -182,7 +170,7 @@ end
 function render_library.popMatrix()
 	local renderdata = SF.instance.data.render
 	if not renderdata.isRendering then 
-		SF.throw("Not in rendering hook.",2) 
+		SF.throw("Not in rendering hook",2) 
 	end
 	if #matrix_stack <= 0 then 
 		SF.throw("Popped too many matricies",2) 
@@ -213,7 +201,7 @@ end
 --- Sets the texture
 function render_library.setTexture(id)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	if not id then
 		surface.SetTexture(0)
@@ -227,13 +215,13 @@ end
 function render_library.clear(clr)
     if clr == nil then
         if not SF.instance.data.render.isRendering then
-			SF.throw("Not in a rendering hook.", 2)
+			SF.throw("Not in a rendering hook", 2)
 		end
         render.Clear(0, 0, 0, 255)
     else
         SF.CheckType(clr, SF.Types["Color"])
         if not SF.instance.data.render.isRendering then
-			SF.throw("Not in a rendering hook.", 2)
+			SF.throw("Not in a rendering hook", 2)
 		end
         render.Clear(clr.r, clr.g, clr.b, clr.a)
     end
@@ -246,7 +234,7 @@ end
 -- @param h Height
 function render_library.drawRect(x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	surface.DrawRect(x,y,w,h)
 end
@@ -258,7 +246,7 @@ end
 -- @param h Height
 function render_library.drawRectOutline(x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	surface.DrawOutlinedRect(x,y,w,h)
 end
@@ -269,7 +257,7 @@ end
 -- @param r Radius
 function render_library.drawCircle(x,y,r)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	surface.DrawCircle(x,y,r,currentcolor)
 end
@@ -281,7 +269,7 @@ end
 -- @param h Height
 function render_library.drawTexturedRect(x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	surface.DrawTexturedRect(x,y,w,h)
 end
@@ -297,7 +285,7 @@ end
 -- @param endV Texture mapping at rectangle end
 function render_library.drawTexturedRectUV(x,y,w,h,startU,startV,endU,endV)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	surface.DrawTexturedRectUV(x,y,w,h,startU,startV,endU,endV)
 end
@@ -310,7 +298,7 @@ end
 -- @param rot Rotation in degrees
 function render_library.drawTexturedRectRotated(x,y,w,h,rot)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	surface.DrawTexturedRectRotated(x, y, w, h, rot)
 end
@@ -322,7 +310,7 @@ end
 -- @param y2 Y end coordinate
 function render_library.drawLine(x1,y1,x2,y2)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2)
+		SF.throw("Not in rendering hook",2)
 	end
 	surface.DrawLine(x1,y1,x2,y2)
 end
@@ -335,7 +323,7 @@ end
 -- @param additive If true, adds brightness to pixels behind it rather than drawing over them.
 -- @param shadow Enable drop shadow?
 -- @param outline Enable outline?
--- @param A table representing the font (doesn't contain anything)
+-- @param blur Enable blur?
 function render_library.createFont(font,size,weight,antialias,additive,shadow,outline,blur)
 	if not table.HasValue(validfonts,font) then SF.throw( "Invalid font" ) end
 	
@@ -395,7 +383,7 @@ end
 -- @param yal Vertical alignment
 function render_library.drawText(x,y,text,xal,yal)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2) 
+		SF.throw("Not in rendering hook",2) 
 	end
 	SF.CheckType(text,"string")
 	SF.CheckType(x,"number")
@@ -414,7 +402,7 @@ end
 -- @param xal Horizontal alignment
 function render_library.drawTextEx(x,y,text,xal)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook.",2) 
+		SF.throw("Not in rendering hook",2) 
 	end
 	SF.CheckType(text,"string")
 	SF.CheckType(x,"number")
@@ -463,17 +451,24 @@ function render_library.drawPoly(poly)
 end
 
 --- Gets width and height of screen.
+-- @return Viewport width
+-- @return Viewport height
 function render_library.getViewport()
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in a rendering hook.", 2)
+		SF.throw("Not in a rendering hook", 2)
 	end
 	return ScrW(), ScrH()
 end
 
---- Draws image from another SF screen.
+--- Draws image from another SF screen
+-- @param ent Screen entity
+-- @param x X coordinate
+-- @param y Y coordinate
+-- @param w Width
+-- @param h Height
 function render_library.drawScreenRect(ent,x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in a rendering hook.", 2)
+		SF.throw("Not in a rendering hook", 2)
 	end
 	local scrn = SF.Entities.Unwrap(ent)
 	if not IsValid(scrn) then return end
@@ -553,7 +548,7 @@ function render_library.getScreenPos()
 	return pos, rot
 end
 
----
+--- Screen information table
 -- @name Screen information table
 -- @class table
 -- @field Name Pretty name of model

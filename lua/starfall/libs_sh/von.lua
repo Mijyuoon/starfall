@@ -7,10 +7,9 @@
 
 local von_lib, _ = SF.Libraries.Register("von")
 
+--[[-----
 local function IsColor(obj)
-	if type(obj) ~= "table" then
-		return false
-	end
+	if not istable(obj) then return false end
 	if not (obj.a and obj.r and obj.g and obj.b) then 
 		return false 
 	end
@@ -19,9 +18,15 @@ end
 local function sf_wrap_object(col)
 	if IsColor(col) then
 		return setmetatable(col, SF.ColorMetatable)
+	elseif istable(col) then
+		for k, v in pairs(col) do
+			col[k] = sf_wrap_object(v)
+		end
+		return col
 	end
 	return (SF.WrapObject(col) or col)
 end
+-------]]
 
 --- Serializes table
 -- @param Data Table to serialize
@@ -42,7 +47,7 @@ function von_lib.deserialize(data)
 	SF.CheckType(data, "string")
 	local wrapped = von.deserialize(data)
 	for key, val in pairs(wrapped) do
-		wrapped[key] = sf_wrap_object(val)
+		wrapped[key] = SF.WrapObject(val) or val
 	end
 	return wrapped
 end
