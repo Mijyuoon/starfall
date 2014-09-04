@@ -23,7 +23,7 @@ local any = m.P(1)
 local Predef = { nl = m.P"\n" }
 
 local mem, fmem, gmem
-local mt = {__mode = "v"}
+local mmt = {__mode = "v"}
 
 local function updatelocale ()
   mm.locale(Predef)
@@ -47,9 +47,9 @@ local function updatelocale ()
   Predef.U = any - Predef.u
   Predef.W = any - Predef.w
   Predef.X = any - Predef.x
-  mem = setmetatable({}, mt)
-  fmem = setmetatable({}, mt)
-  gmem = setmetatable({}, mt)
+  mem = setmetatable({}, mmt)
+  fmem = setmetatable({}, mmt)
+  gmem = setmetatable({}, mmt)
 end
 
 updatelocale()
