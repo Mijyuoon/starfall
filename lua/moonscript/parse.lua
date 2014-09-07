@@ -558,6 +558,8 @@ local build_grammar = wrap_env(function()
 			local tree
 			local parse_args = {...}
 
+			_indent = Stack(0)
+			_do_stack = Stack(0)
 			local pass, err = xpcall(function()
 				tree = self._g:match(str, unpack(parse_args))
 			end, function(err)

@@ -9,7 +9,7 @@ local lpeg_lib, _ = SF.Libraries.Register("lpeg")
 
 local patt_mt = debug.getmetatable(lpeg.P(true))
 local lp_methods, lp_meta = SF.Typedef("Pattern")
-local wrap, unwrap = SF.CreateWrapper(lp_meta, true, true, patt_mt)
+local wrap, unwrap = SF.CreateWrapper(lp_meta, true, false, patt_mt)
 
 local op_types = {
 	["number"] = true, ["string"] = true, 
@@ -20,9 +20,11 @@ local function getpatt(patt)
 	if not op_types[vtype] then
 		return nil
 	end
-	if vtype == "Pattern" then
-		return unwrap(patt)
-	end
+	-- if vtype == "Pattern" then
+	-- 	return unwrap(patt)
+	-- end
+	-- return patt
+	patt = unwrap(patt) or patt
 	return patt
 end
 
@@ -37,8 +39,10 @@ function lpeg_lib.P(patt)
 	if not p_types[vtype] then
 		SF.throw("Bad argument to pattern constructor",2)
 	end
-	if vtype == "Pattern" then
-		patt = unwrap(patt)
+	if vtype == "table" then
+		patt = adv.TblMapN(patt, unwrap)
+	else
+		patt = unwrap(patt) or patt
 	end
 	return wrap(lpeg.P(patt))
 end
@@ -54,7 +58,7 @@ function lpeg_lib.R(...)
 	for _, rng in ipairs(range) do
 		SF.CheckType(rng, "string")
 		if #rng ~= 2 then
-			SF.throw("Range string length must be 2",2)
+			SF.throw("Range string length must be 2", 2)
 		end
 	end
 	return wrap(lpeg.R(...))
@@ -104,7 +108,7 @@ function lp_methods:match(str, pos, ...)
 	if pos ~= nil then
 		SF.CheckType(pos, "number")
 	end
-	local patt = unwrap(self)
+	local patt = unwrap(self) or patt
 	return lpeg.match(patt, str, pos, ...)
 end
 
@@ -156,6 +160,10 @@ function lp_meta.__div(patt, val)
 	end
 	local patt = unwrap(patt)
 	return wrap(patt / val)
+end
+
+function lp_meta.__tostring()
+	return "[LPeg Pattern]"
 end
 
 function lpeg_lib.C(patt)
@@ -214,7 +222,7 @@ function lpeg_lib.Cmt(patt, func)
 	SF.CheckType(patt, lp_meta)
 	SF.CheckType(func, "function")
 	local patt = unwrap(patt)
-	return wrap(lpeg.Cmt(patt, name))
+	return wrap(lpeg.Cmt(patt, func))
 end
 
 local lpeg_re = {}
@@ -230,22 +238,26 @@ function lpeg_re.compile(patt, defs)
 end
 
 local pt_types = {
-	["string"] = true, ["Pattern" ] = true,
+	["string"] = true, ["Pattern"] = true,
 }
 function lpeg_re.find(str, patt, pos)
 	SF.CheckType(str, "string")
-	SF.CheckType(patt, lp_meta)
+	if not pt_types[SF.GetType(patt)] then
+		SF.throw("Bad LPeg pattern type", 2)
+	end
 	if pos ~= nil then
 		SF.CheckType(pos, "number")
 	end
-	local patt = unwrap(patt)
+	local patt = unwrap(patt) or patt
 	return re_lib.find(str, patt, pos)
 end
 
 function lpeg_re.match(str, patt)
 	SF.CheckType(str, "string")
-	SF.CheckType(patt, lp_meta)
-	local patt = unwrap(patt)
+	if not pt_types[SF.GetType(patt)] then
+		SF.throw("Bad LPeg pattern type", 2)
+	end
+	local patt = unwrap(patt) or patt
 	return re_lib.match(str, patt)
 end
 
@@ -255,10 +267,12 @@ local gs_types = {
 }
 function lpeg_re.gsub(str, patt, repl)
 	SF.CheckType(str, "string")
-	SF.CheckType(patt, lp_meta)
+	if not pt_types[SF.GetType(patt)] then
+		SF.throw("Bad LPeg pattern type", 2)
+	end
 	if not gs_types[SF.GetType(repl)] then
 		SF.throw("Bad replacement value type", 2)
 	end
-	local patt = unwrap(patt)
+	local patt = unwrap(patt) or patt
 	return re_lib.gsub(str, patt, repl)
 end
