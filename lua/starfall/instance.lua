@@ -11,12 +11,12 @@ SF.Instance.__index = SF.Instance
 -- @name Instance
 -- @class table
 -- @field env Environment table for the script
--- @field data Data that libraries can store.
+-- @field data Data that libraries can store
 -- @field ppdata Preprocessor data
--- @field ops Currently used ops.
+-- @field slice Currently used CPU time
 -- @field hooks Registered hooks
--- @field scripts The compiled script functions.
--- @field initialized True if initialized, nil if not.
+-- @field scripts The compiled script functions
+-- @field initialized True if initialized, nil if not
 -- @field permissions Permissions manager
 -- @field error True if instance is errored and should not be executed
 -- @field mainfile The main file
@@ -35,41 +35,29 @@ end
 -- @return True if ok
 -- @return A table of values that the hook returned
 function SF.Instance:runWithOps(func,...)
-	local maxops = self.context.ops()
+	local args, trb = {...}, nil
+	local sliceStart = SysTime()
+	local sliceMax = self.context.slice()
 	
-	local function ophook(event)
-		self.ops = self.ops + 500
-		if self.ops > maxops then
+	debug.sethook(function() 
+		self.slice = SysTime() - sliceStart
+		if self.slice > sliceMax then
 			debug.sethook(nil)
-			SF.throw("Operations quota exceeded.",0)
+			SF.throw("CPU time quota exceeded", 0)
 		end
-	end
-	
-	local begin = SysTime()
-	local beginops = self.ops
-	
-	local args = {...}
-	local traceback
-	local wrapperfunc = function()
-		return {func(unpack(args))}
-	end
-	local function xpcall_callback(err)
-		traceback = debug.traceback(err, 2)
+	end, "", 800)
+	local ok, rt = xpcall(function()
+		return { func(unpack(args)) }
+	end, function(err)
+		trb = debug.traceback(err, 2)
 		return err
-	end
-	
-	debug.sethook(ophook,"",500)
-	local ok, rt = xpcall(wrapperfunc, xpcall_callback)
+	end)
 	debug.sethook(nil)
-	
-	if SF.ShowExeTime then
-		MsgN("SF: Exectued "..(self.ops-beginops).." instructions in "..(SysTime()-begin).."s")
-	end
 	
 	if ok then
 		return true, rt
 	else
-		return false, rt, traceback
+		return false, rt, trb
 	end
 end
 
@@ -257,12 +245,6 @@ function SF.Instance:runFunctionT(func,...)
 	
 	self:cleanup("_runFunction",func,false)
 	return true, tbl
-end
-
---- Resets the amount of operations used.
-function SF.Instance:resetOps()
-	self:runLibraryHook("resetOps")
-	self.ops = 0
 end
 
 --- Deinitializes the instance. After this, the instance should be discarded.

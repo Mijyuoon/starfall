@@ -266,6 +266,17 @@ function player_methods:getUserID()
 	return ent and ent:UserID()
 end
 
+--- Returns a table with information of what the player is looking at
+-- @shared
+-- @return table trace data
+function player_methods:getEyeTrace ()
+	local this = SF.UnwrapObject(self)
+	if not SF.Permissions.check(SF.instance.player, Sthis, "trace") then
+		SF.throw("Insufficient permissions", 2) 
+	end
+	return SF.Sanitize(this:GetEyeTrace())
+end
+
 if CLIENT then
 	--- Returns the relationship of the player to the local client
 	-- @return One of: "friend", "blocked", "none", "requested"

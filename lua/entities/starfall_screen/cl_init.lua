@@ -125,7 +125,6 @@ function ENT:Think()
 	self.WasFrameDrawn = false
 	
 	if self.instance and not self.instance.error then
-		self.instance:resetOps()
 		self:runScriptHook("think")
 	end
 end
@@ -207,7 +206,7 @@ function ENT:CodeSent(files, main, owner)
 	local ok, instance = SF.Compiler.Compile(files,self.SFContext,main,owner,datatable)
 	if not ok then self:Error(instance) return end
 	
-	instance.runOnError = function(inst,...) self:Error(...) end
+	instance.runOnError = function(inst, ...) self:Error(...) end
 	
 	self.error = nil
 	self.instance = instance

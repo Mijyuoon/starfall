@@ -111,16 +111,6 @@ end
 function ENT:OnRestore()
 end
 
-function ENT:UpdateName(state)
-	if state ~= "" then state = "\n"..state end
-	
-	if self.instance and self.instance.ppdata.scriptnames and self.instance.mainfile and self.instance.ppdata.scriptnames[self.instance.mainfile] then
-		self:SetOverlayText("Starfall Processor\n"..tostring(self.instance.ppdata.scriptnames[self.instance.mainfile])..state)
-	else
-		self:SetOverlayText("Starfall Processor"..state)
-	end
-end
-
 function ENT:Error(msg, override)
 	if type( msg ) == "table" then
 		if msg.message then
@@ -130,7 +120,7 @@ function ENT:Error(msg, override)
 			msg = ( file and ( file .. ":" ) or "" ) .. ( line and ( line .. ": " ) or "" ) .. msg.message
 		end
 	end
-	ErrorNoHalt( "Processor of " .. self.owner:Nick() .. " errored: " .. tostring( msg ) .. "\n" )
+	ErrorNoHalt(Format("Processor of %s errored: %s\n", self.owner:Nick(), msg))
 	WireLib.ClientError(msg, self.owner)
 	
 	if self.instance then
@@ -138,7 +128,6 @@ function ENT:Error(msg, override)
 		self.instance = nil
 	end
 	
-	--self:UpdateName("Inactive (Error)")
 	local r,g,b,a = self:GetColor()
 	self:SetColor(255, 0, 0, a)
 end
@@ -185,7 +174,6 @@ function ENT:CodeSent(ply, files, mainfile)
 		
 		if not self.instance then return end
 		
-		--self:UpdateName("")
 		local r,g,b,a = self:GetColor()
 		self:SetColor(Color(255, 255, 255, a))
 		self.sharedscreen = true
@@ -199,7 +187,6 @@ function ENT:Think()
 	self:NextThink(CurTime())
 	
 	if self.instance and not self.instance.error then
-		self.instance:resetOps()
 		self:runScriptHook("think")
 	end
 	

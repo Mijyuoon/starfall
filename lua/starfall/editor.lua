@@ -69,7 +69,7 @@ if CLIENT then
 	
 	local lua_kwords2 = mktrue {
 		"print", "pairs", "ipairs", "mpairs", "next", "mnext", 
-		"throw", "try", "error", "pcall", "opsUsed", "opsMax",
+		"throw", "try", "error", "pcall", "cpuUsed", "cpuMax",
 		"printCon", "loadFile", "loadString", "loadStringM",
 		"assert", "require", "loadLibrary", "type",
 		"CLIENT", "SERVER", "tostring", "tonumber",

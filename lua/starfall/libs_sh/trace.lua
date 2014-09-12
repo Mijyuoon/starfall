@@ -191,16 +191,13 @@ trace_library.CONTENTS_HITBOX = CONTENTS_HITBOX
 -- Register privileges
 do
 	local P = SF.Permissions
-	P.registerPrivilege( "trace", "Trace", "Allows the user to start traces" )
+	P.registerPrivilege("trace", "Trace", "Allows the user to start traces")
 end
 
 -- Local functions
-
-local wrap
-local unwrap
+local unwrap = nil
 
 local function postload()
-	wrap = SF.Entities.Wrap
 	unwrap = SF.Entities.Unwrap
 end
 SF.Libraries.AddHook("postload",postload)
@@ -222,11 +219,6 @@ local function convertFilter(filter)
 	end
 end
 
-local function convertResult(res)
-	if res.Entity then res.Entity = wrap(res.Entity) end
-	return res
-end
-
 --- Does a line trace
 -- @param start Start position
 -- @param endpos End position
@@ -234,7 +226,9 @@ end
 -- @param mask Trace mask
 -- @return Result of the trace
 function trace_library.trace(start,endpos,filter,mask)
-	if not SF.Permissions.check( SF.instance.player, nil, "trace" ) then SF.throw( "Insufficient permissions", 2 ) end
+	if not SF.Permissions.check(SF.instance.player, nil, "trace") then
+		SF.throw("Insufficient permissions", 2)
+	end
 	SF.CheckType(start,"Vector")
 	SF.CheckType(endpos,"Vector")
 	filter = convertFilter(SF.CheckType(filter,"table",0,{}))
@@ -247,7 +241,7 @@ function trace_library.trace(start,endpos,filter,mask)
 		mask = mask
 	}
 	
-	return convertResult(util.TraceLine(trace))
+	return SF.Sanitize(util.TraceLine(trace))
 end
 
 --- Does a swept-AABB trace
@@ -276,5 +270,5 @@ function trace_library.traceHull(start,endpos,minbox,maxbox,filter,mask)
 		maxs = maxbox
 	}
 	
-	return convertResult(util.TraceHull(trace))
+	return SF.Sanitize(util.TraceHull(trace))
 end

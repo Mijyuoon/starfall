@@ -186,19 +186,15 @@ end
 SF.DefaultEnvironment.CLIENT = CLIENT
 SF.DefaultEnvironment.SERVER = SERVER
 
---- Gets the amount of ops used so far
-function SF.DefaultEnvironment.opsUsed()
-	return SF.instance.ops
+--- Gets the amount of CPU time used so far
+function SF.DefaultEnvironment.cpuUsed()
+	return SF.instance.slice
 end
 
---- Gets the ops hard quota
-function SF.DefaultEnvironment.opsMax()
-	return SF.instance.context.ops()
+--- Gets the CPU time hard quota
+function SF.DefaultEnvironment.cpuMax()
+	return SF.instance.context.slice()
 end
-
--- The below modules have the Gmod functions removed (the ones that begin with a capital letter),
--- as requested by Divran
--- Divran, you suck. ~Mijyuoon
 
 -- Filters Gmod Lua files based on Garry's naming convention.
 local function filterGmodLua(lib, original, gm)
@@ -213,11 +209,6 @@ local function filterGmodLua(lib, original, gm)
 	end
 	return original, gm
 end
-
--- Default Hook Library
--- TODO: Consult if this is actually wanted or not :/
--- SF.DefaultEnvironment.hook = SF.Libraries.Get("hook") 
--- It's not. ~Mijyuoon
 
 -- String library
 local string_methods, string_metatable = SF.Typedef("Library: string")
@@ -491,8 +482,8 @@ end
 -- ------------------------- Restrictions ------------------------- --
 -- Restricts access to builtin type's metatables
 
+--[[---- Is really needed? ----------------------
 local _R = debug.getregistry()
---local _S = getmetatable("")
 local function restrict(instance, hook, name, ok, err)
 	_R.Vector.__metatable = "Vector"
 	_R.Angle.__metatable = "Angle"
@@ -505,6 +496,7 @@ end
 
 SF.Libraries.AddHook("prepare", restrict)
 SF.Libraries.AddHook("cleanup", unrestrict)
+-----------------------------------------------]]
 
 -- ------------------------- Hook Documentation ------------------------- --
 

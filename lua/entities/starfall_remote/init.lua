@@ -39,7 +39,6 @@ function ENT:Think()
 	self:NextThink(CurTime())
 	
 	if self.instance and not self.instance.error then
-		self.instance:resetOps()
 		self:runScriptHook("think")
 	end
 	

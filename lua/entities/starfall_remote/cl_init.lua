@@ -100,7 +100,6 @@ function ENT:Think()
 	--self.WasFrameDrawn = false -- Wtf?
 	
 	if self.instance and not self.instance.error then
-		self.instance:resetOps()
 		self:runScriptHook("think")
 	end
 end

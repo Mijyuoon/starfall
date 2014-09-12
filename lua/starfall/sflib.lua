@@ -6,10 +6,11 @@ if SF ~= nil then return end
 SF = {}
 
 --jit.off() -- Needed so ops counting will work reliably.
--- I don't give a fuck. ~Mijyuoon
+-- Completely and totally useless now.
 
 -- Do a couple of checks for retarded mods that disable the debug table
 -- and run it after all addons load
+-- Do they actually exist? o_0
 --[[
 do
 	local function zassert(cond, str)
@@ -65,9 +66,10 @@ include("preprocessor.lua")
 include("permissions/core.lua")
 include("editor.lua")
 
-SF.defaultquota = CreateConVar("sf_defaultquota", "300000", {FCVAR_ARCHIVE,FCVAR_REPLICATED},
-	"The default number of Lua instructions to allow Starfall scripts to execute")
-
+-- Useless
+-- SF.defaultquota = CreateConVar("sf_defaultquota", "300000", {FCVAR_ARCHIVE,FCVAR_REPLICATED},
+-- 	"The default number of Lua instructions to allow Starfall scripts to execute")
+	
 local dgetmeta = debug.getmetatable
 
 --- Throws an error like the throw function in builtins
@@ -153,18 +155,18 @@ end
 -- @param env The environment metatable to use for the script. Default is SF.DefaultEnvironmentMT
 -- @param directives Additional Preprocessor directives to use. Default is an empty table
 -- @param permissions The permissions manager to use. Default is SF.DefaultPermissions
--- @param ops Operations quota function. Default is returned when calling ops()
+-- @param slice CPU time slice function. Default is returned when calling slice()
 -- @param libs Additional (local) libraries for the script to access. Default is an empty table.
-SF.Quota = 1200000
+SF.CpuTimeQuota = 0.200 -- in seconds
 local function get_defaultquota()
 	--return SF.defaultquota:GetInt()
-	return SF.Quota
+	return SF.CpuTimeQuota
 end
-function SF.CreateContext(env, directives, ops, libs)
+function SF.CreateContext(env, directives, slice, libs)
 	local context = {}
 	context.env = env or SF.DefaultEnvironmentMT
 	context.directives = directives or {}
-	context.ops = ops or get_defaultquota
+	context.slice = slice or get_defaultquota
 	context.libs = libs or {}
 	return context
 end

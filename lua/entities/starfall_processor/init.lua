@@ -83,7 +83,7 @@ function ENT:Error(msg, traceback)
 			msg = ( file and ( file .. ":" ) or "" ) .. ( line and ( line .. ": " ) or "" ) .. msg.message
 		end
 	end
-	ErrorNoHalt( "Processor of " .. self.owner:Nick() .. " errored: " .. tostring( msg ) .. "\n" )
+	ErrorNoHalt(Format("Processor of %s errored: %s\n", self.owner:Nick(), msg))
 	if traceback then
 		print(traceback)
 	end
@@ -103,10 +103,8 @@ function ENT:Think()
 	self.BaseClass.Think(self)
 	
 	if self.instance and not self.instance.error then
-		--self:UpdateState(tostring(self.instance.ops).." ops, "..tostring(math.floor(self.instance.ops / self.instance.context.ops * 100)).."%")
-		self:UpdateState( tostring( self.instance.ops ) .. " ops, " .. tostring( math.floor( self.instance.ops / self.instance.context.ops() * 100 ) ) .. "%" )
-
-		self.instance:resetOps()
+		local slice, limit = self.instance.slice, self.instance.context.slice()
+		self:UpdateState(Format("%.2f ms, %.2f%%", slice, slice / limit))
 		self:runScriptHook("think")
 	end
 
