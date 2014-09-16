@@ -139,7 +139,7 @@ local function directive_include(args, filename, data)
 	local incl = data.includes[filename]
 	incl[#incl+1] = args
 end
-SF.Preprocessor.SetGlobalDirective("include",directive_include)
+SF.Preprocessor.SetGlobalDirective("include", directive_include)
 
 local function directive_exclude(args, filename, data)
 	if not data.excludes then data.excludes = {} end
@@ -149,20 +149,25 @@ local function directive_exclude(args, filename, data)
 	end
 	data.excludes[args] = true
 end
-SF.Preprocessor.SetGlobalDirective("exclude",directive_exclude)
+SF.Preprocessor.SetGlobalDirective("exclude", directive_exclude)
 
 local function directive_name(args, filename, data)
 	if not data.scriptnames then data.scriptnames = {} end
 	data.scriptnames[filename] = args
 end
-SF.Preprocessor.SetGlobalDirective("name",directive_name)
+SF.Preprocessor.SetGlobalDirective("name", directive_name)
 
 local function directive_sharedscreen(args, filename, data)
 	if not data.sharedscreen then data.sharedscreen = true end
 end
-SF.Preprocessor.SetGlobalDirective("sharedscreen",directive_sharedscreen)
+SF.Preprocessor.SetGlobalDirective("sharedscreen", directive_sharedscreen)
 
 local function directive_moonscript(args, filename, data)
 	if not data.moonscript then data.moonscript = true end
 end
-SF.Preprocessor.SetGlobalDirective("moonscript",directive_moonscript)
+SF.Preprocessor.SetGlobalDirective("moonscript", directive_moonscript)
+
+local function directive_nosandbox(args, filename, data)
+	if not data.nosandbox then data.nosandbox = true end
+end
+SF.Preprocessor.SetGlobalDirective("nosandbox", directive_nosandbox)

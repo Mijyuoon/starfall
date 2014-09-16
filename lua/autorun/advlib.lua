@@ -143,6 +143,14 @@ function adv.TblAll(tbl, func)
 	return true
 end
 
+function adv.TblKeys(tbl)
+	local res = {}
+	for k in pairs(tbl) do
+		res[#res+1] = k
+	end
+	return res
+end
+
 for _, kn in pairs{"K", "V", "KV"} do
 	adv["TblWeak" .. kn] = function()
 		return setmetatable({}, {
@@ -178,6 +186,9 @@ local function do_printr(arg, spaces, passed)
 	elseif ty == "string" then
 		Msg(adv.StrFormat{"($t) '$v'\n",
 			t = ty, v = arg})
+	elseif ty == "nil" then
+		Msg(adv.StrFormat{"($t)\n",
+			t = ty})
 	else
 		Msg(adv.StrFormat{"($t) $v\n",
 			t = ty, v = arg})

@@ -144,9 +144,7 @@ function ENT:CodeSent(ply, files, mainfile)
 		self.co_files[key] = util.Base64Encode(util.Compress(val))
 	end
 
-	if update then
-		sendScreenCode(nil, self)
-	end
+	if update then sendScreenCode(nil, self) end
 
 	local ppdata = {}
 	SF.Preprocessor.ParseDirectives(mainfile, files[mainfile], {}, ppdata)

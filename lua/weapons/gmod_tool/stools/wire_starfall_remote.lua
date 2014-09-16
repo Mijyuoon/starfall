@@ -71,6 +71,7 @@ function TOOL:LeftClick( trace )
 	Ang.pitch = Ang.pitch + 90
 
 	local sf = MakeSF( ply, trace.HitPos, Ang, model)
+	if not IsValid(sf) then return false end
 
 	local min = sf:OBBMins()
 	sf:SetPos( trace.HitPos - trace.HitNormal * min.z )

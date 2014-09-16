@@ -111,12 +111,18 @@ end
 
 function ENT:Initialize()
 	self:SetContextBase()
-	self.GPU = GPULib.WireGPU(self)
 	self.files = {}
 	net.Start("starfall_screen_download")
 	net.WriteInt(SF_UPLOAD_INIT, 8)
 	net.WriteEntity(self)
 	net.SendToServer()
+	local model = WireGPU_Monitors[self:GetModel()]
+	if model.Name:match("^Auto: ") then
+		self.IsHudMode, self.HudActive = true, false
+		hook.Add("HUDPaint", self, self.DrawToHUD)
+	else
+		self.GPU = GPULib.WireGPU(self)
+	end
 end
 
 function ENT:Think()
@@ -130,6 +136,7 @@ function ENT:Think()
 end
 
 function ENT:OnRemove()
+	if not self.GPU then return end
 	local vtab = self:GetTable()
 	timer.Simple(0.1, function()
 		if IsValid(self) then return end
@@ -231,9 +238,18 @@ function ENT:DrawScreen()
 	end
 end
 
+function ENT:DrawToHUD()
+	if self.HudActive and self.renderfunc then
+		local ok, err = xpcall(self.renderfunc, debug.traceback)
+		if not ok then WireLib.ErrorNoHalt(err) end
+	end
+end
+
 function ENT:Draw()
 	self:DrawModel()
 	Wire_Render(self)
-	self:DrawScreen()
-	self.GPU:Render()
+	if not self.IsHudMode then
+		self:DrawScreen()
+		self.GPU:Render()
+	end
 end

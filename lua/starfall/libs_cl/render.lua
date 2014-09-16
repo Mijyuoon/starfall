@@ -471,7 +471,7 @@ function render_library.drawScreenRect(ent,x,y,w,h)
 		SF.throw("Not in a rendering hook", 2)
 	end
 	local scrn = SF.Entities.Unwrap(ent)
-	if not IsValid(scrn) then return end
+	if not IsValid(scrn) or scrn.IsHudMode then return end
 	if scrn == SF.instance.data.entity then return end
 	if scrn:GetClass() ~= "starfall_screen" then return end
 	scrn:DrawScreen()
