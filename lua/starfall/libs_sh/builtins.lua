@@ -188,7 +188,7 @@ SF.DefaultEnvironment.SERVER = SERVER
 
 --- Gets the amount of CPU time used so far
 function SF.DefaultEnvironment.cpuUsed()
-	return SF.instance.slice
+	return SF.instance:getCpuTimeAvg()
 end
 
 --- Gets the CPU time hard quota

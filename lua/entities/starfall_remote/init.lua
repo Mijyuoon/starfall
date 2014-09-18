@@ -4,8 +4,20 @@ include('shared.lua')
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
+
+ENT.WireDebugName = "Starfall Remote"
+ENT.OverlayDelay = 0
+
 local libs = SF.Libraries.CreateLocalTbl{"input"}
 local Context = SF.CreateContext(nil, nil, nil, libs)
+
+function ENT:UpdateState(state)
+	if self.name then
+		self:SetOverlayText("Starfall Remote\n"..self.name)
+	else
+		self:SetOverlayText("Starfall Remote")
+	end
+end
 
 util.AddNetworkString("starfall_remote_link")
 util.AddNetworkString("starfall_remote_input")
@@ -40,6 +52,7 @@ function ENT:Think()
 	
 	if self.instance and not self.instance.error then
 		self:runScriptHook("think")
+		self:resetCpuTime()
 	end
 	
 	return true
@@ -47,6 +60,7 @@ end
 
 function ENT:SetContextBase()
 	self.SFContext = Context
+	self:UpdateState()
 end
 
 function ENT:HandleButtonPress(ply, vkey)

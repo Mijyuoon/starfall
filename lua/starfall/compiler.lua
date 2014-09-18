@@ -39,7 +39,8 @@ function SF.Compiler.Compile(code, context, mainfile, player, data, dontpreproce
 	instance.env._G = instance.env
 	instance.data = data
 	instance.ppdata = {}
-	instance.slice = 0
+	instance.slice = {}
+	instance.sliceI = 0
 	instance.hooks = {}
 	instance.scripts = {}
 	instance.source = code

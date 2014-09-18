@@ -97,10 +97,10 @@ end
 
 function ENT:Think()
 	self:NextThink(CurTime())
-	--self.WasFrameDrawn = false -- Wtf?
 	
 	if self.instance and not self.instance.error then
 		self:runScriptHook("think")
+		self:resetCpuTime()
 	end
 end
 
@@ -122,7 +122,6 @@ function ENT:DrawScreen(ply)
 end
 
 function ENT:Draw()
-	--self.BaseClass.BaseClass.Draw(self) -- Fuck.
-	self:DrawModel()
+	self:DoNormalDraw()
 	Wire_Render(self)
 end

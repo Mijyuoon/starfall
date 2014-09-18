@@ -39,9 +39,10 @@ function SF.Instance:runWithOps(func,...)
 	local sliceStart = SysTime()
 	local sliceMax = self.context.slice()
 	
+	self:addCpuTime(false)
 	debug.sethook(function() 
-		self.slice = SysTime() - sliceStart
-		if self.slice > sliceMax then
+		self:addCpuTime(SysTime() - sliceStart)
+		if self:getCpuTimeAvg() > sliceMax then
 			debug.sethook(nil)
 			SF.throw("CPU time quota exceeded", 0)
 		end
@@ -59,6 +60,35 @@ function SF.Instance:runWithOps(func,...)
 	else
 		return false, rt, trb
 	end
+end
+
+--- Resets amount of used CPU time
+function SF.Instance:resetCpuTime()
+	for i = 1, self.sliceI do
+		self.slice[i] = nil
+	end
+	self.sliceI = 0
+end
+
+--- Sets value of last CPU time buffer or creates new
+-- @param val Number to set last buffer, false to create new
+function SF.Instance:addCpuTime(val)
+	if not val then
+		self.sliceI = self.sliceI + 1
+		self.slice[self.sliceI] = 0
+	else
+		self.slice[self.sliceI] = val
+	end
+end
+
+--- Returns average CPU time across all buffers
+function SF.Instance:getCpuTimeAvg()
+	local result, num = 0, self.sliceI
+	if num < 1 then return 0 end
+	for i = 1, num do
+		result = result + self.slice[i]
+	end
+	return result / num
 end
 
 --- Internal function - Do not call. Prepares the script to be executed.

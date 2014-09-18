@@ -4,6 +4,7 @@ ENT.RenderGroup = RENDERGROUP_OPAQUE
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
+
 local libs = SF.Libraries.CreateLocalTbl{"render"}
 local Context = SF.CreateContext(nil, nil, nil, libs)
 
@@ -105,17 +106,18 @@ net.Receive("starfall_screen_used", function()
 	end
 end)
 
+net.Receive("starfall_hud_connect", function()
+	local ent = net.ReadEntity()
+	local flag = net.ReadBool()
+	if not IsValid(ent) then return end
+	ent.VehActive = flag
+end)
+
 function ENT:SetContextBase()
 	self.SFContext = Context
 end
 
 function ENT:Initialize()
-	self:SetContextBase()
-	self.files = {}
-	net.Start("starfall_screen_download")
-	net.WriteInt(SF_UPLOAD_INIT, 8)
-	net.WriteEntity(self)
-	net.SendToServer()
 	local model = WireGPU_Monitors[self:GetModel()]
 	if model.Name:match("^Auto: ") then
 		self.IsHudMode, self.HudActive = true, false
@@ -123,6 +125,12 @@ function ENT:Initialize()
 	else
 		self.GPU = GPULib.WireGPU(self)
 	end
+	self.files = {}
+	self:SetContextBase()
+	net.Start("starfall_screen_download")
+	net.WriteInt(SF_UPLOAD_INIT, 8)
+	net.WriteEntity(self)
+	net.SendToServer()
 end
 
 function ENT:Think()
@@ -132,6 +140,7 @@ function ENT:Think()
 	
 	if self.instance and not self.instance.error then
 		self:runScriptHook("think")
+		self:resetCpuTime()
 	end
 end
 
@@ -149,16 +158,13 @@ function ENT:OnRemove()
 end
 
 function ENT:Error(msg)
-	if type( msg ) == "table" then
+	if type(msg) == "table" then
 		if msg.message then
-			local line = msg.line
-			local file = msg.file
-
-			msg = ( file and ( file .. ":" ) or "" ) .. ( line and ( line .. ": " ) or "" ) .. msg.message
+			local line, file = msg.line, msg.file
+			msg = (file and (file .. ":") or "") .. (line and (line .. ": ") or "") .. msg.message
 		end
 	end
-	WireLib.AddNotify( self.owner, tostring( msg ), NOTIFY_ERROR, 7, NOTIFYSOUND_ERROR1 )
-
+	WireLib.AddNotify(self.owner, tostring(msg), NOTIFY_ERROR, 7, NOTIFYSOUND_ERROR1)
 	
 	-- Process error message
 	self.error = {}
@@ -175,8 +181,6 @@ function ENT:Error(msg)
 		self.instance:deinitialize()
 		self.instance = nil
 	end
-	
-	--self:UpdateState("Inactive (Error)")
 end
 
 function ENT:SetRenderFunc(data)
@@ -239,17 +243,19 @@ function ENT:DrawScreen()
 end
 
 function ENT:DrawToHUD()
-	if self.HudActive and self.renderfunc then
+	if (self.HudActive or self.VehActive) and self.renderfunc then
 		local ok, err = xpcall(self.renderfunc, debug.traceback)
 		if not ok then WireLib.ErrorNoHalt(err) end
 	end
 end
 
 function ENT:Draw()
-	self:DrawModel()
-	Wire_Render(self)
-	if not self.IsHudMode then
+	if self.GPU then
+		self:DrawModel()
 		self:DrawScreen()
 		self.GPU:Render()
+	else
+		self:DoNormalDraw()
 	end
+	Wire_Render(self)
 end

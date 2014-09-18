@@ -472,8 +472,8 @@ function render_library.drawScreenRect(ent,x,y,w,h)
 	end
 	local scrn = SF.Entities.Unwrap(ent)
 	if not IsValid(scrn) or scrn.IsHudMode then return end
-	if scrn == SF.instance.data.entity then return end
 	if scrn:GetClass() ~= "starfall_screen" then return end
+	if scrn == SF.instance.data.entity then return end
 	scrn:DrawScreen()
 	local vps = SF.instance.data.render.viewport
 	render.SetViewPort(vps.x, vps.y, vps.w, vps.h)

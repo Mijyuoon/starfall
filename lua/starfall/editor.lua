@@ -424,9 +424,9 @@ if CLIENT then
 	end
 	
 	--- (Client) Opens the editor. Initializes it first if needed.
-	function SF.Editor.open()
+	function SF.Editor.open(...)
 		SF.Editor.init()
-		SF.Editor.editor:Open()
+		SF.Editor.editor:Open(...)
 	end
 	
 	--- (Client) Gets the filename of the currently selected file.

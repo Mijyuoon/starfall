@@ -157,7 +157,7 @@ end
 -- @param permissions The permissions manager to use. Default is SF.DefaultPermissions
 -- @param slice CPU time slice function. Default is returned when calling slice()
 -- @param libs Additional (local) libraries for the script to access. Default is an empty table.
-SF.CpuTimeQuota = 0.200 -- in seconds
+SF.CpuTimeQuota = 0.250 -- in seconds
 local function get_defaultquota()
 	--return SF.defaultquota:GetInt()
 	return SF.CpuTimeQuota

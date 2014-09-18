@@ -1,7 +1,7 @@
 ENT.Type            = "anim"
 ENT.Base            = "starfall_screen"
 
-ENT.PrintName       = "Starfall Remote"
+ENT.PrintName       = "Starfall"
 ENT.Author          = "Mijyuoon"
 
 ENT.Spawnable       = false

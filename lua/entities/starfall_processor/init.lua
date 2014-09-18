@@ -1,4 +1,3 @@
-
 AddCSLuaFile('cl_init.lua')
 AddCSLuaFile('shared.lua')
 include('shared.lua')
@@ -37,7 +36,9 @@ function ENT:Initialize()
 	self:SetColor(Color(255, 0, 0, clr.a))
 end
 
-function ENT:Compile(codetbl, mainfile)
+function ENT:CodeSent(ply, codetbl, mainfile)
+	if ply ~= self.owner then return end
+	
 	if self.instance then
 		self:runScriptHook("last")
 		self.instance:deinitialize() 
@@ -103,9 +104,11 @@ function ENT:Think()
 	self.BaseClass.Think(self)
 	
 	if self.instance and not self.instance.error then
-		local slice, limit = self.instance.slice, self.instance.context.slice()
-		self:UpdateState(Format("%.2f ms, %.2f%%", slice, slice / limit))
+		local slice = self.instance:getCpuTimeAvg()
+		local limit = self.instance.context.slice()
+		self:UpdateState(Format("%.2f ms, %.2f%%", slice * 1000, slice / limit))
 		self:runScriptHook("think")
+		self:resetCpuTime()
 	end
 
 	self:NextThink(CurTime())
@@ -129,6 +132,12 @@ end
 
 function ENT:WriteCell(address, data)
 	self:runScriptHook("writecell",address,data)
+end
+
+function ENT:resetCpuTime()
+	if self.instance then
+		self.instance:resetCpuTime()
+	end
 end
 
 function ENT:runScriptHook(hook, ...)
@@ -167,7 +176,7 @@ function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
 	self.owner = ply
 	if info.starfall then
 		local code, main = SF.DeserializeCode(info.starfall)
-		self:Compile(code, main)
+		self:CodeSent(code, main)
 	end
 	WireLib.ApplyDupeInfo(ply, ent, info, GetEntByID)
 end
@@ -177,9 +186,8 @@ function ENT:PreEntityCopy()
 	local info = self:BuildDupeInfo()
 	tmp_instance[self] = self.instance
 	self.instance = nil
-	if info then
-		duplicator.StoreEntityModifier( self, "SFDupeInfo", info )
-	end
+	if not info then return end
+	duplicator.StoreEntityModifier(self, "SFDupeInfo", info)
 end
 
 function ENT:PostEntityCopy()

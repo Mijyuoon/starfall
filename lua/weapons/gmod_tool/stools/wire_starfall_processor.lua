@@ -7,32 +7,47 @@ TOOL.Tab			= "Wire"
 -- ------------------------------- Sending / Recieving ------------------------------- --
 include("starfall/sflib.lua")
 
-local MakeSF
+local MakeSF, MClass
 
 TOOL.ClientConVar[ "Model" ] = "models/jaanus/wiretool/wiretool_siren.mdl"
+TOOL.ClientConVar[ "Type" ] = "prc"
 cleanup.Register("starfall_processor")
+cleanup.Register("starfall_remote")
 
 if SERVER then
 	CreateConVar('sbox_maxstarfall_processor', 10, {FCVAR_REPLICATED,FCVAR_NOTIFY,FCVAR_ARCHIVE})
 	
-	function MakeSF(pl, Pos, Ang, model)
-		if not pl:CheckLimit("starfall_processor") then return false end
-		local sf = ents.Create("starfall_processor")
+	function MakeSF(class, pl, Pos, Ang, model)
+		if not pl:CheckLimit(class) then return false end
+		local sf = ents.Create(class)
 		if not IsValid(sf) then return false end
 		sf:SetAngles(Ang)
 		sf:SetPos(Pos)
 		sf:SetModel(model)
 		sf:Spawn()
 		sf.owner = pl
-		pl:AddCount("starfall_processor", sf)
+		pl:AddCount(class, sf)
 		return sf
 	end
+	
+	MClass = {
+		prc = {
+			cn = "starfall_processor",
+			lb = "Wire Starfall Processor",
+		};
+		rem = {
+			cn = "starfall_remote",
+			lb = "Wire Starfall Remote",
+		};
+	}
 else
 	language.Add("Tool.wire_starfall_processor.name", "Starfall - Processor (Wire)")
-	language.Add("Tool.wire_starfall_processor.desc", "Spawns a starfall processor (Press shift+f to switch to screen and back again)")
-	language.Add("Tool.wire_starfall_processor.0", "Primary: Spawns a processor / uploads code, Secondary: Opens editor")
+	language.Add("Tool.wire_starfall_processor.desc", "Spawns a starfall processor (Press Shift+F to switch to screen and back again)")
+	language.Add("Tool.wire_starfall_processor.0", "Primary: Create/Update processor/remote, Secondary: Open editor")
 	language.Add("sboxlimit_wire_starfall_processor", "You've hit the Starfall processor limit!")
+	language.Add("sboxlimit_wire_starfall_remote", "You've hit the Starfall remote limit!")
 	language.Add("undone_Wire Starfall Processor", "Undone Starfall Processor")
+	language.Add("undone_Wire Starfall Remote", "Undone Starfall Remote")
 end
 
 function TOOL:LeftClick(trace)
@@ -42,15 +57,16 @@ function TOOL:LeftClick(trace)
 
 	local ply = self:GetOwner()
 	local tr_ent = trace.Entity
-
-	if IsValid(tr_ent) and tr_ent:GetClass() == "starfall_processor" then
+	local selected = MClass[self:GetClientInfo("Type")]
+	
+	if IsValid(tr_ent) and tr_ent:GetClass() == selected.cn then
 		if not SF.RequestCode(ply, function(mainfile, files)
 			if not mainfile then return end
-			if not IsValid(tr_ent) then return end -- Probably removed during transfer
+			if not IsValid(tr_ent) then return end
 			if not IsValid(tr_ent.owner) then
 				tr_ent.owner = ply
 			end
-			tr_ent:Compile(files, mainfile)
+			tr_ent:CodeSent(ply, files, mainfile)
 		end) then
 			WireLib.AddNotify(ply,"Cannot upload SF code, please wait for the current upload to finish.",NOTIFY_ERROR,7,NOTIFYSOUND_ERROR1)
 		end
@@ -59,14 +75,13 @@ function TOOL:LeftClick(trace)
 	
 	self:SetStage(0)
 
-	local mtype = self:GetClientInfo("Type")
 	local model = self:GetClientInfo("Model")
-	if not self:GetSWEP():CheckLimit("starfall_processor") then return false end
+	if not self:GetSWEP():CheckLimit(selected.cn) then return false end
 
 	local Ang = trace.HitNormal:Angle()
 	Ang.pitch = Ang.pitch + 90
 	
-	local sf = MakeSF(ply, trace.HitPos, Ang, model)
+	local sf = MakeSF(selected.cn, ply, trace.HitPos, Ang, model)
 	if not IsValid(sf) then return false end
 
 	local min = sf:OBBMins()
@@ -74,18 +89,18 @@ function TOOL:LeftClick(trace)
 
 	local const = WireLib.Weld(sf, trace.Entity, trace.PhysicsBone, true)
 
-	undo.Create("Wire Starfall Processor")
+	undo.Create(selected.lb)
 		undo.AddEntity(sf)
 		undo.AddEntity(const)
 		undo.SetPlayer(ply)
 	undo.Finish()
 
-	ply:AddCleanup("starfall_processor", sf)
+	ply:AddCleanup(selected.cn, sf)
 	
 	if not SF.RequestCode(ply, function(mainfile, files)
 		if not mainfile then return end
-		if not IsValid(sf) then return end -- Probably removed during transfer
-		sf:Compile(files, mainfile)
+		if not IsValid(sf) then return end
+		sf:CodeSent(ply, files, mainfile)
 	end) then
 		WireLib.AddNotify(ply,"Cannot upload SF code, please wait for the current upload to finish.",NOTIFY_ERROR,7,NOTIFYSOUND_ERROR1)
 	end
@@ -134,12 +149,6 @@ if CLIENT then
 			return true
 		end
 	end)
-
-	local lastclick = CurTime()
-	
-	local function GotoDocs(button)
-		gui.OpenURL("http://sf.inp.io") -- old one: http://colonelthirtytwo.net/sfdoc/
-	end
 	
 	function TOOL.BuildCPanel(panel)
 		panel:AddControl("Header", { Text = "#Tool.wire_starfall_processor.name", Description = "#Tool.wire_starfall_processor.desc" })
@@ -147,22 +156,38 @@ if CLIENT then
 		local modelPanel = WireDermaExts.ModelSelect(panel, "wire_starfall_processor_Model", list.Get("Starfall_gate_Models"), 2)
 		panel:AddControl("Label", {Text = ""})
 		
+		local cbox = {
+			Label = "Processor type",
+			MenuButton = 0,
+			Options = {
+				Processor = { wire_starfall_processor_Type = "prc" },
+				Remote = { wire_starfall_processor_Type = "rem" },
+			},
+		}
+		panel:AddControl("ComboBox", cbox)
+		
+		--[[----
 		local docbutton = vgui.Create("DButton" , panel)
 		panel:AddPanel(docbutton)
 		docbutton:SetText("Starfall Documentation")
-		docbutton.DoClick = GotoDocs
+		docbutton.DoClick = function()
+			gui.OpenURL("http://sf.inp.io")
+		end
+		------]]
 		
 		local filebrowser = vgui.Create("wire_expression2_browser")
 		panel:AddPanel(filebrowser)
 		filebrowser:Setup("starfall")
 		filebrowser:SetSize(235,400)
 		function filebrowser:OnFileOpen(filepath, newtab)
-			SF.Editor.editor:Open(filepath, nil, newtab)
+			SF.Editor.open(filepath, nil, newtab)
 		end
 		
 		local openeditor = vgui.Create("DButton", panel)
 		panel:AddPanel(openeditor)
 		openeditor:SetText("Open Editor")
-		openeditor.DoClick = SF.Editor.open
+		openeditor.DoClick = function()
+			SF.Editor.open()
+		end
 	end
 end

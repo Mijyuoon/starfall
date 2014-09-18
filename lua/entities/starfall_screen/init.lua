@@ -5,12 +5,22 @@ include('shared.lua')
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
+
 local libs = SF.Libraries.CreateLocalTbl{"render"}
 local Context = SF.CreateContext(nil, nil, nil, libs)
 local Requests, screens = {}, {}
 
+function ENT:UpdateState(state)
+	if self.name then
+		self:SetOverlayText("Starfall HUD\n"..self.name)
+	else
+		self:SetOverlayText("Starfall HUD")
+	end
+end
+
 util.AddNetworkString("starfall_screen_download")
 util.AddNetworkString("starfall_screen_used")
+util.AddNetworkString("starfall_hud_connect")
 
 local function sendScreenCode(ply, screen)
 	net.Start("starfall_screen_download")
@@ -90,34 +100,89 @@ net.Receive("starfall_screen_download", function(len, ply)
 	end
 end)
 
+local Vehicle_Links = {}
+
+function ENT:LinkHudToVehicle(vehicle)
+	if not self.IsHudMode then return end
+	self.LinkedVehicles[vehicle] = true
+	Vehicle_Links[self] = self.LinkedVehicles
+end
+
+local function getnil() return nil end
+function ENT:UnlinkHudFromVehicle(vehicle)
+	if not vehicle then
+		Vehicle_Links[self] = nil
+		adv.TblMap(self.LinkedVehicles, getnil)
+		self:SendConnectHud(false, false)
+	else
+		local self_links = Vehicle_Links[self]
+		if not self_links then return end
+		if self_links[vehicle] then
+			self_links[vehicle] = nil
+			self:SendConnectHud(false, false)
+		end
+	end
+end
+
+function ENT:SendConnectHud(ply, flag)
+	net.Start("starfall_hud_connect")
+	net.WriteEntity(self)
+	net.WriteBool(flag)
+	if ply then
+		net.Send(ply)
+	else
+		net.Broadcast() 
+	end
+end
+
+hook.Add("PlayerEnteredVehicle", "SF_HUD_Enter", function(ply, veh)
+	for ent, lnk in pairs(Vehicle_Links) do
+		if not lnk[veh] then continue end
+		if not IsValid(ent) then continue end
+		ent:SendConnectHud(ply, true)
+	end
+end)
+hook.Add("PlayerLeaveVehicle", "SF_HUD_Enter", function(ply, veh)
+	for ent, lnk in pairs(Vehicle_Links) do
+		if not lnk[veh] then continue end
+		if not IsValid(ent) then continue end
+		ent:SendConnectHud(ply, false)
+	end
+end)
+
 function ENT:SetContextBase()
 	self.SFContext = Context
+	if self.IsHudMode then
+		self:UpdateState()
+	end
 end
 
 function ENT:Initialize()
 	self:PhysicsInit(SOLID_VPHYSICS)
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
-	self:SetUseType( 3 )
+	self:SetUseType(3)
+	
+	local model = WireGPU_Monitors[self:GetModel()]
+	if model.Name:match("^Auto: ") then
+		self.IsHudMode = true
+		local tbl = adv.TblWeakK()
+		self.LinkedVehicles = tbl
+	end
 	
 	self:SetContextBase()
 	self.Inputs = WireLib.CreateInputs(self, {})
 	self.Outputs = WireLib.CreateOutputs(self, {})
-	
-	-- What is this for.
-	-- local r,g,b,a = self:GetColor()
 end
 
 function ENT:OnRestore()
 end
 
 function ENT:Error(msg, override)
-	if type( msg ) == "table" then
+	if type(msg) == "table" then
 		if msg.message then
-			local line = msg.line
-			local file = msg.file
-
-			msg = ( file and ( file .. ":" ) or "" ) .. ( line and ( line .. ": " ) or "" ) .. msg.message
+			local line, file = msg.line, msg.file
+			msg = (file and (file .. ":") or "") .. (line and (line .. ": ") or "") .. msg.message
 		end
 	end
 	ErrorNoHalt(Format("Processor of %s errored: %s\n", self.owner:Nick(), msg))
@@ -148,6 +213,15 @@ function ENT:CodeSent(ply, files, mainfile)
 
 	local ppdata = {}
 	SF.Preprocessor.ParseDirectives(mainfile, files[mainfile], {}, ppdata)
+	
+	if ppdata.scriptnames and mainfile and ppdata.scriptnames[mainfile] then
+		self.name = tostring(ppdata.scriptnames[mainfile])
+	end
+	if not self.name or #self.name < 1 then
+		self.name = "generic"
+	end
+	
+	self:UpdateState()
 	
 	if ppdata.sharedscreen then		
 		local ok, instance = SF.Compiler.Compile(files, self.SFContext, mainfile, ply)
@@ -186,6 +260,7 @@ function ENT:Think()
 	
 	if self.instance and not self.instance.error then
 		self:runScriptHook("think")
+		self:resetCpuTime()
 	end
 	
 	return true
@@ -205,6 +280,9 @@ function ENT:Use(activator)
 end
 
 function ENT:OnRemove()
+	if self.IsHudMode then
+		self:UnlinkHudFromVehicle()
+	end
 	if not self.instance then return end
 	if not self.instance.error and self.sharedscreen then
 		self:runScriptHook("last")
@@ -215,29 +293,27 @@ function ENT:OnRemove()
 end
 
 function ENT:TriggerInput(key, value)
-	--local instance = SF.instance
-	--SF.instance = nil
 	self:runScriptHook("input", key, SF.Wire.InputConverters[self.Inputs[key].Type](value))
-	--SF.instance = instance
 end
 
 function ENT:ReadCell(address)
-	--local instance = SF.instance
-	--SF.instance = nil
-	local res =  tonumber(self:runScriptHookForResult("readcell",address)) or 0
-	--SF.instance = instance
-	return res
+	return tonumber(self:runScriptHookForResult("readcell",address)) or 0
 end
 
 function ENT:WriteCell(address, data)
-	--local instance = SF.instance
-	--SF.instance = nil
 	self:runScriptHook("writecell",address,data)
-	--SF.instance = instance
 end
 
 function ENT:BuildDupeInfo()
 	local info = WireLib.BuildDupeInfo(self) or {}
+	if self.IsHudMode then
+		local vehicles = {}
+		for vh in pairs(self.LinkedVehicles) do
+			if not IsValid(vh) then continue end
+			vehicles[#vehicles+1] = vh:EntIndex()
+		end
+		info.hud_vehicles = vehicles
+	end
 	if self.instance then
 		info.starfall = SF.SerializeCode(self.instance.source, self.instance.mainfile)
 	end
@@ -246,6 +322,13 @@ end
 
 function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
 	self.owner = ply
+	if info.hud_vehicles then
+		for _, vh in ipairs(info.hud_vehicles) do
+			local veh = GetEntByID(vh)
+			if not IsValid(veh) then continue end
+			self:LinkHudToVehicle(veh)
+		end
+	end
 	if info.starfall then
 		local code, main = SF.DeserializeCode(info.starfall)
 		self:CodeSent(ply, code, main)
@@ -258,9 +341,8 @@ function ENT:PreEntityCopy()
 	local info = self:BuildDupeInfo()
 	tmp_instance[self] = self.instance
 	self.instance = nil
-	if info then
-		duplicator.StoreEntityModifier(self, "SFDupeInfo", info)
-	end
+	if not info then return end
+	duplicator.StoreEntityModifier(self, "SFDupeInfo", info)
 end
 
 function ENT:PostEntityCopy()
