@@ -314,8 +314,8 @@ function ENT:BuildDupeInfo()
 		end
 		info.hud_vehicles = vehicles
 	end
-	if self.instance then
-		info.starfall = SF.SerializeCode(self.instance.source, self.instance.mainfile)
+	if self.mainfile then
+		info.starfall = SF.SerializeCode(self.files, self.mainfile)
 	end
 	return info
 end
