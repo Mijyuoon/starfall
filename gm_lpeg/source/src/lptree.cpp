@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <string.h>
 
-#include <lua.hpp>
+#include "lua.hpp"
 
 #include "lptypes.h"
 #include "lpcap.h"

@@ -5,7 +5,7 @@
 
 #include <limits.h>
 
-#include <lua.hpp>
+#include "lua.hpp"
 
 #include "lptypes.h"
 #include "lpcode.h"

@@ -2,7 +2,7 @@
 ** $Id: lpcap.c,v 1.4 2013/03/21 20:25:12 roberto Exp $
 ** Copyright 2007, Lua.org & PUC-Rio  (see 'lpeg.html' for license)
 */
-#include <lua.hpp>
+#include "lua.hpp"
 
 #include "lpcap.h"
 #include "lptypes.h"
