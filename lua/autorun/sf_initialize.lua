@@ -214,6 +214,13 @@ else
 	end -------------------------------------------------
 end
 
+if not net.ReadBool then
+	net.WriteBool = net.WriteBit
+	function net.ReadBool()
+		return net.ReadBit() > 0
+	end
+end
+
 if not util.Base64Decode then
 	local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 	
