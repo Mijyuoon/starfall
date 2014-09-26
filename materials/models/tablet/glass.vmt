@@ -2,9 +2,9 @@
 {
 	"$additive" 1
 
-	"$basetexture" "Models\LT_C\Tablet\glass"
+	"$basetexture" "models/tablet/glass"
 	"$halflambert" 1
-	"$bumpmap" "Models\LT_C\Tablet\glass_n"
+	"$bumpmap" "models/tablet/glass_n"
 
 	$ambientocclusion 0
 

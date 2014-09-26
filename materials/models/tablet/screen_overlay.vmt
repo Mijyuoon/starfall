@@ -1,6 +1,6 @@
 "UnLitGeneric"
 {
-	"$baseTexture" "models\LT_C\Tablet\overlay_blank"
+	"$baseTexture" "models/tablet/overlay_blank"
 	"$halflambert" "1"
 	$translucent 1
 

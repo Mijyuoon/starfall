@@ -1,0 +1,9 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "models/tablet/backplate"
+	"$halflambert" "1"
+	"$bumpmap" "models/tablet/glass_n"
+
+	"$phong" "1"
+	"$phongboost" "0"
+}

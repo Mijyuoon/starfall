@@ -1,7 +1,7 @@
 "VertexLitGeneric"
 {
 	"$additive" 1
-	"$basetexture" "models\lt_c\tech\cellphone/glass"
+	"$basetexture" "models/cellphone/glass"
 	"$translucent" 1
 	$alpha 0.5
 	$nocull 1
@@ -11,7 +11,7 @@
 	"$envmaptint" "[ 0.75 0.75 0.75 ]"
 	"$model" 1
 	"$halflambert" 1
-	"$bumpmap" "models\lt_c\tech\cellphone/flat_n"
+	"$bumpmap" "models/cellphone/flat_n"
 	"$phong" "1"
 	"$phongexponent" "250"
 	"$phongboost" "1"	

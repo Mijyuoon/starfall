@@ -21,7 +21,7 @@
 AddCSLuaFile()
 
 SWEP.Category = "Wiremod"
-SWEP.PrintName	= "SF Remote (Tablet)"
+SWEP.PrintName	= "SF Remote (Civ. tablet)"
 SWEP.Purpose	= "Remote controler for Starfall Remote."
 SWEP.Base		= "weapon_pda_base"
 
@@ -30,7 +30,7 @@ SWEP.SlotPos	= 9
 SWEP.Weight		= 5
 
 SWEP.DeviceName = "Tablet-A"
-SWEP.DeviceModel = "models/lt_c/tech/tablet_civ.mdl"
+SWEP.DeviceModel = "models/tablet/tablet_civ.mdl"
 if util.IsValidModel(SWEP.DeviceModel) then
 	SWEP.Spawnable	= true
 	SWEP.AdminOnly	= true
@@ -49,7 +49,7 @@ if CLIENT then
 	SWEP.WElements = {
 		["tablet"] = { type = "Model", model = SWEP.DeviceModel, bone = "ValveBiped.Bip01_R_Hand", rel = "", pos = Vector(3.9, 6.1, -1.8), angle = Angle(90, 90, -90), size = Vector(1, 1, 1), color = Color(255, 255, 255, 255), surpresslightning = false, material = "", skin = 12, bodygroup = {} }
 	}
-	SWEP.RenderTexture = "models/lt_c/tablet/screen10"
+	SWEP.RenderTexture = "models/tablet/screen10"
 	SWEP.RenderViewPort = {
 		Left	= 14,
 		Top		= 146,

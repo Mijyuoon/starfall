@@ -14,13 +14,14 @@ local Use_MoonScript	= true
 local Use_PrintTable	= false
 -------------------------------------------------
 
-_MODLOAD = {}
+local MODLOAD = {}
+adv._MODLOAD = MODLOAD
 function loadmodule(name)
-	if _MODLOAD[name] then
-		return _MODLOAD[name]
+	if MODLOAD[name] then
+		return MODLOAD[name]
 	end
 	
-	local kname = name:gsub("%.","/") .. ".lua"
+	local kname = name:gsub("%.", "/") .. ".lua"
 	local is_sv = file.Exists(kname, "LUA")
 	local is_cl = file.Exists(kname, "LCL")
 	if not (is_sv or is_cl) then
@@ -29,8 +30,8 @@ function loadmodule(name)
 	
 	local func = CompileFile(kname, name)
 	if func then
-		_MODLOAD[name] = func() or true
-		return _MODLOAD[name]
+		MODLOAD[name] = func() or true
+		return MODLOAD[name]
 	end
 end
 
@@ -195,9 +196,11 @@ local function do_printr(arg, spaces, passed)
 	end
 end
 
-function adv.TblPrint(tbl)
-	local pass = adv.TblWeakKV()
-	do_printr(tbl, "", pass)
+function adv.TblPrint(...)
+	local arg = {...}
+	for i = 1, #arg do
+		do_printr(arg[i], "", {})
+	end
 end
 
 if CLIENT then
@@ -264,90 +267,163 @@ function adv.HttpCache.New(url, succ, fail)
 	return false
 end
 
-local esc = {
-	['<'] = "&lt;",
-	['>'] = "&gt;",
-	['&'] = "&amp;",
-	['"'] = "&quot;",
-}
-local repl; repl = {
-	__Stk = {};
-	StkPush = function(val)
-		table.insert(repl.__Stk, val)
-	end;
-	StkPop = function()
-		return table.remove(repl.__Stk)
-	end;
-	ReInit = function()
-		table.Empty(repl.__Stk)
-	end;
-	PtEsc = function(value)
-		return value[1]
-	end;
-	PtCmd = function(iden, ...)
-		if iden == "{\\}" then
-			local val = repl.StkPop()
-			return "</"..(val or "")..">"
+do ---- Markup parser --------------------------------
+	local esc = {
+		['<'] = "&lt;",
+		['>'] = "&gt;",
+		['&'] = "&amp;",
+		['"'] = "&quot;",
+	}
+	local repl; repl = {
+		__Stk = {};
+		StkPush = function(val)
+			table.insert(repl.__Stk, val)
+		end;
+		StkPop = function()
+			return table.remove(repl.__Stk)
+		end;
+		ReInit = function()
+			table.Empty(repl.__Stk)
+		end;
+		PtEsc = function(value)
+			return value[1]
+		end;
+		PtCmd = function(iden, ...)
+			if iden == "{\\}" then
+				local val = repl.StkPop()
+				return "</"..(val or "")..">"
+			end
+			local tags = adv.Markup.Tags
+			if not tags[iden] then return "" end
+			local html = tags[iden](...)
+			local tag = html:match"^<([a-z%-]+)"
+			if tag then repl.StkPush(tag) end
+			return html
+		end;
+		PtRaw = function(value)
+			return (value:gsub('[<>&"]', esc))
+		end;
+	}
+
+	local lP,lR,lS = lpeg.P, lpeg.R, lpeg.S
+	local lC,lCs,lCt = lpeg.C, lpeg.Cs, lpeg.Ct
+
+	local besc = lP"{{" / repl.PtEsc
+	local sesc = lP"\"\"" / repl.PtEsc
+	local iden = lC( (lR("az","AZ","09") + lS"#-")^1 )
+	local var1 = iden + "\"" * lCs(( (1 - lP"\"")^1 + sesc )^0) * "\""
+	local varn = var1 * (";" * var1)^0
+	local cmd = lCs(lP"{\\" * ( iden * ("=" * varn)^-1 )^-1 * "}" / repl.PtCmd)
+	local grammar = lCt(( besc + cmd + ((1 - lP"{")^1 / repl.PtRaw) )^0)
+
+	adv.Markup.Tags = {
+		c = function(arg1)
+			if not arg1 then return "" end
+			return adv.StrFormat{'<span style="color:$1">', arg1}
+		end;
+		n = function(arg1)
+			local temp = tonumber(arg1)
+			if not temp then return "" end
+			return adv.StrFormat{'<span style="font-size:$1">', temp}
+		end;
+		f = function(...)
+			local args = {...}
+			if #args < 1 then return "" end
+			adv.TblMap(args, function(v) 
+				local fn = v:gsub("\"", "")
+				if not fn:match(" ") then return fn end
+				return adv.StrFormat{"&quot;$1$quot;", fn}
+			end)
+			local temp = table.concat(args, ", ")
+			return adv.StrFormat{'<span style="font-family:$1">', temp}
+		end;
+		b = function() return "<b>" end;
+		i = function() return "<i>" end;
+		u = function() return "<u>" end;
+		s = function() return "<s>" end;
+	}
+
+	function adv.Markup.Parse(text)
+		repl.ReInit()
+		local vals = grammar:match(text)
+		for i = 1, #repl.__Stk do
+			vals[#vals+1] = "</"..repl.StkPop()..">"
 		end
-		local tags = adv.Markup.Tags
-		if not tags[iden] then return "" end
-		local html = tags[iden](...)
-		local tag = html:match"^<([a-z%-]+)"
-		if tag then repl.StkPush(tag) end
-		return html
-	end;
-	PtRaw = function(value)
-		return (value:gsub('[<>&"]', esc))
-	end;
-}
-
-local lP,lR,lS = lpeg.P, lpeg.R, lpeg.S
-local lC,lCs,lCt = lpeg.C, lpeg.Cs, lpeg.Ct
-
-local besc = lP"{{" / repl.PtEsc
-local sesc = lP"\"\"" / repl.PtEsc
-local iden = lC( (lR("az","AZ","09") + lS"#-")^1 )
-local var1 = iden + "\"" * lCs(( (1 - lP"\"")^1 + sesc )^0) * "\""
-local varn = var1 * (";" * var1)^0
-local cmd = lCs(lP"{\\" * ( iden * ("=" * varn)^-1 )^-1 * "}" / repl.PtCmd)
-local grammar = lCt(( besc + cmd + ((1 - lP"{")^1 / repl.PtRaw) )^0)
-
-adv.Markup.Tags = {
-	c = function(arg1)
-		if not arg1 then return "" end
-		return adv.StrFormat{'<span style="color:$1">', arg1}
-	end;
-	n = function(arg1)
-		local temp = tonumber(arg1)
-		if not temp then return "" end
-		return adv.StrFormat{'<span style="font-size:$1">', temp}
-	end;
-	f = function(...)
-		local args = {...}
-		if #args < 1 then return "" end
-		adv.TblMap(args, function(v) 
-			local fn = v:gsub("\"", "")
-			if not fn:match(" ") then return fn end
-			return adv.StrFormat{"&quot;$1$quot;", fn}
-		end)
-		local temp = table.concat(args, ", ")
-		return adv.StrFormat{'<span style="font-family:$1">', temp}
-	end;
-	b = function() return "<b>" end;
-	i = function() return "<i>" end;
-	u = function() return "<u>" end;
-	s = function() return "<s>" end;
-}
-
-function adv.Markup.Parse(text)
-	repl.ReInit()
-	local vals = grammar:match(text)
-	for i = 1, #repl.__Stk do
-		vals[#vals+1] = "</"..repl.StkPop()..">"
+		local result = table.concat(vals)
+		return (result:gsub("\r?\n", "<br>\n"))
 	end
-	local result = table.concat(vals)
-	return (result:gsub("\r?\n", "<br>\n"))
-end
+end --------------------------------------------------
+
+
+do ---- SQL query builder ----------------------------
+	local lP,lR,lS = lpeg.P, lpeg.R, lpeg.S
+	local lC,lCs,lCt = lpeg.C, lpeg.Cs, lpeg.Ct
+
+	local str = lC(lP"'" * (lP"''" + (1 - lP"'"))^0 * "'")
+	local mark = lCt(lC"?" * lC(lR("AZ", "az", "09", "__")^1)^-1)
+	local grammar = lCt(( str + mark + lC((1 - lS"'?")^1) )^0)
+	
+	local sq_meta = {}
+	sq_meta.__index = sq_meta
+	
+	function sq_meta:BindParam(key, value)
+		local ty, _value = type(value), nil
+		if ty == "boolean" then
+			_value = value and 1 or 0
+		elseif ty == "string" then
+			_value = SQLStr(value)
+		elseif ty == "number" then
+			_value = value
+		end
+		if not _value then
+			error("unsupported type")
+		end
+		self.params[key] = _value
+	end
+	
+	function sq_meta:BindTable(tbl)
+		for key, val in pairs(tbl) do
+			self:BindParam(key, val)
+		end
+	end
+	
+	local tcat = table.concat
+	function sq_meta:Execute()
+		local pd = self.params
+		local qd = self.builder
+		local count = 1
+		for i = 1, #qd do
+			local value = qd[i]
+			if istable(value) then
+				local nk = value[2]
+				nk = tonumber(nk) or nk
+				if not nk then
+					nk = count
+					count = nk + 1
+				end
+				if not pd[nk] then
+					error("Unbound parameter: "..nk)
+				end
+				qd[i] = pd[nk]
+			end
+		end
+		local query = tcat(qd)
+		local ret = sql.Query(query)
+		if ret == false then
+			return false, sql.LastError()
+		end
+		return ret
+	end
+	
+	function adv.SqlNew(query)
+		query = grammar:match(query)
+		local parv = adv.TblWeakKV()
+		return setmetatable({
+			params = parv,
+			builder = query,
+		}, sq_meta)
+	end
+end --------------------------------------------------
 
 if Use_PrintTable then
 	PrintTable = adv.TblPrint

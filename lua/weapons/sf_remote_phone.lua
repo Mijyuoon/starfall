@@ -30,7 +30,7 @@ SWEP.SlotPos	= 9
 SWEP.Weight		= 5
 
 SWEP.DeviceName = "Phone-A"
-SWEP.DeviceModel = "models/lt_c/tech/cellphone.mdl"
+SWEP.DeviceModel = "models/tablet/cellphone.mdl"
 if util.IsValidModel(SWEP.DeviceModel) then
 	SWEP.Spawnable	= true
 	SWEP.AdminOnly	= true
@@ -49,7 +49,7 @@ if CLIENT then
 	SWEP.WElements = {
 		["tablet"] = { type = "Model", model = SWEP.DeviceModel, bone = "ValveBiped.Bip01_R_Hand", rel = "", pos = Vector(3.9, 2.6, -1.6), angle = Angle(90, 90, -90), size = Vector(1.1, 1.1, 1.1), color = Color(255, 255, 255, 255), surpresslightning = false, material = "", skin = 11, bodygroup = {} }
 	}
-	SWEP.RenderTexture = "models/lt_c/tech/cellphone/screen_green"
+	SWEP.RenderTexture = "models/cellphone/screen_green"
 	SWEP.RenderViewPort = {
 		Left	= 241,
 		Top		= 0,

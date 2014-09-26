@@ -1,0 +1,6 @@
+"UnLitGeneric"
+{
+	$basetexture "models/cellphone/screen_overlay"
+	$translucent 1
+}
+
