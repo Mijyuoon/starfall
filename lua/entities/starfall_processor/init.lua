@@ -59,14 +59,13 @@ function ENT:CodeSent(ply, codetbl, mainfile)
 	end
 	
 	if not self.instance then return end
-
 	self.name = nil
 
 	if self.instance.ppdata.scriptnames and self.instance.mainfile and self.instance.ppdata.scriptnames[self.instance.mainfile] then
 		self.name = tostring(self.instance.ppdata.scriptnames[self.instance.mainfile])
 	end
 
-	if not self.name or string.len(self.name) <= 0 then
+	if not self.name or #self.name < 1 then
 		self.name = "generic"
 	end
 
@@ -76,12 +75,10 @@ function ENT:CodeSent(ply, codetbl, mainfile)
 end
 
 function ENT:Error(msg, traceback)
-	if type( msg ) == "table" then
+	if type(msg) == "table" then
 		if msg.message then
-			local line = msg.line
-			local file = msg.file
-
-			msg = ( file and ( file .. ":" ) or "" ) .. ( line and ( line .. ": " ) or "" ) .. msg.message
+			local line, file = msg.line, msg.file
+			msg = (file and (file .. ":") or "") .. (line and (line .. ": ") or "") .. msg.message
 		end
 	end
 	ErrorNoHalt(Format("Processor of %s errored: %s\n", self.owner:Nick(), msg))

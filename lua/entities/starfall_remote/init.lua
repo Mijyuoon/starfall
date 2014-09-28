@@ -22,29 +22,25 @@ end
 util.AddNetworkString("starfall_remote_link")
 util.AddNetworkString("starfall_remote_input")
 
-function ENT:Use(activator)
-	if activator:IsPlayer() then
-		local lk = activator.SFRemote_Link
-		net.Start("starfall_remote_link")
-			net.WriteEntity(activator)
-			net.WriteEntity(self)
-			local ply2 = SF.Entities.Wrap(activator)
-			if lk == self then
-				activator:ChatPrint(Format("Unlinked controller [%d]", self:EntIndex()))
-				activator.SFRemote_Link = nil
-				self:runScriptHook("link", ply2, false)
-				net.WriteBit(false)
-			else
-				activator:ChatPrint(Format("Linked controller [%d]", self:EntIndex()))
-				if IsValid(lk) then
-					lk:runScriptHook("link", ply2, false)
-				end
-				activator.SFRemote_Link = self
-				self:runScriptHook("link", ply2, true)
-				net.WriteBit(true)
-			end
-		net.Broadcast()
+net.Receive("starfall_remote_link", function(_, ply)
+	local ent = net.ReadEntity()
+	local ply2 = SF.WrapObject(ply)
+	local status = net.ReadBool()
+	if status then
+		local old = ply.SFRemote_Link
+		if IsValid(old) then
+			old:runScriptHook("link", ply2, false)
+		end
+		ply.SFRemote_Link = ent
+		ent:runScriptHook("link", ply2, true)
+	else
+		ply.SFRemote_Link = nil
+		ent:runScriptHook("link", ply2, false)
 	end
+end)
+
+function ENT:Use(activator)
+	-- Empty for now
 end
 
 function ENT:Think()
@@ -68,7 +64,7 @@ function ENT:HandleButtonPress(ply, vkey)
 	if not ins or ins.data.clSendInput then
 		net.Start("starfall_remote_input")
 			net.WriteEntity(self)
-			net.WriteBit(true)
+			net.WriteBool(true)
 			net.WriteUInt(vkey, 8)
 			net.WriteEntity(ply)
 		net.Broadcast()
@@ -84,9 +80,9 @@ function ENT:HandleKeyInput(ply, vkey, st)
 	if not ins or ins.data.clSendInput then
 		net.Start("starfall_remote_input")
 			net.WriteEntity(self)
-			net.WriteBit(false)
+			net.WriteBool(false)
 			net.WriteUInt(vkey, 8)
-			net.WriteBit(st)
+			net.WriteBool(st)
 			net.WriteEntity(ply)
 		net.Broadcast()
 	end

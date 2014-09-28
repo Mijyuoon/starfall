@@ -387,7 +387,6 @@ do ---- SQL query builder ----------------------------
 		end
 	end
 	
-	local tcat = table.concat
 	function sq_meta:Execute()
 		local pd = self.params
 		local qd = self.builder
@@ -407,7 +406,7 @@ do ---- SQL query builder ----------------------------
 				qd[i] = pd[nk]
 			end
 		end
-		local query = tcat(qd)
+		local query = table.concat(qd)
 		local ret = sql.Query(query)
 		if ret == false then
 			return false, sql.LastError()

@@ -13,37 +13,19 @@ surface.CreateFont("Starfall_ErrorFontBig", {
 	weight = 400,
 })
 
-net.Receive("starfall_remote_link", function()
-	local ply = net.ReadEntity()
-	local ent = net.ReadEntity()
-	local ply2 = SF.Entities.Wrap(ply)
-	local status = (net.ReadBit() > 0)
-	if status then
-		local old = ply.SFRemote_Link
-		if IsValid(old) then
-			old:runScriptHook("link", ply2, false)
-		end
-		ply.SFRemote_Link = ent
-		ent:runScriptHook("link", ply2, true)
-	else
-		ply.SFRemote_Link = nil
-		ent:runScriptHook("link", ply2, false)
-	end
-end)
-
 net.Receive("starfall_remote_input", function()
-	local screen = net.ReadEntity()
-	if not IsValid(screen) then return end
-	local mode = (net.ReadBit() > 0)
+	local ent = net.ReadEntity()
+	if not IsValid(ent) then return end
+	local mode = net.ReadBool()
 	if mode then
 		local keyid = net.ReadUInt(8)
 		local ply = SF.WrapObject(net.ReadEntity())
-		screen:runScriptHook("button", ply, keyid)
+		ent:runScriptHook("button", ply, keyid)
 	else
 		local vkey = net.ReadUInt(8)
-		local st = (net.ReadBit() > 0)
+		local st = net.ReadBool()
 		local ply = SF.WrapObject(net.ReadEntity())
-		screen:runScriptHook("keyinput", ply, vkey, st)
+		ent:runScriptHook("keyinput", ply, vkey, st)
 	end
 end)
 
@@ -57,7 +39,6 @@ function ENT:SetRenderFunc(data)
 			data.render.isRendering = true
 			self:runScriptHook("render", self.DrawTarget)
 			data.render.isRendering = nil
-			
 		elseif self.error then
 			surface.SetTexture(0)
 			surface.SetDrawColor(0, 0, 0, 140)

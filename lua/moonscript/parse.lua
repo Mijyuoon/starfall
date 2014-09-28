@@ -330,7 +330,8 @@ local build_grammar = wrap_env(function()
 		File = Shebang^-1 * (Block + Ct""),
 		Block = Ct(Line * (Break^1 * Line)^0),
 		CheckIndent = Cmt(Indent, check_indent), -- validates line is in correct indent
-		Line = (CheckIndent * Statement + Space * L(Stop)),
+		MultStmts = Statement * (sym";" * Statement)^0,
+		Line = (CheckIndent * MultStmts + Space * L(Stop)),
 
 		Statement = pos(
 				Import + While + With + For + ForEach + Switch + Return +

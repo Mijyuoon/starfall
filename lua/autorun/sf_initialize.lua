@@ -194,7 +194,7 @@ else
 	end -------------------------------------------------
 	
 	do ---- Context menu HUD switcher -------------------
-		local function AddHudSwitch(name, text, icon, stat)
+		local function AddSwitch(name, text, icon, stat)
 			properties.Add(name, {
 				Order = 350;
 				MenuLabel = text;
@@ -209,8 +209,45 @@ else
 			})
 		end
 		
-		AddHudSwitch("sfhud_enable", "Enable HUD", "icon16/tick.png", true)
-		AddHudSwitch("sfhud_disable", "Disable HUD", "icon16/cross.png", false)
+		AddSwitch("sfhud_enable", "Enable HUD", "icon16/connect.png", true)
+		AddSwitch("sfhud_disable", "Disable HUD", "icon16/disconnect.png", false)
+	end -------------------------------------------------
+	
+	do ---- Context menu remote switcher ----------------
+		local function AddSwitch(name, text, icon, stat)
+			properties.Add(name, {
+				Order = 350;
+				MenuLabel = text;
+				MenuIcon = icon;
+				Filter = function(_, ent, ply)
+					return IsValid(ent) and ent:GetClass() == "starfall_remote"
+					and (ply.SFRemote_Link == ent) ~= stat
+				end;
+				Action = function(_, ent)
+					local ply = LocalPlayer()
+					local lk = ply.SFRemote_Link
+					net.Start("starfall_remote_link")
+						net.WriteEntity(ent)
+						local ply2 = SF.WrapObject(ply)
+						if lk == ent then
+							ply.SFRemote_Link = nil
+							ent:runScriptHook("link", ply2, false)
+							net.WriteBool(false)
+						else
+							if IsValid(lk) then
+								lk:runScriptHook("link", ply2, false)
+							end
+							ply.SFRemote_Link = ent
+							ent:runScriptHook("link", ply2, true)
+							net.WriteBool(true)
+						end
+					net.SendToServer()
+				end;
+			})
+		end
+		
+		AddSwitch("sfrmt_enable", "Link Remote", "icon16/connect.png", true)
+		AddSwitch("sfrmt_disable", "Unlink Remote", "icon16/disconnect.png", false)
 	end -------------------------------------------------
 end
 

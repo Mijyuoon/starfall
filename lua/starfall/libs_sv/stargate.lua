@@ -144,7 +144,9 @@ end
 
 function sg_lib.listenTeleport(gate, func)
 	SF.CheckType(gate, e_meta)
-	if func then SF.CheckType(func, "function") end
+	if func ~= nil then 
+		SF.CheckType(func, "function")
+	end
 	gate = unwrap(gate)
 	if IsValid(gate) and gate.IsStargate then
 		local instance = SF.instance
