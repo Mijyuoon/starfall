@@ -2,7 +2,7 @@
 -- Stargate library functions
 -------------------------------------------------------------------------------
 
-local sg_lib = SF.Libraries.Register("stargate")
+local sg_lib = SF.Libraries.Register("sglib")
 local e_meta = SF.Entities.Metatable
 
 local wrap = SF.Entities.Wrap
