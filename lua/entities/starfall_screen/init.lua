@@ -88,7 +88,8 @@ net.Receive("starfall_screen_download", function(len, ply)
 				net.WriteEntity(screen)
 				net.WriteString(fname)
 				local data = fdata:sub(offset, offset+64000)
-				net.WriteString(data)
+				net.WriteUInt(#data, 16)
+				net.WriteData(data, #data)
 				net.Send(ply)
 				offset = offset + #data + 1
 			until offset > #fdata
@@ -206,7 +207,7 @@ function ENT:CodeSent(ply, files, mainfile)
 	self.mainfile = mainfile
 	screens[self] = self
 	for key,val in pairs(files) do
-		self.co_files[key] = util.Base64Encode(util.Compress(val))
+		self.co_files[key] = util.Compress(val)
 	end
 
 	if update then sendScreenCode(nil, self) end

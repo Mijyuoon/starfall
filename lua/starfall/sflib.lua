@@ -505,9 +505,9 @@ if SERVER then
 		net.Send(ply)
 
 		uploaddata[ply] = {
-			files={},
+			files = {},
 			mainfile = nil,
-			needHeader=true,
+			needHeader =true,
 			callback = callback,
 		}
 		return true
@@ -553,7 +553,8 @@ if SERVER then
 			updata.needHeader = nil
 		elseif action == SF_UPLOAD_DATA then
 			local filename = net.ReadString()
-			local filedata = net.ReadString()
+			local filesz = net.ReadUInt(16)
+			local filedata = net.ReadData(filesz)
 			local current_file = updata.files[filename]
 			if not current_file then
 				updata.files[filename] = {filedata}
@@ -563,7 +564,7 @@ if SERVER then
 		elseif action == SF_UPLOAD_END then
 			for key, val in pairs(updata.files) do
 				if type(val) == "table" then
-					updata.files[key] = table.concat(val)
+					updata.files[key] = util.Decompress(table.concat(val))
 					if key ~= "generic" then
 						local cache_path = make_path(ply, key)
 						file.Write(cache_path, updata.files[key])
@@ -586,9 +587,11 @@ else
 				net.Start("starfall_upload")
 				net.WriteInt(SF_UPLOAD_CRC, 8)
 				for key, val in pairs(inc_table.files) do
+					val = util.Compress(val)
 					net.WriteBit(true)
 					net.WriteString(key)
 					net.WriteString(util.CRC(val))
+					inc_table.files[key] = val
 				end
 				net.WriteBit(false)
 				net.SendToServer()
@@ -615,7 +618,8 @@ else
 					net.WriteInt(SF_UPLOAD_DATA, 8)
 					net.WriteString(fname)
 					local data = fdata:sub(offset, offset+64000)
-					net.WriteString(data)
+					net.WriteUInt(#data, 16)
+					net.WriteData(data, #data)
 					net.SendToServer()
 					offset = offset + #data + 1
 				until offset > #fdata

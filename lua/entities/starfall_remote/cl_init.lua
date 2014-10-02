@@ -4,8 +4,12 @@ ENT.RenderGroup = RENDERGROUP_OPAQUE
 
 include("starfall/SFLib.lua")
 assert(SF, "Starfall didn't load correctly!")
+
 local libs = SF.Libraries.CreateLocalTbl{"render", "input"}
 local Context = SF.CreateContext(nil, nil, nil, libs)
+
+local RemotesList = {}
+SF.AllRemotes = RemotesList
 
 surface.CreateFont("Starfall_ErrorFontBig", {
 	font = "Arial",
@@ -56,6 +60,7 @@ function ENT:SetRenderFunc(data)
 end
 
 function ENT:Initialize()
+	RemotesList[self] = true
 	self:SetContextBase()
 	self.files = {}
 	net.Start("starfall_screen_download")
@@ -68,6 +73,7 @@ function ENT:OnRemove()
 	local vtab = self:GetTable()
 	timer.Simple(0.1, function()
 		if IsValid(self) then return end
+		RemotesList[self] = nil
 		if not vtab.instance then return end
 		if not vtab.instance.error then
 			vtab:runScriptHook("last")

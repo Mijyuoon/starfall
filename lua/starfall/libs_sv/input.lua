@@ -48,7 +48,11 @@ function input_lib.keyToChar(ply, key, opt)
 		end
 	end
 	
-	if opt and isstring(ret) then return ret:byte() end
+	if not opt and isnumber(ret) then
+		return string.char(ret)
+	elseif opt and isstring(ret) then
+		return string.byte(ret)
+	end
 	return ret
 end
 

@@ -6,39 +6,21 @@ Your version: $cur   Latest version: $last
 Please update to get new features and bug fixes!]]
 
 if SERVER then
-	AddCSLuaFile()
-	AddCSLuaFile("moonscript/base.lua")
-	AddCSLuaFile("moonscript/compile.lua")
-	AddCSLuaFile("moonscript/data.lua")
-	AddCSLuaFile("moonscript/dump.lua")
-	AddCSLuaFile("moonscript/errors.lua")
-	AddCSLuaFile("moonscript/line_tables.lua")
-	AddCSLuaFile("moonscript/lpeg_re.lua")
-	AddCSLuaFile("moonscript/lulpeg.lua")
-	AddCSLuaFile("moonscript/parse.lua")
-	AddCSLuaFile("moonscript/transform.lua")
-	AddCSLuaFile("moonscript/types.lua")
-	AddCSLuaFile("moonscript/util.lua")
+	resource.AddFile("materials/models/spacecode/glass.vmt")
+	resource.AddFile("materials/models/spacecode/sfchip.vmt")
+	resource.AddFile("materials/models/spacecode/sfpcb.vmt")
+	resource.AddFile("models/spacecode/sfchip.mdl")
+	resource.AddFile("models/spacecode/sfchip_medium.mdl")
+	resource.AddFile("models/spacecode/sfchip_small.mdl")
 	
-	AddCSLuaFile("moonscript/compile/statement.lua")
-	AddCSLuaFile("moonscript/compile/value.lua")
-	
-	AddCSLuaFile("moonscript/transform/names.lua")
-	AddCSLuaFile("moonscript/transform/destructure.lua")
-	
-	resource.AddFile( "materials/models/spacecode/glass.vmt" )
-	resource.AddFile( "materials/models/spacecode/sfchip.vmt" )
-	resource.AddFile( "materials/models/spacecode/sfpcb.vmt" )
-	resource.AddFile( "models/spacecode/sfchip.mdl" )
-	resource.AddFile( "models/spacecode/sfchip_medium.mdl" )
-	resource.AddFile( "models/spacecode/sfchip_small.mdl" )
-	
-	util.AddNetworkString("SF_hudscreen")
+	---- Disabled (Useless) ----------------
+	-- util.AddNetworkString("SF_hudscreen")
 else
 	list.Set("Starfall_gate_Models", "models/spacecode/sfchip.mdl", true)
 	list.Set("Starfall_gate_Models", "models/spacecode/sfchip_medium.mdl", true)
 	list.Set("Starfall_gate_Models", "models/spacecode/sfchip_small.mdl", true)
-
+	
+	--[[---- Disabled (Useless) ----------------------
 	do ---- Screen to HUD rendering ---------------------
 		HudSF = HudSF or {
 			Scale = 2,
@@ -141,11 +123,10 @@ else
 			end
 		end)
 	end -------------------------------------------------
+	------------------------------------------------]]
 	
 	do ---- Automatic update check ----------------------
-		surface.CreateFont("SFUpdateMsg", {
-			font = "Verdana", size = 16, weight = 700
-		})
+		scr.CreateFont("SFUpdateMsg", "Verdana", 16, 700)
 		
 		local function DisplayUpdateMsg(vCur, vLast)
 			local updateWnd = vgui.Create("DFrame")
@@ -172,7 +153,8 @@ else
 		end
 		
 		local function GetVersion(dat)
-			dat = (dat or ""):match("^SF.Version=(%d+)$")
+			if not dat then return nil end
+			dat = dat:match("^SF.Version=(%d+)$")
 			return tonumber(dat)
 		end
 		
@@ -213,7 +195,7 @@ else
 		AddSwitch("sfhud_disable", "Disable HUD", "icon16/disconnect.png", false)
 	end -------------------------------------------------
 	
-	do ---- Context menu remote switcher ----------------
+	do ---- Context menu Remote switcher ----------------
 		local function AddSwitch(name, text, icon, stat)
 			properties.Add(name, {
 				Order = 350;
@@ -249,30 +231,142 @@ else
 		AddSwitch("sfrmt_enable", "Link Remote", "icon16/connect.png", true)
 		AddSwitch("sfrmt_disable", "Unlink Remote", "icon16/disconnect.png", false)
 	end -------------------------------------------------
+	
+	do ---- Link menu for Remotes -----------------------
+		scr.CreateFont("SFMenuButton", "Default", 18, 700)
+		
+		local _meta = {}
+		_meta.__index = _meta
+		local function MakeMenuObject()
+			local obj = setmetatable({}, _meta)
+			return obj:__init()
+		end
+		
+		function _meta:__init()
+			local fMain = vgui.Create("DFrame")
+			fMain:SetDeleteOnClose(false)
+			fMain:SetTitle("Starfall Remote linking")
+			fMain:ShowCloseButton(true)
+			fMain:SetDraggable(true)
+			fMain:SetSize(320, 480)
+			fMain:Center()
+			fMain:Close()
+			
+			local lsRmt = vgui.Create("DListView", fMain)
+			local eid = lsRmt:AddColumn("Ent ID")
+			lsRmt:AddColumn("Instance Name")
+			eid:SetFixedWidth(50)
+			lsRmt:SetMultiSelect(false)
+			lsRmt:SetSize(308, 400)
+			lsRmt:SetPos(6, 30)
+			function lsRmt.DoDoubleClick(_, _, sel)
+				self:RemoteLink(sel.Data.ud_ent)
+				fMain:Close()
+			end
+			
+			local btLnk = vgui.Create("DButton", fMain)
+			btLnk:SetText("Link selected")
+			btLnk:SetFont("SFMenuButton")
+			btLnk:SetImage("icon16/accept.png")
+			btLnk:SetSize(190, 40)
+			btLnk:SetPos(6, 434)
+			function btLnk.DoClick()
+				local sel = lsRmt:GetSelected()
+				if #sel < 1 then return end
+				self:RemoteLink(sel[1].Data.ud_ent)
+			end
+			
+			local btUnl = vgui.Create("DButton", fMain)
+			btUnl:SetText("Unlink")
+			btUnl:SetFont("SFMenuButton")
+			btUnl:SetImage("icon16/delete.png")
+			btUnl:SetSize(114, 40)
+			btUnl:SetPos(200, 434)
+			function btUnl.DoClick()
+				self:RemoteUnlink()
+				lsRmt:ClearSelection()
+			end
+			
+			self.Window = fMain
+			self.RemList = lsRmt
+			return self
+		end
+		
+		function _meta:RemoteLink(ent)
+			local ply = LocalPlayer()
+			local lnk = ply.SFRemote_Link
+			if lnk == ent then return end
+			local nply = SF.WrapObject(ply)
+			if IsValid(lnk) then
+				lnk:runScriptHook("link", nply, false)
+			end
+			ply.SFRemote_Link = ent
+			ent:runScriptHook("link", nply, true)
+			net.Start("starfall_remote_link")
+				net.WriteEntity(ent)
+				net.WriteBool(true)
+			net.SendToServer()
+		end
+		
+		function _meta:RemoteUnlink()
+			local ply = LocalPlayer()
+			local lnk = ply.SFRemote_Link
+			ply.SFRemote_Link = nil
+			if not IsValid(lnk) then return end
+			local nply = SF.WrapObject(ply)
+			lnk:runScriptHook("link", nply, false)
+			net.Start("starfall_remote_link")
+				net.WriteEntity(lnk)
+				net.WriteBool(false)
+			net.SendToServer()
+		end
+		
+		local function owns_filter(ent)
+			if not IsValid(ent) then
+				return false
+			end
+			local ply = LocalPlayer()
+			local ownr = ent.owner
+			return ownr == ply
+		end
+		
+		function _meta:UpdateList()
+			self.RemList:Clear()
+			local tbl = SF.AllRemotes
+			local ply = LocalPlayer()
+			for ent in pairs(tbl) do
+				local inst = ent.instance
+				if owns_filter(ent) and inst and not inst.error then
+					local nametbl = inst.ppdata.scriptnames
+					local name = nametbl and nametbl[inst.mainfile] or "(none)"
+					local row = self.RemList:AddLine(ent:EntIndex(), name)
+					if ply.SFRemote_Link == ent then
+						self.RemList:SelectItem(row)
+					end
+					row.Data.ud_ent = ent
+				end
+			end
+		end
+		
+		function _meta:ShowMenu()
+			self.Window:Show()
+			self.Window:Center()
+			self.Window:MakePopup()
+		end
+		
+		hook.Add("Initialize", "sf_linkmenu", function()
+			SF.RemoteLinkMenu = MakeMenuObject()
+			concommand.Add("sf_linkmenu", function()
+				SF.RemoteLinkMenu:UpdateList()
+				SF.RemoteLinkMenu:ShowMenu()
+			end)
+		end)
+	end -------------------------------------------------
 end
 
 if not net.ReadBool then
 	net.WriteBool = net.WriteBit
 	function net.ReadBool()
 		return net.ReadBit() > 0
-	end
-end
-
-if not util.Base64Decode then
-	local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-	
-	function util.Base64Decode(data)
-		data = string.gsub(data, '[^'..b..'=]', '')
-		return (data:gsub('.', function(x)
-			if (x == '=') then return '' end
-			local r,f='',(b:find(x)-1)
-			for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
-			return r;
-		end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
-			if (#x ~= 8) then return '' end
-			local c=0
-			for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
-			return string.char(c)
-		end))
 	end
 end

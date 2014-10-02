@@ -3,14 +3,14 @@
 --- Quaternion library
 -- @deprecated Pure Lua implementation. This can be done with a user library.
 -- @deprecated Deprecated my ass. ~Mijyuoon
-local quat_lib, quat_lib_metamethods = SF.Libraries.Register("quaternion")
+local quat_lib, quat_lib_meta = SF.Libraries.Register("quaternion")
 
 --[[
 -- Quaternion Support
 -- Converted from Wiremod's E2 Quaternion library for general lua use
 -- Original code for use by Bubbus
 -- Permission received for use from Bubbus by Radon
--- http:\\wiki.wiremod.com/?title=Expression2#Quaternion
+-- http://wiki.wiremod.com/?title=Expression2#Quaternion
 --
 -- Credits to Radon for addition to Starfall
 -- Credits to Divran for painful amounts of testing
@@ -31,7 +31,7 @@ local cosh  = math.cosh
 local acos  = math.acos
 local min 	= math.min
 
-local delta = wire_expression2_delta or 0.0000001000000
+local delta = wire_expression2_delta or 0.0000001
 
 local isValid = SF.Entities.IsValid -- For checking shit
 
@@ -40,11 +40,8 @@ local rad2deg = 180/math.pi
 
 --- Quaternion type
 -- @deprecated Pure Lua implementation. This can be done with a user library.
+-- @depracated Not deprecated, whoever put that here is a moron. ~Mijyuoon
 local quat_methods, quat_metamethods = SF.Typedef("Quaternion")
---[[quat_metamethods = {__index = quat_lib}
-quat_lib.__metatable = quat_metamethods
-quat_metamethods.__type = "Quaternion"
-setmetatable(quat_lib, quat_metamethods)]]
 
 --****************************** Helper functions ******************************--
 
@@ -195,7 +192,7 @@ function quat_lib.new(self, ...)
 	return argTypesToQuat[argtypes] and argTypesToQuat[argtypes](...) or quicknew(0,0,0,0)
 end
 
-quat_lib_metamethods.__call = quat_lib.new
+quat_lib_meta.__call = quat_lib.new
 
 
 local function format(value)

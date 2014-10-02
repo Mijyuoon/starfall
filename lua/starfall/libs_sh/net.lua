@@ -14,8 +14,11 @@ local burst_interval = CreateConVar("sf_net_burst_interval", "0.1", { FCVAR_ARCH
 						"The interval of the timer that adds one more available net message. Requires a map reload to update.")
 
 local function can_send(instance, noupdate)
-	if instance.data.net.burst > 0 then
-		if not noupdate then instance.data.net.burst = instance.data.net.burst - 1 end
+	local inet = instance.data.net
+	if inet.burst > 0 then
+		if not noupdate then
+			inet.burst = inet.burst - 1
+		end
 		return true
 	else
 		return false
@@ -23,7 +26,8 @@ local function can_send(instance, noupdate)
 end
 
 local function write(instance, type, value, setting)
-	instance.data.net.data[#instance.data.net.data+1] = { "Write" .. type, value, setting }
+	local idat = instance.data.net.data
+	idat[#idat+1] = { "Write" .. type, value, setting }
 end
 
 local instances = {}
@@ -38,17 +42,16 @@ SF.Libraries.AddHook("initialize", function(instance)
 end)
 
 SF.Libraries.AddHook("deinitialize", function(instance)
-	if instance.data.net.started then
-		instance.data.net.started = false
-	end
-	
+	instance.data.net.started = nil
 	instances[instance] = nil
 end)
 
 timer.Create("SF_Net_BurstCounter", burst_interval:GetFloat(), 0, function()
-	for instance, b in pairs(instances) do
-		if instance.data.net.burst < burst_limit:GetInt() then
-			instance.data.net.burst = instance.data.net.burst + 1
+	local limit = burst_limit:GetInt()
+	for instance in pairs(instances) do
+		local inet = instance.data.net
+		if inet.burst < limit then
+			inet.burst = inet.burst + 1
 		end
 	end
 end)
@@ -60,14 +63,16 @@ if SERVER then
 		if target then
 			if SF.GetType(target) == "table" then
 				local newtarget = {}
-				for i=1,#target do
-					SF.CheckType(SF.Entities.Unwrap(target[i]), "Player", 1)
-					newtarget[i] = SF.Entities.Unwrap(target[i])
+				for i=1, #target do
+					local ent = SF.Entities.Unwrap(target[i])
+					SF.CheckType(ent, "Player", 1)
+					newtarget[i] = ent
 				end
 				return net.Send, newtarget
 			else
-				SF.CheckType(SF.Entities.Unwrap(target), "Player", 1) -- TODO: unhacky this
-				return net.Send, SF.Entities.Unwrap(target)
+				local ent = SF.Entities.Unwrap(target)
+				SF.CheckType(ent, "Player", 1)
+				return net.Send, ent
 			end
 		else
 			return net.Broadcast
@@ -79,19 +84,12 @@ if SERVER then
 	-- @param target The player or table of players to send the message to, or nil to send to everyone
 	function net_library.send(target)
 		local instance = SF.instance
-		if not instance.data.net.started then SF.throw("net message not started", 2) end
+		if not instance.data.net.started then
+			SF.throw("net message not started", 2)
+		end
 
 		local sendfunc, newtarget = checktargets(target)
 		local targ_ent = SF.instance.data.entity
-		--[[
-		local to_all = instance.data.net.to_all
-		local targ_ent = SF.instance.data.entity
-		if type(to_all) == "Entity" then
-			targ_ent = to_all
-		elseif to_all == true then
-			targ_ent = NULL
-		end
-		--]]
 		
 		local data = instance.data.net.data
 		if #data == 0 then return false end
@@ -112,17 +110,10 @@ else
 	-- @client
 	function net_library.send()
 		local instance = SF.instance
-		if not instance.data.net.started then SF.throw("net message not started", 2) end
-		local targ_ent = SF.instance.data.entity
-		--[[
-		local to_all = instance.data.net.to_all
-		local targ_ent = SF.instance.data.entity
-		if type(to_all) == "Entity" then
-			targ_ent = to_all
-		elseif to_all == true then
-			targ_ent = NULL
+		if not instance.data.net.started then
+			SF.throw("net message not started", 2)
 		end
-		--]]
+		local targ_ent = SF.instance.data.entity
 		
 		local data = instance.data.net.data
 		if #data == 0 then return false end
@@ -140,31 +131,15 @@ else
 	end
 end
 
---[[
---- Sets whether send a message to all screens
--- @shared
--- @param flag To all screens?
-function net_library.toAll(flag)
-	SF.CheckType(flag, "boolean")
-	SF.instance.data.net.to_all = flag
-end
-
---- Sets target entity to send a message to
--- @shared
--- @param ent Target entity
-function net_library.toEnt(targ)
-	SF.CheckType(targ, SF.Entities.Metatable)
-	SF.instance.data.net.to_all = SF.Entities.Unwrap(targ)
-end
---]]
-
 --- Starts the net message
 -- @shared
 -- @param name The message name
 function net_library.start(name)
 	SF.CheckType(name, "string")
 	local instance = SF.instance
-	if not can_send(instance) then SF.throw("can't send net messages that often", 2) end
+	if not can_send(instance) then 
+		SF.throw("can't send net messages that often", 2)
+	end
 	
 	instance.data.net.started = true
 	instance.data.net.data = {}
@@ -176,10 +151,11 @@ end
 -- @param val The table to be written
 function net_library.writeTable(t)
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then
+		SF.throw("net message not started", 2)
+	end
 	
 	SF.CheckType(t, "table")
-	
 	write(instance, "Table", SF.Unsanitize(t))
 	return true
 end
@@ -196,10 +172,11 @@ end
 -- @param val The string to be written
 function net_library.writeString(t)
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then
+		SF.throw("net message not started", 2)
+	end
 
 	SF.CheckType(t, "string")
-
 	write(instance, "String", t)
 	return true
 end
@@ -217,11 +194,12 @@ end
 -- @param bitCount The amount of bits to write
 function net_library.writeInt(t, n)
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then
+		SF.throw("net message not started", 2)
+	end
 
 	SF.CheckType(t, "number")
 	SF.CheckType(n, "number")
-
 	write(instance, "Int", t, n)
 	return true
 end
@@ -241,11 +219,12 @@ end
 -- @param bitCount The amount of bits to write
 function net_library.writeUInt(t, n)
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then
+		SF.throw("net message not started", 2)
+	end
 
 	SF.CheckType(t, "number")
 	SF.CheckType(n, "number")
-
 	write(instance, "UInt", t, n)
 	return true
 end
@@ -264,10 +243,11 @@ end
 -- @param val The bit to be written (boolean)
 function net_library.writeBit(t)
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then
+		SF.throw("net message not started", 2)
+	end
 
 	SF.CheckType(t, "boolean")
-
 	write(instance, "Bit", t)
 	return true
 end
@@ -284,10 +264,11 @@ end
 -- @param val The double to be written
 function net_library.writeDouble(t)
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then
+		SF.throw("net message not started", 2)
+	end
 
 	SF.CheckType(t, "number")
-
 	write(instance, "Double", t)
 	return true
 end
@@ -304,10 +285,11 @@ end
 -- @param val The float to be written
 function net_library.writeFloat(t)
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then
+		SF.throw("net message not started", 2)
+	end
 
 	SF.CheckType(t, "number")
-
 	write(instance, "Float", t)
 	return true
 end
@@ -323,7 +305,9 @@ end
 -- @return The amount of bytes written so far
 function net_library.bytesWritten()
 	local instance = SF.instance
-	if not instance.data.net.started then SF.throw("net message not started", 2) end
+	if not instance.data.net.started then 
+		SF.throw("net message not started", 2)
+	end
 
 	return net.BytesWritten()
 end
@@ -340,9 +324,5 @@ net.Receive("SF_netmessage", function(len, ply)
 	if IsValid(ent) and ent.SFAcceptNetMsg then
 		if not ent.runScriptHook then return end
 		ent:runScriptHook("net", name, len, ply and SF.WrapObject(ply))
-	--[[
-	elseif ent and ent:EntIndex() == 0 then
-		SF.RunScriptHook("net", name, len, ply and SF.WrapObject(ply))
-	--]]
 	end
 end)

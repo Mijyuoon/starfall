@@ -68,7 +68,8 @@ net.Receive("starfall_screen_download", function()
 	elseif action == SF_UPLOAD_DATA then
 		local screen = net.ReadEntity()
 		local filename = net.ReadString()
-		local filedata = net.ReadString()
+		local filesz = net.ReadUInt(16)
+		local filedata = net.ReadData(filesz)
 		local current_file = screen.files[filename]
 		if type(current_file) ~= "table" then
 			screen.files[filename] = {filedata}
@@ -79,8 +80,7 @@ net.Receive("starfall_screen_download", function()
 		local screen = net.ReadEntity()
 		for key, val in pairs(screen.files) do
 			if type(val) == "table" then
-				local file_data = util.Base64Decode(table.concat(val))
-				screen.files[key] = util.Decompress(file_data)
+				screen.files[key] = util.Decompress(table.concat(val))
 				if key ~= "generic" then
 					local cache_path = make_path(screen.owner, key)
 					if cache_path then
