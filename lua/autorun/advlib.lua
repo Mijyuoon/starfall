@@ -63,6 +63,13 @@ function adv.StrSet(text, pos, rep)
 	return text:sub(1, pos-1) .. rep .. text:sub(pos+1, -1)
 end
 
+function adv.StrSplit(str, sep)
+	sep = lpeg.re.compile(sep)
+	local elem = lpeg.C((1 - sep)^0)
+	local gs = lpeg.Ct(elem * (sep * elem)^0)
+	return gs:match(str)
+end
+
 adv.StrPatt  = lpeg.re.compile
 adv.StrFind  = lpeg.re.find
 adv.StrMatch = lpeg.re.match

@@ -490,8 +490,8 @@ if SERVER then
 			return false
 		end
 		
-		local fdata = file.Read(path, "DATA")
-		if util.CRC(fdata) ~= crc then
+		local fdata = util.Decompress(file.Read(path, "DATA"))
+		if not fdata or util.CRC(fdata) ~= crc then
 			return false
 		end
 		return true, fdata
@@ -564,10 +564,11 @@ if SERVER then
 		elseif action == SF_UPLOAD_END then
 			for key, val in pairs(updata.files) do
 				if type(val) == "table" then
-					updata.files[key] = util.Decompress(table.concat(val))
+					local file_data = table.concat(val)
+					updata.files[key] = util.Decompress(file_data)
 					if key ~= "generic" then
 						local cache_path = make_path(ply, key)
-						file.Write(cache_path, updata.files[key])
+						file.Write(cache_path, file_data)
 						--print("Write cache for: "..key.." as "..cache_path)
 					end
 				end

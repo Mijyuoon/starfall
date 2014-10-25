@@ -30,7 +30,7 @@ local function check_cached(ply, path, crc)
 	end
 	
 	local fdata = util.Decompress(file.Read(path, "DATA"))
-	if util.CRC(fdata) ~= crc then
+	if not fdata or util.CRC(fdata) ~= crc then
 		return false
 	end
 	return true, fdata
@@ -80,7 +80,8 @@ net.Receive("starfall_screen_download", function()
 		local screen = net.ReadEntity()
 		for key, val in pairs(screen.files) do
 			if type(val) == "table" then
-				screen.files[key] = util.Decompress(table.concat(val))
+				local file_data = table.concat(val)
+				screen.files[key] = util.Decompress(file_data)
 				if key ~= "generic" then
 					local cache_path = make_path(screen.owner, key)
 					if cache_path then

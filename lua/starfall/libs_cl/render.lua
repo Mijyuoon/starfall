@@ -29,7 +29,7 @@ local clamp = math.Clamp
 local max = math.max
 local cam = cam
 local dgetmeta = debug.getmetatable
-local matrix_meta = SF.VMatrix.Metatable --debug.getregistry().VMatrix
+local matrix_meta = SF.VMatrix.Metatable
 
 local v_unwrap = SF.VMatrix.Unwrap
 
@@ -37,16 +37,19 @@ local currentcolor
 local MATRIX_STACK_LIMIT = 8
 local matrix_stack = {}
 
-SF.Libraries.AddHook("prepare",function(instance, hook)
-	if hook == "render" then
+SF.Libraries.AddHook("prepare", function(instance, hkname)
+	if hkname == "render" then
 		currentcolor = Color(0,0,0,0)
 	end
 end)
 
-SF.Libraries.AddHook("cleanup", function(instance, hook)
-	for i=#matrix_stack,1,-1 do
-		cam.PopModelMatrix()
-		matrix_stack[i] = nil
+SF.Libraries.AddHook("cleanup", function(instance, hkname)
+	if hkname == "render" then
+		render.SetScissorRect(0,0,0,0,false)
+		for i=1, #matrix_stack do
+			cam.PopModelMatrix()
+			matrix_stack[i] = nil
+		end
 	end
 end)
 
@@ -120,14 +123,8 @@ function poly_metamethods:__index(k)
 	SF.CheckType(k,"number")
 	local poly = unwrappoly(self)
 	if not poly then return nil end
-	if k <= 0 or k > #poly then return nil end
+	if k < 1 or k > #poly then return nil end
 	return poly[k]
-end
-
-function poly_metamethods:__len()
-	SF.CheckType(self,poly_metamethods)
-	local poly = unwrappoly(self)
-	return poly and #poly or nil
 end
 
 function poly_metamethods:__newindex(k,v)
@@ -136,8 +133,8 @@ function poly_metamethods:__newindex(k,v)
 	SF.CheckType(v,"table")
 	local poly = unwrappoly(self)
 	if not poly then return end
-	if k <= 0 or k > (#poly)+1 then 
-		SF.throw("poly index out of bounds: "..k.." out of "..#poly,2) 
+	if k < 1 or k > #poly+1 then 
+		SF.throw("poly index out of bounds: "..k.." out of "..#poly, 2) 
 	end
 	poly[k] = checkvertex(v)
 end
@@ -150,17 +147,15 @@ function render_library.pushMatrix(m)
 	SF.CheckType(m,matrix_meta)
 	local renderdata = SF.instance.data.render
 	if not renderdata.isRendering then
-		SF.throw("Not in rendering hook",2) 
+		SF.throw("Not in rendering hook", 2) 
 	end
 	local id = #matrix_stack
-	if id + 1 > MATRIX_STACK_LIMIT then
-		SF.throw("Pushed too many matricies",2)
+	if id >= MATRIX_STACK_LIMIT then
+		SF.throw("Pushed too many matricies", 2)
 	end
-	local newmatrix
+	local newmatrix = v_unwrap(m)
 	if matrix_stack[id] then
-		newmatrix = matrix_stack[id] * v_unwrap(m)
-	else
-		newmatrix = v_unwrap(m)
+		newmatrix = matrix_stack[id] * newmatrix
 	end
 	matrix_stack[id+1] = newmatrix
 	cam.PushModelMatrix(newmatrix)
@@ -172,20 +167,38 @@ function render_library.popMatrix()
 	if not renderdata.isRendering then 
 		SF.throw("Not in rendering hook",2) 
 	end
-	if #matrix_stack <= 0 then 
+	if #matrix_stack < 1 then 
 		SF.throw("Popped too many matricies",2) 
 	end
 	matrix_stack[#matrix_stack] = nil
 	cam.PopModelMatrix()
 end
 
+--- Enables/disables clipping rectangle
+-- Pass nil to x1 and y1 to disable
+-- @param x1 Starting X coordinate
+-- @param y1 Starting Y coordinate
+-- @param x2 Ending X coordinate
+-- @param y2 Ending Y coordinate
+function render_library.setScissorRect(x1,y1,x2,y2)
+	if x1 == nil and y1 == nil then
+		render.SetScissorRect(0, 0, 0, 0, false)
+	else
+		SF.CheckType(x1, "number")
+		SF.CheckType(y1, "number")
+		SF.CheckType(x2, "number")
+		SF.CheckType(y2, "number")
+		render.SetScissorRect(x1, y1, x2, y2, true)
+	end
+end
+
 --- Sets the draw color
 -- @param clr Color type
-function render_library.setColor ( clr )
-    SF.CheckType( clr, SF.Types[ "Color" ] )
+function render_library.setColor(clr)
+    SF.CheckType(clr, SF.Types["Color"])
     currentcolor = clr
-    surface.SetDrawColor( clr )
-    surface.SetDrawColor( clr )
+    surface.SetDrawColor(clr)
+    surface.SetDrawColor(clr)
 end
 
 --- Looks up a texture ID by file name.
@@ -213,16 +226,13 @@ end
 --- Clears the surface
 -- @param clr Color type to clear with
 function render_library.clear(clr)
+	if not SF.instance.data.render.isRendering then
+		SF.throw("Not in a rendering hook", 2)
+	end
     if clr == nil then
-        if not SF.instance.data.render.isRendering then
-			SF.throw("Not in a rendering hook", 2)
-		end
         render.Clear(0, 0, 0, 255)
     else
         SF.CheckType(clr, SF.Types["Color"])
-        if not SF.instance.data.render.isRendering then
-			SF.throw("Not in a rendering hook", 2)
-		end
         render.Clear(clr.r, clr.g, clr.b, clr.a)
     end
 end
@@ -325,7 +335,7 @@ end
 -- @param outline Enable outline?
 -- @param blur Enable blur?
 function render_library.createFont(font,size,weight,antialias,additive,shadow,outline,blur)
-	if not table.HasValue(validfonts,font) then SF.throw( "Invalid font" ) end
+	if not table.HasValue(validfonts,font) then SF.throw("Invalid font") end
 	
 	size = tonumber(size) or 16
 	weight = tonumber(weight) or 400
@@ -353,11 +363,11 @@ end
 
 --- Gets the size of the specified text. Don't forget to use setFont before calling this function
 -- @param text Text to get the size of
-function render_library.getTextSize( text )
+function render_library.getTextSize(text)
 	SF.CheckType(text,"string")
 	
 	surface.SetFont(SF.instance.data.render.font or defaultFont)
-	return surface.GetTextSize( text )
+	return surface.GetTextSize(text)
 end
 
 --- Sets the font
