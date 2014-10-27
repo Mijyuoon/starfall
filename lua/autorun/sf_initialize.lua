@@ -126,9 +126,8 @@ else
 	------------------------------------------------]]
 	
 	do ---- Automatic update check ----------------------
-		scr.CreateFont("SFUpdateMsg", "Verdana", 16, 700)
-		
 		local function DisplayUpdateMsg(vCur, vLast)
+			scr.CreateFont("SFUpdateMsg", "Verdana", 16, 700)
 			local updateWnd = vgui.Create("DFrame")
 			updateWnd:SetTitle("Starfall update reminder")
 			updateWnd:SetSize(380, 120)
