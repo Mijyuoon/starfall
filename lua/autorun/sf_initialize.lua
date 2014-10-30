@@ -1,4 +1,3 @@
-AddCSLuaFile()
 local updateCheckDone = false
 local updateUrl = "https://raw.github.com/Mijyuoon/starfall/master/lua/starfall/version.lua"
 local updateMsg = [[
