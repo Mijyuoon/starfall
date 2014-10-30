@@ -7,6 +7,7 @@ Your version: $cur   Latest version: $last
 Please update to get new features and bug fixes!]]
 
 if SERVER then
+	AddCSLuaFile()
 	resource.AddFile("materials/models/spacecode/glass.vmt")
 	resource.AddFile("materials/models/spacecode/sfchip.vmt")
 	resource.AddFile("materials/models/spacecode/sfpcb.vmt")
