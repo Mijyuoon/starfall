@@ -173,7 +173,7 @@ function ENT:ApplyDupeInfo(ply, ent, info, GetEntByID)
 	self.owner = ply
 	if info.starfall then
 		local code, main = SF.DeserializeCode(info.starfall)
-		self:CodeSent(code, main)
+		self:CodeSent(ply, code, main)
 	end
 	WireLib.ApplyDupeInfo(ply, ent, info, GetEntByID)
 end
