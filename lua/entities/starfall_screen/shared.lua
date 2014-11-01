@@ -11,6 +11,10 @@ ENT.Spawnable       = false
 ENT.AdminSpawnable  = false
 ENT.SFAcceptNetMsg	= true
 
+function ENT:hudModelCheck()
+	return self:GetModel() == "models/bull/dynamicbutton.mdl"
+end
+
 function ENT:resetCpuTime()
 	if self.instance then
 		self.instance:resetCpuTime()

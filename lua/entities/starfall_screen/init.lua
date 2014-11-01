@@ -164,8 +164,7 @@ function ENT:Initialize()
 	self:SetSolid(SOLID_VPHYSICS)
 	self:SetUseType(3)
 	
-	local model = WireGPU_Monitors[self:GetModel()]
-	if model.Name:match("^Auto: ") then
+	if self:hudModelCheck() then
 		self.IsHudMode = true
 		local tbl = adv.TblWeakK()
 		self.LinkedVehicles = tbl

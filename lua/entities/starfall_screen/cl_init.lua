@@ -119,8 +119,7 @@ function ENT:SetContextBase()
 end
 
 function ENT:Initialize()
-	local model = WireGPU_Monitors[self:GetModel()]
-	if model.Name:match("^Auto: ") then
+	if self:hudModelCheck() then
 		self.IsHudMode, self.HudActive = true, false
 		hook.Add("HUDPaint", self, self.DrawToHUD)
 	else
