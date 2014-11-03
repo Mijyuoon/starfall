@@ -1,3 +1,4 @@
+include("autorun/advlib.lua") -- FORCE THIS SHIT TO LOAD!
 local updateCheckDone = false
 local updateUrl = "https://raw.github.com/Mijyuoon/starfall/master/lua/starfall/version.lua"
 local updateMsg = [[
@@ -17,6 +18,7 @@ if SERVER then
 	---- Disabled (Useless) ----------------
 	-- util.AddNetworkString("SF_hudscreen")
 else
+	include("autorun/client/scrlib.lua") -- FORCE THIS SHIT TO LOAD!
 	list.Set("Starfall_gate_Models", "models/spacecode/sfchip.mdl", true)
 	list.Set("Starfall_gate_Models", "models/spacecode/sfchip_medium.mdl", true)
 	list.Set("Starfall_gate_Models", "models/spacecode/sfchip_small.mdl", true)
