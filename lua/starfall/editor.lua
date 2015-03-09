@@ -134,7 +134,7 @@ if CLIENT then
 		
 		while self.character do
 		--[[
-			if self:NextPattern( ".?"..char ) then -- Found another string char (' or ")
+			if self:NextPattern(".?"..char) then -- Found another string char (' or ")
 				if self.tokendata[-2] ~= "\\" then -- Ending found
 					return true
 				end
@@ -155,7 +155,7 @@ if CLIENT then
 
 	local function findMultilineEnding(self,row,what,mx) -- also used to close multiline comments
 		self.mlcount = mx or ""
-		if self:NextPattern( ".-%]"..(self.mlcount).."%]" ) then -- Found ending
+		if self:NextPattern(".-%]"..(self.mlcount).."%]") then -- Found ending
 			return true
 		end
 		
@@ -222,11 +222,11 @@ if CLIENT then
 		
 		if self.multiline then
 			if findMultilineEnding(self,row,self.multiline,self.mlcount) then
-				addToken( self.multiline, self.tokendata )
+				addToken(self.multiline, self.tokendata)
 				self.multiline = nil
 			else
-				self:NextPattern( ".*" )
-				addToken( self.multiline, self.tokendata )
+				self:NextPattern(".*")
+				addToken(self.multiline, self.tokendata)
 				return cols
 			end
 			self.tokendata = ""
@@ -241,63 +241,63 @@ if CLIENT then
 			self.tokendata = ""
 			
 			-- Eat all spaces
-			local spaces = self:SkipPattern( "^%s*" )
-			if spaces then addToken( "comment", spaces ) end
+			local spaces = self:SkipPattern("^%s*")
+			if spaces then addToken("comment", spaces) end
 	
-			if self:NextPattern( "^[%a_][%w_]*" ) then -- Variables and keywords
+			if self:NextPattern("^[%a_][%w_]*") then -- Variables and keywords
 				if is_moon and self.character == ":" then -- Symbols (moonscript)
-					addToken( "symbol", self.tokendata .. ":" )
+					addToken("symbol", self.tokendata .. ":")
 					self:NextCharacter()
 				elseif kwords2[self.tokendata] then
-					addToken( "keyvalue2", self.tokendata )
+					addToken("keyvalue2", self.tokendata)
 				elseif kwords[self.tokendata] then
-					addToken( "keyword", self.tokendata )
+					addToken("keyword", self.tokendata)
 				else
-					addToken( "variable", self.tokendata )
+					addToken("variable", self.tokendata)
 				end
-			elseif is_moon and self:NextPattern( "^:[%a_][%w_]*" ) then -- Symbols (moonscript)
-				addToken( "symbol", self.tokendata )
+			elseif is_moon and self:NextPattern("^:[%a_][%w_]*") then -- Symbols (moonscript)
+				addToken("symbol", self.tokendata)
 			elseif is_moon and (self:NextPattern("^@@?[%a_][%w_]*") or self:NextPattern("^@@?")) then -- Class variables (moonscript)
-				addToken( "class_var", self.tokendata )
-			elseif self:NextPattern( "^0[xX][%da-fA-F]+" ) then -- Hex numbers
-				addToken( "number", self.tokendata )
-			elseif self:NextPattern( "^%d*%.?%d+") then -- Numbers
-				self:NextPattern( "[eE][+-]?%d+" )
-				addToken( "number", self.tokendata )
-			elseif self:NextPattern( "^%-%-" ) then -- Comment
-				if self:NextPattern( "^@" ) then -- ppcommand
-					self:NextPattern( ".*" ) -- Eat all the rest
-					addToken( "ppcommand", self.tokendata )
-				elseif not is_moon and self:NextPattern( "^%[=*%[" ) then -- Multi line comment
+				addToken("class_var", self.tokendata)
+			elseif self:NextPattern("^0[xX][%da-fA-F]+") then -- Hex numbers
+				addToken("number", self.tokendata)
+			elseif self:NextPattern("^%d*%.?%d+") then -- Numbers
+				self:NextPattern("[eE][+-]?%d+")
+				addToken("number", self.tokendata)
+			elseif self:NextPattern("^%-%-") then -- Comment
+				if self:NextPattern("^@") then -- ppcommand
+					self:NextPattern(".*") -- Eat all the rest
+					addToken("ppcommand", self.tokendata)
+				elseif not is_moon and self:NextPattern("^%[=*%[") then -- Multi line comment
 					local mlcount = string_match(self.tokendata, "=+")
-					if findMultilineEnding( self, row, "comment", mlcount ) then -- Ending found
-						addToken( "comment", self.tokendata )
+					if findMultilineEnding(self, row, "comment", mlcount) then -- Ending found
+						addToken("comment", self.tokendata)
 					else -- Ending not found
-						self:NextPattern( ".*" )
-						addToken( "comment", self.tokendata )
+						self:NextPattern(".*")
+						addToken("comment", self.tokendata)
 					end
 				else
-					self:NextPattern( ".*" ) -- Skip the rest
-					addToken( "comment", self.tokendata )
+					self:NextPattern(".*") -- Skip the rest
+					addToken("comment", self.tokendata)
 				end
-			elseif self:NextPattern( "^[\"']" ) then -- Single line string
-				if findStringEnding( self,row, self.tokendata ) then -- String ending found
-					addToken( "string", self.tokendata )
+			elseif self:NextPattern("^[\"']") then -- Single line string
+				if findStringEnding(self,row, self.tokendata) then -- String ending found
+					addToken("string", self.tokendata)
 				else -- No ending found
-					self:NextPattern( ".*" ) -- Eat everything
-					addToken( "string", self.tokendata )
+					self:NextPattern(".*") -- Eat everything
+					addToken("string", self.tokendata)
 				end
-			elseif self:NextPattern( "^%[=*%[" ) then -- Multi line strings
+			elseif self:NextPattern("^%[=*%[") then -- Multi line strings
 				local mlcount = string_match(self.tokendata, "=+")
-				if findMultilineEnding( self, row, "string", mlcount ) then -- Ending found
-					addToken( "string", self.tokendata )
+				if findMultilineEnding(self, row, "string", mlcount) then -- Ending found
+					addToken("string", self.tokendata)
 				else -- Ending not found
-					self:NextPattern( ".*" )
-					addToken( "string", self.tokendata )
+					self:NextPattern(".*")
+					addToken("string", self.tokendata)
 				end
-			-- elseif self:NextPattern( op_pattern ) then -- Operators
+			-- elseif self:NextPattern(op_pattern) then -- Operators
 			elseif self:NextPattern("^[%(%)%[%]{}]") then
-				addToken( "brackets", self.tokendata)
+				addToken("brackets", self.tokendata)
 			else
 				-- self:NextCharacter()
 				local is_operator, degree = NextOperator(self, operators)
@@ -355,28 +355,21 @@ if CLIENT then
 		-- Add "Sound Browser" button
 		do
 			local editor = SF.Editor.editor
-			local SoundBrw = editor:addComponent(vgui.Create("Button", editor), -205, 30, -125, 20)
-			SoundBrw.panel:SetText("")
-			SoundBrw.panel.Font = "E2SmallFont"
-			SoundBrw.panel.Paint = function(button)
-				local w,h = button:GetSize()
-				draw.RoundedBox(1, 0, 0, w, h, editor.colors.col_FL)
-				if ( button.Hovered ) then draw.RoundedBox(0, 1, 1, w - 2, h - 2, Color(0,0,0,192)) end
-				surface.SetFont(button.Font)
-				surface.SetTextPos( 3, 4 )
-				surface.SetTextColor( 255, 255, 255, 255 )
-				surface.DrawText("  Sound Browser")
+			local SoundBrw = vgui.Create("Button", editor.C.Menu)
+			SoundBrw:SetSize(85, 20)
+			SoundBrw:Dock(RIGHT)
+			SoundBrw:SetText("Sound Browser")
+			SoundBrw.DoClick = function()
+				RunConsoleCommand("wire_sound_browser_open")
 			end
-			SoundBrw.panel.DoClick = function() RunConsoleCommand("wire_sound_browser_open") end
 			editor.C.SoundBrw = SoundBrw
 		end
 		
-		SF.Editor.editor:SetSyntaxColorLine( SyntaxColorLine )
-		--SF.Editor.editor:SetSyntaxColorLine( function(self, row) return {{self.Rows[row], Color(255,255,255)}} end)
+		SF.Editor.editor:SetSyntaxColorLine(SyntaxColorLine)
 		
-		function SF.Editor.editor:OnTabCreated( tab )
+		function SF.Editor.editor:OnTabCreated(tab)
 			local editor = tab.Panel
-			editor:SetText( code1 .. code2 )
+			editor:SetText(code1 .. code2)
 			editor.Start = editor:MovePosition({1,1}, #code1)
 			editor.Caret = editor:MovePosition(editor.Start, #code2)
 		end
@@ -407,13 +400,13 @@ if CLIENT then
 			end
 			
 			if type(err) == "string" then
-				self.C['Val'].panel:SetBGColor(128, 0, 0, 180)
-				self.C['Val'].panel:SetFGColor(255, 255, 255, 128)
-				self.C['Val'].panel:SetText( "   " .. err:gsub("\n"," ") )
+				self.C['Val']:SetBGColor(128, 0, 0, 180)
+				self.C['Val']:SetFGColor(255, 255, 255, 128)
+				self.C['Val']:SetText("   " .. err:gsub("\n"," "))
 			else
-				self.C['Val'].panel:SetBGColor(0, 128, 0, 180)
-				self.C['Val'].panel:SetFGColor(255, 255, 255, 128)
-				self.C['Val'].panel:SetText( "   No Syntax Errors" )
+				self.C['Val']:SetBGColor(0, 128, 0, 180)
+				self.C['Val']:SetFGColor(255, 255, 255, 128)
+				self.C['Val']:SetText("   No Syntax Errors")
 			end
 		end
 	end
@@ -531,7 +524,7 @@ if CLIENT then
 			local BonePos, BoneAng = ply:GetBonePosition(BoneIndx)
 			local particle = emitter:Add("radon/starfall2", BonePos + Vector(math.random(-10,10), math.random(-10,10), 60+math.random(0,10)))
 			if particle then
-				particle:SetColor(math.random(30,50),math.random(40,150),math.random(180,220) )
+				particle:SetColor(math.random(30,50),math.random(40,150),math.random(180,220))
 				particle:SetVelocity(Vector(0, 0, -40))
 
 				particle:SetDieTime(1.5)
@@ -556,9 +549,9 @@ else
 
 	util.AddNetworkString("starfall_editor_status")
 
-	resource.AddFile( "materials/radon/starfall2.png" )
-	resource.AddFile( "materials/radon/starfall2.vmt" )
-	resource.AddFile( "materials/radon/starfall2.vtf" )
+	resource.AddFile("materials/radon/starfall2.png")
+	resource.AddFile("materials/radon/starfall2.vmt")
+	resource.AddFile("materials/radon/starfall2.vtf")
 
 	local starfall_event = {}
 

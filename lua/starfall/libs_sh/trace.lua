@@ -2,20 +2,6 @@
 -- Trace library
 -------------------------------------------------------------------------------
 
-local dgetmeta = debug.getmetatable
-
---[[
--- Here's a neat little script to convert enumerations wiki.gmod.com-style
--- into something usable in code
-
-local lines = <copy+paste enumeration with trailing \n here>
-
-for line in lines:gmatch("([^\n]*)\n") do
- local v = line:match("^.*|%s*(.*)$")
- print("trace_library."..v.." = "..v)
-end
-]]
-
 --- Provides functions for doing line/AABB traces
 -- @shared
 -- @field MAT_ANTLION
@@ -196,27 +182,25 @@ end
 
 -- Local functions
 local unwrap = nil
-
-local function postload()
+SF.Libraries.AddHook("postload", function()
 	unwrap = SF.Entities.Unwrap
-end
-SF.Libraries.AddHook("postload",postload)
+end)
 
-local function convertFilter(filter)
+local function check_access(perm)
+	return SF.Permissions.check(SF.instance.player, nil, perm) 
+end
+
+local function convFilter(filter)
 	if unwrap(filter) then
 		return {filter}
-	else
-		local l = {}
-		local count = 1
-		for i=1,#filter do
-			local unwrapped = unwrap(filter[i])
-			if unwrapped then
-				l[count] = unwrapped
-				count = count + 1
-			end
-		end
-		return l
 	end
+	local out = {}
+	for i = 1, #filter do
+		local val = unwrap(filter[i])
+		if not val then continue end
+		out[#out+1] = val
+	end
+	return out
 end
 
 --- Does a line trace
@@ -225,23 +209,26 @@ end
 -- @param filter Entity/array of entities to filter
 -- @param mask Trace mask
 -- @return Result of the trace
-function trace_library.trace(start,endpos,filter,mask)
-	if not SF.Permissions.check(SF.instance.player, nil, "trace") then
+function trace_library.trace(start, endpos, filter, mask)
+	if not check_access("trace") then
 		SF.throw("Insufficient permissions", 2)
 	end
 	SF.CheckType(start,"Vector")
 	SF.CheckType(endpos,"Vector")
-	filter = convertFilter(SF.CheckType(filter,"table",0,{}))
-	if mask ~= nil then mask = SF.CheckType(mask,"number") end
-
-	local trace = {
+	if filter ~= nil then
+		SF.CheckType(filter, "table")
+		filter = convFilter(filter)
+	end
+	if mask ~= nil then
+		SF.CheckType(mask,"number")
+	end
+	
+	return SF.Sanitize(util.TraceLine{
 		start = start,
 		endpos = endpos,
 		filter = filter,
 		mask = mask
-	}
-	
-	return SF.Sanitize(util.TraceLine(trace))
+	})
 end
 
 --- Does a swept-AABB trace
@@ -252,23 +239,28 @@ end
 -- @param filter Entity/array of entities to filter
 -- @param mask Trace mask
 -- @return Result of the trace
-function trace_library.traceHull(start,endpos,minbox,maxbox,filter,mask)
-	if not SF.Permissions.check( SF.instance.player, nil, "trace" ) then SF.throw( "Insufficient permissions", 2 ) end
-	SF.CheckType(start,"Vector")
-	SF.CheckType(endpos,"Vector")
-	SF.CheckType(minbox,"Vector")
-	SF.CheckType(maxbox,"Vector")
-	filter = convertFilter(SF.CheckType(filter,"table",0,{}))
-	if mask ~= nil then mask = SF.CheckType(mask,"number") end
-
-	local trace = {
+function trace_library.traceHull(start, endpos, minbox, maxbox, filter, mask)
+	if not check_access("trace") then
+		SF.throw("Insufficient permissions", 2)
+	end
+	SF.CheckType(start, "Vector")
+	SF.CheckType(endpos, "Vector")
+	SF.CheckType(minbox, "Vector")
+	SF.CheckType(maxbox, "Vector")
+	if filter ~= nil then
+		SF.CheckType(filter, "table")
+		filter = convFilter(filter)
+	end
+	if mask ~= nil then
+		SF.CheckType(mask, "number")
+	end
+	
+	return SF.Sanitize(util.TraceHull{
 		start = start,
 		endpos = endpos,
 		filter = filter,
 		mask = mask,
 		mins = minbox,
 		maxs = maxbox
-	}
-	
-	return SF.Sanitize(util.TraceHull(trace))
+	})
 end

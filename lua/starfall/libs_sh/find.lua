@@ -12,19 +12,22 @@ do
 	P.registerPrivilege("find", "Find", "Allows the user to access the find library")
 end
 
+--[[
 local find_cooldown
 if SERVER then
 	find_cooldown = CreateConVar("sf_find_cooldown_sv", "0.01", {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DONTRECORD})
 else
 	find_cooldown = CreateConVar("sf_find_cooldown_cl", "0.01", {FCVAR_ARCHIVE, FCVAR_DONTRECORD})
 end
+--]]
+local find_cooldown = CreateConVar("sf_find_cooldown", "0.01", {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_DONTRECORD})
 
 local function updateCooldown(instance)
-	if not instance.data.findcooldown then instance.data.findcooldown = 0 end
-	local time = CurTime()
+	local data, time = instance.data, CurTime()
+	if not data.findcooldown then data.findcooldown = 0 end
 	
-	if instance.data.findcooldown > time then return false end
-	instance.data.findcooldown = time + find_cooldown:GetFloat()
+	if data.findcooldown > time then return false end
+	data.findcooldown = time + find_cooldown:GetFloat()
 	return true
 end
 
@@ -34,16 +37,14 @@ local function convert(results, func)
 	end
 	local wrap = SF.WrapObject
 	
-	local t = {}
-	local count = 1
-	for i=1,#results do
-		local e = wrap(results[i])
-		if not func or func(e) then
-			t[count] = e
-			count = count + 1
+	local out = {}
+	for i=1, #results do
+		local ent = wrap(results[i])
+		if not func or func(ent) then
+			out[#out+1] = ent
 		end
 	end
-	return t
+	return out
 end
 
 local function check_access(perm)
@@ -72,7 +73,6 @@ function find_library.inBox(min, max, filter)
 	end
 	SF.CheckType(min,"Vector")
 	SF.CheckType(max,"Vector")
-	if filter then SF.CheckType(filter,"function") end
 	
 	local instance = SF.instance
 	if not updateCooldown(instance) then return end
@@ -94,7 +94,7 @@ function find_library.inSphere(center, radius, filter)
 	
 	local instance = SF.instance
 	if not updateCooldown(instance) then 
-		SF.throw("You cannot run a find right now; use 'find_library.canFind()'", 2) 
+		SF.throw("You cannot run a find right now", 2) 
 	end
 	
 	return convert(ents.FindInSphere(center, radius), filter)
@@ -118,7 +118,7 @@ function find_library.inCone(pos, dir, distance, radius, filter)
 	
 	local instance = SF.instance
 	if not updateCooldown(instance) then 
-		SF.throw("You cannot run a find right now; use 'find_library.canFind()'", 2) 
+		SF.throw("You cannot run a find right now", 2) 
 	end
 	
 	return convert(ents.FindInCone(pos,dir,distance,radius), filter)
@@ -136,7 +136,7 @@ function find_library.byClass(class, filter)
 	
 	local instance = SF.instance
 	if not updateCooldown(instance) then 
-		SF.throw("You cannot run a find right now; use 'find_library.canFind()'", 2) 
+		SF.throw("You cannot run a find right now", 2) 
 	end
 	
 	return convert(ents.FindByClass(class), filter)
@@ -154,7 +154,7 @@ function find_library.byModel(model, filter)
 	
 	local instance = SF.instance
 	if not updateCooldown(instance) then 
-		SF.throw("You cannot run a find right now; use 'find_library.canFind()'", 2) 
+		SF.throw("You cannot run a find right now", 2) 
 	end
 	
 	return convert(ents.FindByModel(model), filter)
@@ -169,7 +169,7 @@ function find_library.allPlayers(filter)
 	end
 	local instance = SF.instance
 	if not updateCooldown(instance) then 
-		SF.throw("You cannot run a find right now; use 'find_library.canFind()'", 2) 
+		SF.throw("You cannot run a find right now", 2) 
 	end
 	
 	return convert(player.GetAll(), filter)
@@ -184,7 +184,7 @@ function find_library.all(filter)
 	end
 	local instance = SF.instance
 	if not updateCooldown(instance) then 
-		SF.throw("You cannot run a find right now; use 'find_library.canFind()'", 2) 
+		SF.throw("You cannot run a find right now", 2) 
 	end
 	
 	return convert(ents.GetAll(), filter)

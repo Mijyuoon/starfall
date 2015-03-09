@@ -76,8 +76,10 @@ local lua_keywords = Set({
   'while',
   'continue'
 })
+local line_tables = {}
 return {
   Set = Set,
   Stack = Stack,
-  lua_keywords = lua_keywords
+  lua_keywords = lua_keywords,
+  line_tables = line_tables
 }

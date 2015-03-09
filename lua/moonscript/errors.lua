@@ -63,7 +63,7 @@ truncate_traceback = function(traceback, chunk_func)
 end
 local rewrite_traceback
 rewrite_traceback = function(text, err)
-  local line_tables = loadmodule("moonscript.line_tables")
+  local data = loadmodule("moonscript.data")
   local V, S, Ct, C
   do
     local _obj_0 = lpeg
@@ -81,7 +81,7 @@ rewrite_traceback = function(text, err)
   local rewrite_single
   rewrite_single = function(trace)
     local fname, line, msg = trace:match('^(.-):(%d+): (.*)$')
-    local tbl = line_tables["@" .. tostring(fname)]
+    local tbl = data.line_tables["@" .. tostring(fname)]
     if fname and tbl then
       return concat({
         fname,

@@ -10,9 +10,9 @@ do
   local _obj_0 = loadmodule("moonscript.util")
   split, dump, get_options, unpack = _obj_0.split, _obj_0.dump, _obj_0.get_options, _obj_0.unpack
 end
-local dirsep, line_tables, to_lua, loadstring, loadfile, dofile
+local dirsep, data, to_lua, loadstring, loadfile, dofile
 dirsep = "/"
-line_tables = loadmodule("moonscript.line_tables")
+data = loadmodule("moonscript.data")
 to_lua = function(text, options)
   if options == nil then
     options = { }
@@ -39,7 +39,7 @@ loadstring = function(...)
     return nil, ltable_or_err
   end
   if chunk_name then
-    line_tables[chunk_name] = ltable_or_err
+    data.line_tables[chunk_name] = ltable_or_err
   end
   return CompileString(code, chunk_name, false)
 end

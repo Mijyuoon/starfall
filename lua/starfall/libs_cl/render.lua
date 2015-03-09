@@ -147,7 +147,7 @@ function render_library.pushMatrix(m)
 	SF.CheckType(m,matrix_meta)
 	local renderdata = SF.instance.data.render
 	if not renderdata.isRendering then
-		SF.throw("Not in rendering hook", 2) 
+		SF.throw("not in rendering hook", 2) 
 	end
 	local id = #matrix_stack
 	if id >= MATRIX_STACK_LIMIT then
@@ -165,7 +165,7 @@ end
 function render_library.popMatrix()
 	local renderdata = SF.instance.data.render
 	if not renderdata.isRendering then 
-		SF.throw("Not in rendering hook",2) 
+		SF.throw("not in rendering hook",2) 
 	end
 	if #matrix_stack < 1 then 
 		SF.throw("Popped too many matricies",2) 
@@ -214,7 +214,7 @@ end
 --- Sets the texture
 function render_library.setTexture(id)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	if not id then
 		surface.SetTexture(0)
@@ -227,7 +227,7 @@ end
 -- @param clr Color type to clear with
 function render_library.clear(clr)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in a rendering hook", 2)
+		SF.throw("not in a rendering hook", 2)
 	end
     if clr == nil then
         render.Clear(0, 0, 0, 255)
@@ -244,7 +244,7 @@ end
 -- @param h Height
 function render_library.drawRect(x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	surface.DrawRect(x,y,w,h)
 end
@@ -256,7 +256,7 @@ end
 -- @param h Height
 function render_library.drawRectOutline(x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	surface.DrawOutlinedRect(x,y,w,h)
 end
@@ -267,7 +267,7 @@ end
 -- @param r Radius
 function render_library.drawCircle(x,y,r)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	surface.DrawCircle(x,y,r,currentcolor)
 end
@@ -279,7 +279,7 @@ end
 -- @param h Height
 function render_library.drawTexturedRect(x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	surface.DrawTexturedRect(x,y,w,h)
 end
@@ -295,7 +295,7 @@ end
 -- @param endV Texture mapping at rectangle end
 function render_library.drawTexturedRectUV(x,y,w,h,startU,startV,endU,endV)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	surface.DrawTexturedRectUV(x,y,w,h,startU,startV,endU,endV)
 end
@@ -308,7 +308,7 @@ end
 -- @param rot Rotation in degrees
 function render_library.drawTexturedRectRotated(x,y,w,h,rot)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	surface.DrawTexturedRectRotated(x, y, w, h, rot)
 end
@@ -320,7 +320,7 @@ end
 -- @param y2 Y end coordinate
 function render_library.drawLine(x1,y1,x2,y2)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2)
+		SF.throw("not in rendering hook",2)
 	end
 	surface.DrawLine(x1,y1,x2,y2)
 end
@@ -334,8 +334,8 @@ end
 -- @param shadow Enable drop shadow?
 -- @param outline Enable outline?
 -- @param blur Enable blur?
-function render_library.createFont(font,size,weight,antialias,additive,shadow,outline,blur)
-	if not table.HasValue(validfonts,font) then SF.throw("Invalid font") end
+function render_library.createFont(font, size, weight, antialias, additive, shadow, outline, blur)
+	if not table.HasValue(validfonts, font) then SF.throw("Invalid font") end
 	
 	size = tonumber(size) or 16
 	weight = tonumber(weight) or 400
@@ -370,10 +370,11 @@ function render_library.getTextSize(text)
 	return surface.GetTextSize(text)
 end
 
---- Sets the font
+--- Sets the active font
+-- @param font Font name
 function render_library.setFont(font)
 	if not defined_fonts[font] then
-		SF.throw("Font does not exist.", 2)
+		SF.throw("font does not exist", 2)
 	end
 	SF.instance.data.render.font = font
 	--surface.SetFont(font)
@@ -393,15 +394,16 @@ end
 -- @param yal Vertical alignment
 function render_library.drawText(x,y,text,xal,yal)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2) 
+		SF.throw("not in rendering hook",2) 
 	end
 	SF.CheckType(text,"string")
 	SF.CheckType(x,"number")
 	SF.CheckType(y,"number")
+	xal = SF.CheckType(xal,"number",0,0)
+	yal = SF.CheckType(yal,"number",0,0)
 	
 	local font = SF.instance.data.render.font or defaultFont
-	
-	draw.SimpleText(text, font, x, y, currentcolor, tonumber(xal) or 0, tonumber(yal) or 0)
+	draw.SimpleText(text, font, x, y, currentcolor, xal, yal)
 end
 
 --- Draws text using a font. Will expand newlines and tabs
@@ -412,15 +414,16 @@ end
 -- @param xal Horizontal alignment
 function render_library.drawTextEx(x,y,text,xal)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in rendering hook",2) 
+		SF.throw("not in rendering hook",2) 
 	end
 	SF.CheckType(text,"string")
 	SF.CheckType(x,"number")
 	SF.CheckType(y,"number")
+	xal = SF.CheckType(xal,"number",0,0)
 	
 	local font = SF.instance.data.render.font or defaultFont
 	
-	draw.DrawText(text, font, x, y, currentcolor, tonumber(xal) or 0)
+	draw.DrawText(text, font, x, y, currentcolor, xal)
 end
 
 --- Compiles a 2D poly. This is needed so that poly don't have to be
@@ -429,19 +432,18 @@ end
 -- a new vertex at 1 <= i <= #poly+1. And the length of the poly can be taken.
 -- @param verts Array of verticies to convert.
 function render_library.createPoly(verts)
-	SF.CheckType(verts,"table")
+	SF.CheckType(verts, "table")
 	local poly = {}
-	local wrappedpoly = wrappoly(poly)
-	for i=1,#verts do
+	for i=1, #verts do
 		local v = verts[i]
 		SF.CheckType(v,"table")
 		poly[i] = checkvertex(v)
 	end
-	return wrappedpoly
+	return wrappoly(poly)
 end
 
 --- Draws a polygon. Takes a compiled/uncompiled poly to draw.
--- Note that if you do use an uncompiled poly, you will use up ops
+-- note that if you do use an uncompiled poly, you will use up ops
 -- very quickly!
 -- @param poly Compiled poly or array of vertexes
 function render_library.drawPoly(poly)
@@ -465,7 +467,7 @@ end
 -- @return Viewport height
 function render_library.getViewport()
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in a rendering hook", 2)
+		SF.throw("not in a rendering hook", 2)
 	end
 	return ScrW(), ScrH()
 end
@@ -478,7 +480,7 @@ end
 -- @param h Height
 function render_library.drawScreenRect(ent,x,y,w,h)
 	if not SF.instance.data.render.isRendering then
-		SF.throw("Not in a rendering hook", 2)
+		SF.throw("not in a rendering hook", 2)
 	end
 	local scrn = SF.Entities.Unwrap(ent)
 	if not IsValid(scrn) or scrn.IsHudMode then return end
@@ -539,7 +541,7 @@ function render_library.cursorPos(ply)
 end
 
 --- Returns information about the screen, such as dimensions and rotation.
--- Note: this does a table copy so move it out of your draw hook
+-- note: this does a table copy so move it out of your draw hook
 -- @return A table describing the screen.
 function render_library.getScreenInfo()
 	local gpu = SF.instance.data.render.gpu

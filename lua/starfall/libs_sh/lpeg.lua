@@ -20,12 +20,7 @@ local function getpatt(patt)
 	if not op_types[vtype] then
 		return nil
 	end
-	-- if vtype == "Pattern" then
-	-- 	return unwrap(patt)
-	-- end
-	-- return patt
-	patt = unwrap(patt) or patt
-	return patt
+	return unwrap(patt) or patt
 end
 
 local p_types = {

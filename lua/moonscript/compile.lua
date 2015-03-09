@@ -1,5 +1,4 @@
 local util = loadmodule("moonscript.util")
-local dump = loadmodule("moonscript.dump")
 local transform = loadmodule("moonscript.transform")
 local NameProxy, LocalName
 do
@@ -478,7 +477,7 @@ do
       if not (fn) then
         error({
           "compile-error",
-          "Failed to find value compiler for: " .. dump.value(node),
+          "Failed to find value compiler for: " .. util.dump_value(node),
           node[-1]
         })
       end

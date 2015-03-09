@@ -17,17 +17,13 @@ local Use_PrintTable	= false
 local MODLOAD = {}
 adv._MODLOAD = MODLOAD
 function loadmodule(name)
-	if MODLOAD[name] then
-		return MODLOAD[name]
-	end
-	
+	if MODLOAD[name] then return MODLOAD[name] end
 	local kname = name:gsub("%.", "/") .. ".lua"
 	local is_sv = file.Exists(kname, "LUA")
 	local is_cl = file.Exists(kname, "LCL")
 	if not (is_sv or is_cl) then
 		error(adv.StrFormat{"cannot find module \"$1\"", name})
 	end
-	
 	local func = CompileFile(kname, name)
 	if func then
 		MODLOAD[name] = func() or true
@@ -38,7 +34,7 @@ end
 if pcall(require, "lpeg") then
 	function lpeg.L(v) return #v end
 else
-    loadmodule("moonscript.lulpeg"):register(_G)
+    lpeg = loadmodule("moonscript.lulpeg")
 end
 lpeg.re = loadmodule("moonscript.lpeg_re")
 
@@ -48,9 +44,8 @@ function adv.StrFormat(text, subst)
 		subst = text
 		text = trmv(text, 1)
 	end
-	text = text:gsub("$([%w_]+)", function(s)
-		local ns = tonumber(s) or s
-		local subs = subst[ns]
+	text = text:gsub("%$([%w_]+)", function(s)
+		local subs = subst[tonumber(s) or s]
 		if subs == nil then return end
 		return tostring(subs)
 	end)
@@ -159,6 +154,28 @@ function adv.TblKeys(tbl)
 	return res
 end
 
+function adv.TblVals(tbl)
+	local res = {}
+	for _, v in pairs(tbl) do
+		res[#res+1] = v
+	end
+	return res
+end
+
+function adv.TblFind(tbl, val)
+	for i, v in pairs(tbl) do
+		if v == val then return i end
+	end
+end
+
+function adv.TblSet(tbl)
+	local res = {}
+	for _, v in pairs(tbl) do
+		res[v] = true
+	end
+	return res
+end
+
 for _, kn in pairs{"K", "V", "KV"} do
 	adv["TblWeak" .. kn] = function()
 		return setmetatable({}, {
@@ -220,59 +237,64 @@ if CLIENT then
 	end
 end
 
-
-local http_cache = {}
-file.CreateDir("httpcache/")
-
-function adv.HttpCache.Del(url)
-	if not http_cache[url] then return false end
-	url = url:gsub("^%w://", "")
-	file.Delete(http_cache[url])
-	if file.Exists(http_cache[url], "DATA") then return false end
-	http_cache[url] = nil
-	return true
-end
-
-function adv.HttpCache.Wipe(filt)
-	for key, fn in pairs(http_cache) do
-		if not filt or key:match(filt) then
-			adv.HttpCache.Del(key)
-		end
-	end
-	local rest = file.Find("httpcache/*.txt", "DATA")
-	for _, fn in ipairs(rest) do
-		if not filt or fn:match(filt) then
-			file.Delete(fn)
-		end
-	end
-end
-
-function adv.HttpCache.Get(url, rd)
-	local url2 = http_cache[url:gsub("^%w://", "")]
-	if not url2 then return false end
-	if not rd then return url2 end
-	return url2, file.Read(url2, "DATA")
-end
-
-function adv.HttpCache.New(url, succ, fail)
-	local url2 = url:gsub("^%w://", "")
-	local rand = url2:match("/([^/]+)$"):gsub("[^%w_%-]", "")
-	rand = adv.StrFormat{"httpcache/$1.txt", rand}
-	if http_cache[url2] then
-		succ(http_cache[url2])
-		return true
-	elseif file.Exists(rand, "DATA") then
-		http_cache[url2] = rand
-		succ(http_cache[url2])
+do ---- Cached HTTP requests -------------------------
+	local http_cache = {}
+	file.CreateDir("httpcache/")
+	
+	function adv.HttpCache.Del(url)
+		if not http_cache[url] then return false end
+		url = url:gsub("^%w://", "")
+		file.Delete(http_cache[url])
+		if file.Exists(http_cache[url], "DATA") then return false end
+		http_cache[url] = nil
 		return true
 	end
-	http.Fetch(url, function(data, ...)
-		file.Write(rand, data)
-		http_cache[url2] = rand
-		if succ then succ(rand, data, ...) end
-	end, fail)
-	return false
-end
+	
+	function adv.HttpCache.Wipe(filt)
+		for key, fn in pairs(http_cache) do
+			if not filt or key:match(filt) then
+				adv.HttpCache.Del(key)
+			end
+		end
+		
+		local rest = file.Find("httpcache/*.txt", "DATA")
+		for _, fn in ipairs(rest) do
+			if not filt or fn:match(filt) then
+				file.Delete(fn)
+			end
+		end
+	end
+	
+	function adv.HttpCache.Get(url, rd)
+		local url2 = http_cache[url:gsub("^%w://", "")]
+		if not url2 then return false end
+		if not rd then return url2 end
+		return url2, file.Read(url2, "DATA")
+	end
+	
+	function adv.HttpCache.New(url, succ, fail)
+		local url2 = url:gsub("^%w://", "")
+		local rand = url2:match("/([^/]+)$"):gsub("[^%w_%-]", "")
+		rand = adv.StrFormat{"httpcache/$1.txt", rand}
+		
+		if http_cache[url2] then
+			succ(http_cache[url2])
+			return true
+		elseif file.Exists(rand, "DATA") then
+			http_cache[url2] = rand
+			succ(http_cache[url2])
+			return true
+		end
+		
+		http.Fetch(url, function(data, ...)
+			file.Write(rand, data)
+			http_cache[url2] = rand
+			if succ then succ(rand, data, ...) end
+		end, fail)
+		
+		return false
+	end
+end --------------------------------------------------
 
 do ---- Markup parser --------------------------------
 	local esc = {
@@ -311,7 +333,7 @@ do ---- Markup parser --------------------------------
 			return (value:gsub('[<>&"]', esc))
 		end;
 	}
-
+	
 	local lP,lR,lS = lpeg.P, lpeg.R, lpeg.S
 	local lC,lCs,lCt = lpeg.C, lpeg.Cs, lpeg.Ct
 
@@ -322,7 +344,7 @@ do ---- Markup parser --------------------------------
 	local varn = var1 * (";" * var1)^0
 	local cmd = lCs(lP"{\\" * ( iden * ("=" * varn)^-1 )^-1 * "}" / repl.PtCmd)
 	local grammar = lCt(( besc + cmd + ((1 - lP"{")^1 / repl.PtRaw) )^0)
-
+	
 	adv.Markup.Tags = {
 		c = function(arg1)
 			if not arg1 then return "" end
@@ -349,7 +371,7 @@ do ---- Markup parser --------------------------------
 		u = function() return "<u>" end;
 		s = function() return "<s>" end;
 	}
-
+	
 	function adv.Markup.Parse(text)
 		repl.ReInit()
 		local vals = grammar:match(text)
@@ -361,31 +383,31 @@ do ---- Markup parser --------------------------------
 	end
 end --------------------------------------------------
 
-
 do ---- SQL query builder ----------------------------
 	local lP,lR,lS = lpeg.P, lpeg.R, lpeg.S
-	local lC,lCs,lCt = lpeg.C, lpeg.Cs, lpeg.Ct
-
+	local lC,lCt = lpeg.C, lpeg.Ct
+	
 	local str = lC(lP"'" * (lP"''" + (1 - lP"'"))^0 * "'")
 	local mark = lCt(lC"?" * lC(lR("AZ", "az", "09", "__")^1)^-1)
 	local grammar = lCt(( str + mark + lC((1 - lS"'?")^1) )^0)
 	
 	local sq_meta = {}
 	sq_meta.__index = sq_meta
+	adv.META_SqlQuery = sq_meta
 	
+	local val_conv = {
+		number = tostring;
+		string = SQLStr;
+		boolean = function(v)
+			return v and "1" or "0"
+		end;
+	}
 	function sq_meta:BindParam(key, value)
-		local ty, _value = type(value), nil
-		if ty == "boolean" then
-			_value = value and 1 or 0
-		elseif ty == "string" then
-			_value = SQLStr(value)
-		elseif ty == "number" then
-			_value = value
+		local vconv = val_conv[type(value)]
+		if not vconv then
+			error("unsupported value type")
 		end
-		if not _value then
-			error("unsupported type")
-		end
-		self.params[key] = _value
+		self.params[key] = fconv(value)
 	end
 	
 	function sq_meta:BindTable(tbl)
@@ -421,13 +443,201 @@ do ---- SQL query builder ----------------------------
 		return ret
 	end
 	
-	function adv.SqlNew(query)
+	function adv.SqlQuery(query)
 		query = grammar:match(query)
 		local parv = adv.TblWeakKV()
 		return setmetatable({
 			params = parv,
 			builder = query,
 		}, sq_meta)
+	end
+end --------------------------------------------------
+
+do ---- Data structure networking --------------------
+	local lP,lR,lS,lV = lpeg.P, lpeg.R, lpeg.S, lpeg.V
+	local lC,lCc,lCt = lpeg.C, lpeg.Cc, lpeg.Ct
+	
+	local WS = lS" \t"^0
+	local function sym(id)
+		return WS * id
+	end
+	
+	local function lnode(...)
+		return {"#", ...}
+	end
+	local function mnode(...)
+		return {"$", ...}
+	end
+	
+	local typid = lR"az" * lR("az","09")^0
+	local ident = lR("az","AZ","09","__")^1
+	
+	local grammar = WS * lP{
+		lCt(lCc"!!" * lV"Nodes"^1);
+		LstNode = sym"{" * lV"Nodes"^1 * sym"}";
+		MapNode = sym"${" * lV"MapV"^1 * sym"}";
+		MapV = sym(lC(ident) * sym":" * lV"Nodes");
+		Nodes =
+			sym(lC(typid + "@")) +
+			lV"LstNode" / lnode +
+			lV"MapNode" / mnode;
+	} * WS * -1
+	
+	local wtypes = {
+		i8  = "?Int($,8)",		u8 = "?UInt($,8)",
+		i16 = "?Int($,16)",		u16 = "?UInt($,16)",
+		i32 = "?Int($,32)", 	u32 = "?UInt($,32)",
+		
+		fs = "?Float($)",		fd = "?Double($)",
+		s = "?String($)",		b = "?Bool($)",
+		
+		v = "?Float($.x) ?Float($.y) ?Float($.z)",
+		a = "?Float($.p) ?Float($.y) ?Float($.r)",
+		e = "?Entity($)",		["@"] = "?Type($)",
+	}
+	
+	local rtypes = {
+		i8 = "$ = ?Int(8)",		u8 = "$ = ?UInt(8)",
+		i16 = "$ = ?Int(16)",	u16 = "$ = ?UInt(16)",
+		i32 = "$ = ?Int(32)",	u32 = "$ = ?UInt(32)",
+		
+		fs = "$ = ?Float()",	fd = "$ = ?Double()",
+		s = "$ = ?String()",	b = "$ = ?Bool()",
+		
+		v = "$ = Vector(?Float(), ?Float(), ?Float())",
+		a = "$ = Angle(?Float(), ?Float(), ?Float())",
+		e = "$ = ?Entity()",	["@"] = "$ = ?Type(?UInt(8))",
+	}
+	
+	local ns_meta = {}
+	ns_meta.__index = ns_meta
+	adv.META_NetStruct = ns_meta
+	
+	function ns_meta:__FmtTyp(str, val)
+		return str:gsub("%?", self.__Prefix):gsub("%$", val)
+	end
+	
+	function ns_meta:__Append(str, fmt, lvl)
+		local buf = self.__Buffer
+		lvl = self.__Lvl + (lvl or 0)
+		buf[#buf+1] = fmt and adv.StrFormat(str, fmt) or str
+	end
+	
+	function ns_meta:__Iterate(node, ni)
+		local lvl, mod = self.__Lvl, self.__Mode
+		local ntyp, types = node[1], mod and wtypes or rtypes
+		
+		if ntyp == "!!" then
+			local par = mod and "..." or ""
+			self:__Append("local _val$1 = {$2}", { lvl, par })
+		elseif ntyp == "#" then
+			local ki = ni and "["..ni.."]" or ""
+			if mod then
+				self:__Append("local _val$1 = _val$2$3", { lvl, lvl-1, ki }, -1)
+				self:__Append(self:__FmtTyp(wtypes.u16, "#_val$1"), { lvl }, -1)
+				self:__Append("for _i$1 = 1, #_val$1, $2 do", { lvl, #node-1 }, -1)
+			else
+				self:__Append("local _val$1 = {}", { lvl }, -1)
+				self:__Append("_val$2$3 = _val$1", { lvl, lvl-1, ki }, -1)
+				self:__Append(self:__FmtTyp(rtypes.u16, "local _len$1"), { lvl }, -1)
+				self:__Append("for _i$1 = 1, _len$1, $2 do", { lvl, #node-1 }, -1)
+			end
+		elseif ntyp == "$" then
+			local ki = ni and "["..ni.."]" or ""
+			if mod then
+				self:__Append("local _val$1 = _val$2$3", { lvl, lvl-1, ki }, -1)
+			else
+				self:__Append("local _val$1 = {}", { lvl }, -1)
+				self:__Append("_val$2$3 = _val$1", { lvl, lvl-1, ki }, -1)
+			end
+		end
+		
+		local step = (ntyp == "$") and 2 or 1
+		for i = 2, #node, step do
+			local val, key = node[i]
+			if step == 2 then
+				key = '"'..val..'"'
+				val = node[i+1]
+			end
+			if not key and ni then
+				key = adv.StrFormat{"_i$1+$2", lvl, i-2}
+			elseif not ni then
+				key = i-1
+			end
+			if istable(val) then
+				self.__Lvl = lvl + 1
+				self:__Iterate(val, key)
+				self.__Lvl = lvl
+			elseif types[val] then
+				local frag = types[val]
+				local vn = adv.StrFormat{"_val$1[$2]", lvl, key}
+				self:__Append(self:__FmtTyp(frag, vn))
+			else
+				error("unknown type: "..val)
+			end
+		end
+		
+		if not mod and ntyp == "!!" then
+			self:__Append("return _val$1", { lvl })
+		elseif ntyp == "#" then
+			self:__Append("end", nil, -1)
+		end
+	end
+	
+	local tcat = table.concat
+	function ns_meta:InitWriter()
+		if self.__WrFunc then
+			return false
+		end
+		self.__Lvl = 0
+		self.__Buffer = {}
+		self.__Mode = true
+		self.__Prefix = "net.Write"
+		self:__Iterate(self.__Struc)
+		local code = tcat(self.__Buffer, "\n")
+		self.__WrFunc = CompileString(code, "NSr")
+		return true
+	end
+	
+	function ns_meta:InitReader()
+		if self.__RdFunc then
+			return false
+		end
+		self.__Lvl = 0
+		self.__Buffer = {}
+		self.__Mode = false
+		self.__Prefix = "net.Read"
+		self:__Iterate(self.__Struc)
+		local code = tcat(self.__Buffer, "\n")
+		self.__RdFunc = CompileString(code, "NSw")
+		return true
+	end
+	
+	function ns_meta:WriteStruct(...)
+		if not self.__WrFunc then
+			error("writer not initialized")
+		end
+		self.__WrFunc(...)
+	end
+	
+	function ns_meta:ReadStruct(upx)
+		if not self.__RdFunc then
+			error("reader not initialized")
+		end
+		local dat = self.__RdFunc()
+		if not upx then
+			return unpack(dat)
+		end
+		return dat
+	end
+	
+	function adv.NetStruct(def, op)
+		local struc = grammar:match(def)
+		if not struc then return nil end
+		local obj = setmetatable({
+			__Struc = struc,
+		}, ns_meta)
+		return obj
 	end
 end --------------------------------------------------
 
@@ -440,9 +650,7 @@ if Use_MoonScript then
 		AddCSLuaFile("moonscript/base.lua")
 		AddCSLuaFile("moonscript/compile.lua")
 		AddCSLuaFile("moonscript/data.lua")
-		AddCSLuaFile("moonscript/dump.lua")
 		AddCSLuaFile("moonscript/errors.lua")
-		AddCSLuaFile("moonscript/line_tables.lua")
 		AddCSLuaFile("moonscript/lpeg_re.lua")
 		AddCSLuaFile("moonscript/lulpeg.lua")
 		AddCSLuaFile("moonscript/parse.lua")

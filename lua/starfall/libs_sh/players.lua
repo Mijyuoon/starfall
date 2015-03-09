@@ -269,12 +269,12 @@ end
 --- Returns a table with information of what the player is looking at
 -- @shared
 -- @return table trace data
-function player_methods:getEyeTrace ()
-	local this = SF.UnwrapObject(self)
-	if not SF.Permissions.check(SF.instance.player, Sthis, "trace") then
+function player_methods:getEyeTrace()
+	local ent = SF.UnwrapObject(self)
+	if not SF.Permissions.check(SF.instance.player, ent, "trace") then
 		SF.throw("Insufficient permissions", 2) 
 	end
-	return SF.Sanitize(this:GetEyeTrace())
+	return SF.Sanitize(ent:GetEyeTrace())
 end
 
 if CLIENT then

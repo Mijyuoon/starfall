@@ -37,7 +37,7 @@ local function make_path(path, inv)
 end
 
 --- Reads a file from path
--- @param path Filepath relative to data/sf_files/. Cannot contain '..'
+-- @param path Filepath relative to data/sf_files/
 -- @return Contents, or nil if error
 -- @return Error message if applicable
 function files_library.read(path)
@@ -53,7 +53,7 @@ function files_library.read(path)
 end
 
 --- Writes to a file
--- @param path Filepath relative to data/sf_files/. Cannot contain '..'
+-- @param path Filepath relative to data/sf_files/
 -- @return True if OK, nil if error
 -- @return Error message if applicable
 function files_library.write(path, data)
@@ -67,10 +67,11 @@ function files_library.write(path, data)
 end
 
 --- Appends a string to the end of a file
--- @param path Filepath relative to data/sf_files/. Cannot contain '..'
--- @param data String that will be appended to the file.
+-- @param path Filepath relative to data/sf_files/
+-- @param data String that will be appended to the file
+-- @return True if OK, nil if error
 -- @return Error message if applicable
-function files_library.append(path,data)
+function files_library.append(path, data)
 	SF.CheckType(path, "string")
 	SF.CheckType(data, "string")
 	if not check_access(path, "file.write") then
@@ -81,7 +82,7 @@ function files_library.append(path,data)
 end
 
 --- Checks if a file exists
--- @param path Filepath relative to data/sf_files/. Cannot contain '..'
+-- @param path Filepath relative to data/sf_files/
 -- @return True if exists, false if not, nil if error
 -- @return Error message if applicable
 function files_library.exists(path)
@@ -93,7 +94,7 @@ function files_library.exists(path)
 end
 
 --- Retrieves file size
--- @param path Filepath relative to data/sf_files/. Cannot contain '..'
+-- @param path Filepath relative to data/sf_files/
 -- @return File size, nil if error
 -- @return Error message if applicable
 function files_library.size(path)
@@ -105,7 +106,7 @@ function files_library.size(path)
 end
 
 --- Deletes a file
--- @param path Filepath relative to data/sf_files/. Cannot contain '..'
+-- @param path Filepath relative to data/sf_files/
 -- @return True if successful, nil if error
 -- @return Error message if applicable
 function files_library.delete(path)
@@ -171,7 +172,7 @@ if SERVER then
 	util.AddNetworkString("SF_filetransfer")
 	
 	--- Downloads file from server to client
-	-- @param fname Filepath relative to data/sf_files/. Cannot contain '..'
+	-- @param fname Filepath relative to data/sf_files/
 	-- @return True if successful, nil if error
 	-- @return Error message if applicable
 	function files_library.download(fname)
@@ -189,7 +190,7 @@ if SERVER then
 	end
 	
 	--- Uploads file from client to server
-	-- @param fname Filepath relative to data/sf_files/. Cannot contain '..'
+	-- @param fname Filepath relative to data/sf_files/
 	-- @return True if successful, nil if error
 	-- @return Error message if applicable
 	function files_library.upload(fname)

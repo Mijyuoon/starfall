@@ -2,7 +2,7 @@
 	DataXS library by Mijyuoon.
 -------------------------------]]
 
---- DataXS library, allows for sending data between Starfall instances.
+--- DataXS library. Allows for sending data between Starfall instances.
 -- @shared
 
 local xs_lib, _ = SF.Libraries.Register("dataxs")
@@ -98,7 +98,7 @@ function xs_lib.sendDirect(ent, ...)
 end
 
 SF.Libraries.AddHook("deinitialize", function(instance)
-	for group, _ in pairs(xs_groups) do
+	for group in pairs(xs_groups) do
 		leaveGroup(instance, group)
 	end
 end)

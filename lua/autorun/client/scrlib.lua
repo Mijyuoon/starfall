@@ -1,7 +1,7 @@
---[[
+--[[---------------------------------------------
 	ScrLib (C) Mijyuoon 2014-2020
 	Contains useful drawing functions
-]]
+-----------------------------------------------]]
 
 local mat_lit2d = CreateMaterial("Lit2D", "VertexLitGeneric", {
 	["$basetexture"] = "", ["$translucent"] = 1,
@@ -16,12 +16,12 @@ function scr.Clear(col)
 end
 
 function scr.EnableTexture(tex)
-	local m_type = TypeID(tex)
-	if m_type == 21 then
+	local m_type = type(tex)
+	if m_type == "IMaterial" then
 		surface.SetMaterial(tex)
-	elseif m_type == 3 then
+	elseif m_type == "number" then
 		surface.SetTexture(m_type)
-	else
+	elseif not tex then
 		surface.SetTexture(0)
 	end
 end
@@ -91,13 +91,11 @@ function scr.Circle(dx,dy,rx,ry,rot,fi)
 	local rot2, fi = rad(rot or 0), (fi or 45)
     local vert, s, c = {}, sin(rot2), cos(rot2)
 	for ii = 0, fi do
-		local ik = ii*360/fi
-        local radd = rad(ik)
-        local x, y = cos(radd), sin(radd)
-        local u, v = (x+1)/2, (y+1)/2
+		local ik = rad(ii*360/fi)
+        local x, y = cos(ik), sin(ik)
         local xs = x * rx * c - y * ry * s + dx
         local ys = x * rx * s + y * ry * c + dy 
-        vert[#vert+1] = { x = xs, y = ys, u = u, v = v }
+        vert[#vert+1] = { x = xs, y = ys }
     end
     return vert
 end
@@ -105,15 +103,13 @@ end
 function scr.Sector(dx,dy,rx,ry,ang,rot,fi)
 	local rot2, fi = rad(rot or 0), (fi or 45)
     local vert, s, c = {}, sin(rot2), cos(rot2)
-	vert[1] = { x = dx, y = dy, u = 0, v = 1 }
+	vert[1] = { x = dx, y = dy }
 	for ii = 0, fi do
-		local ik = ii*ang/fi
-        local radd = rad(ik)
-        local x, y = cos(radd), sin(radd)
-        local u, v = (x+1)/2, (y+1)/2
+		local ik = rad(ii*ang/fi)
+        local x, y = cos(ik), sin(ik)
         local xs = x * rx * c - y * ry * s + dx
         local ys = x * rx * s + y * ry * c + dy 
-        vert[#vert+1] = { x = xs, y = ys, u = u, v = v }
+        vert[#vert+1] = { x = xs, y = ys }
     end
     return vert
 end

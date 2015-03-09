@@ -7,9 +7,10 @@ local e_meta = SF.Entities.Metatable
 
 local wrap = SF.Entities.Wrap
 local unwrap = SF.Entities.Unwrap
---local isowner = SF.Entities.CheckAccess
-local function isowner(e)
-	return SF.Entities.CanModify(SF.instance.player, e)
+
+local function isowner(e, ply)
+	local ply = ply or SF.instance.player
+	return SF.Entities.CanModify(ply, e) and e:CAP_CanModify(ply)
 end
 
 local vgate = {"stargate_movie","stargate_sg1","stargate_infinity","stargate_universe"}
@@ -144,7 +145,7 @@ end
 
 function sg_lib.listenTeleport(gate, func)
 	SF.CheckType(gate, e_meta)
-	if func ~= nil then 
+	if func then 
 		SF.CheckType(func, "function")
 	end
 	gate = unwrap(gate)
