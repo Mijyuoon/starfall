@@ -16,13 +16,14 @@ cleanup.Register("starfall_remote")
 
 if SERVER then
 	CreateConVar('sbox_maxstarfall_processor', 10, {FCVAR_REPLICATED,FCVAR_NOTIFY,FCVAR_ARCHIVE})
+	CreateConVar('sbox_maxstarfall_remote', 10, {FCVAR_REPLICATED,FCVAR_NOTIFY,FCVAR_ARCHIVE})
 	
-	function MakeSF(class, pl, Pos, Ang, model)
+	function MakeSF(class, pl, pos, ang, model)
 		if not pl:CheckLimit(class) then return false end
 		local sf = ents.Create(class)
 		if not IsValid(sf) then return false end
-		sf:SetAngles(Ang)
-		sf:SetPos(Pos)
+		sf:SetAngles(ang)
+		sf:SetPos(pos)
 		sf:SetModel(model)
 		sf:Spawn()
 		sf.owner = pl
