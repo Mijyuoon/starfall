@@ -104,6 +104,14 @@ local function postload()
 end
 SF.Libraries.AddHook("postload",postload)
 
+
+local sv_gravity = GetConVar("sv_gravity")
+
+--- Gets standard gravity constant that ~WORKS~ for F=mg
+function ents_lib.g0()
+	return sv_gravity:GetFloat() / 66.566676122833
+end
+
 --- Gets the owner of the entity
 function ents_methods:owner()
 	local ent = unwrap(self)

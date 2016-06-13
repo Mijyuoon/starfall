@@ -1,8 +1,9 @@
 --[[---------------------------------------------
 	AdvLib (C) Mijyuoon 2014-2020
-	Contains various helper functions
+	Contains various useful functions
 -----------------------------------------------]]
 
+if adv then return end
 adv = {
 	-- Constants here
 	HttpCache = {},
@@ -22,12 +23,27 @@ function loadmodule(name)
 	local is_sv = file.Exists(kname, "LUA")
 	local is_cl = file.Exists(kname, "LCL")
 	if not (is_sv or is_cl) then
-		error(adv.StrFormat{"cannot find module \"$1\"", name})
+		error(Format("cannot find module \"%s\"", name))
 	end
 	local func = CompileFile(kname, name)
 	if func then
 		MODLOAD[name] = func() or true
 		return MODLOAD[name]
+	end
+end
+
+local sp = SERVER and "LSV" or "LCL"
+function IncludeDir(dir)
+	if dir[-1] ~= "/" then dir = dir.."/" end
+	for _, fn in ipairs(file.Find(dir.."*", sp)) do
+		if fn:find("%.lua$") then include(dir..fn) end
+	end
+end
+
+function AddCSLuaDir(dir)
+	if dir[-1] ~= "/" then dir = dir.."/" end
+	for _, fn in ipairs(file.Find(dir.."*", "LUA")) do
+		if fn:find("%.lua$") then AddCSLuaFile(dir..fn) end
 	end
 end
 
@@ -65,6 +81,18 @@ function adv.StrSplit(str, sep)
 	return gs:match(str)
 end
 
+function adv.StrLine(str, pos)
+	local lines = adv.StrSplit(str, "%nl")
+	for ln, lv in ipairs(lines) do
+		if pos <= #lv then
+			return ln, lv
+		else
+			pos = pos - #lv
+		end
+	end
+	return 0, ""
+end
+
 adv.StrPatt  = lpeg.re.compile
 adv.StrFind  = lpeg.re.find
 adv.StrMatch = lpeg.re.match
@@ -100,7 +128,7 @@ end
 
 function adv.TblFilt(tbl, func)
 	for ki, vi in pairs(tbl) do
-		if not func(vi) then
+		if not func(vi,ki) then
 			tbl[ki] = nil
 		end
 	end
@@ -110,7 +138,7 @@ end
 function adv.TblFiltN(tbl, func)
 	local res = {}
 	for ki, vi in pairs(tbl) do
-		if func(vi) then
+		if func(vi,ki) then
 			res[ki] = vi
 		end
 	end
@@ -181,6 +209,27 @@ for _, kn in pairs{"K", "V", "KV"} do
 		return setmetatable({}, {
 			__mode = kn:lower()
 		})
+	end
+end
+
+function adv.TblAppend(tbl, base)
+	for key, val in pairs(base) do
+		if tbl[key] == nil then
+			tbl[key] = val
+		end
+	end
+	return tbl
+end
+
+function adv.TblClear(tbl)
+	for k in pairs(tbl) do
+		tbl[k] = nil
+	end
+end
+
+function adv.TblClearI(tbl)
+	for i = #tbl, 1, -1 do
+		tbl[i] = nil
 	end
 end
 
@@ -269,7 +318,7 @@ do ---- Cached HTTP requests -------------------------
 		local url2 = http_cache[url:gsub("^%w://", "")]
 		if not url2 then return false end
 		if not rd then return url2 end
-		return url2, file.Read(url2, "DATA")
+		return url2, rd and file.Read(url2, "DATA")
 	end
 	
 	function adv.HttpCache.New(url, succ, fail)
@@ -407,7 +456,7 @@ do ---- SQL query builder ----------------------------
 		if not vconv then
 			error("unsupported value type")
 		end
-		self.params[key] = fconv(value)
+		self.params[key] = vconv(value)
 	end
 	
 	function sq_meta:BindTable(tbl)
@@ -468,6 +517,9 @@ do ---- Data structure networking --------------------
 	local function mnode(...)
 		return {"$", ...}
 	end
+	local function lmnode(...)
+		return {"#", {"$", ...}}
+	end
 	
 	local typid = lR"az" * lR("az","09")^0
 	local ident = lR("az","AZ","09","__")^1
@@ -476,11 +528,13 @@ do ---- Data structure networking --------------------
 		lCt(lCc"!!" * lV"Nodes"^1);
 		LstNode = sym"{" * lV"Nodes"^1 * sym"}";
 		MapNode = sym"${" * lV"MapV"^1 * sym"}";
+		LmNode = sym"#{" * lV"MapV"^1 * sym"}";
 		MapV = sym(lC(ident) * sym":" * lV"Nodes");
 		Nodes =
 			sym(lC(typid + "@")) +
 			lV"LstNode" / lnode +
-			lV"MapNode" / mnode;
+			lV"MapNode" / mnode + 
+			lV"LmNode" / lmnode;
 	} * WS * -1
 	
 	local wtypes = {
@@ -491,8 +545,8 @@ do ---- Data structure networking --------------------
 		fs = "?Float($)",		fd = "?Double($)",
 		s = "?String($)",		b = "?Bool($)",
 		
-		v = "?Float($.x) ?Float($.y) ?Float($.z)",
-		a = "?Float($.p) ?Float($.y) ?Float($.r)",
+		v = "?Float($.x)\n?Float($.y)\n?Float($.z)",
+		a = "?Float($.p)\n?Float($.y)\n?Float($.r)",
 		e = "?Entity($)",		["@"] = "?Type($)",
 	}
 	
@@ -614,16 +668,12 @@ do ---- Data structure networking --------------------
 	end
 	
 	function ns_meta:WriteStruct(...)
-		if not self.__WrFunc then
-			error("writer not initialized")
-		end
+		self:InitWriter()
 		self.__WrFunc(...)
 	end
 	
 	function ns_meta:ReadStruct(upx)
-		if not self.__RdFunc then
-			error("reader not initialized")
-		end
+		self:InitReader()
 		local dat = self.__RdFunc()
 		if not upx then
 			return unpack(dat)

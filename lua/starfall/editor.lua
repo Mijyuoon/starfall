@@ -365,7 +365,12 @@ if CLIENT then
 			editor.C.SoundBrw = SoundBrw
 		end
 		
-		SF.Editor.editor:SetSyntaxColorLine(SyntaxColorLine)
+		if WireTextEditor and WireTextEditor.Modes then
+			WireTextEditor.Modes.Starfall = { SyntaxColorLine = SyntaxColorLine }
+			SF.Editor.editor:SetEditorMode("Starfall")
+		else
+			SF.Editor.editor:SetSyntaxColorLine(SyntaxColorLine)
+		end
 		
 		function SF.Editor.editor:OnTabCreated(tab)
 			local editor = tab.Panel

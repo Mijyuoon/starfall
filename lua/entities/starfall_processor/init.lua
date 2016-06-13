@@ -37,7 +37,7 @@ function ENT:Initialize()
 end
 
 function ENT:CodeSent(ply, codetbl, mainfile)
-	if ply ~= self.owner then return end
+	if IsValid(ply) and ply ~= self.owner then return end
 	
 	if self.instance then
 		self:runScriptHook("last")
@@ -81,11 +81,14 @@ function ENT:Error(msg, traceback)
 			msg = (file and (file .. ":") or "") .. (line and (line .. ": ") or "") .. msg.message
 		end
 	end
-	ErrorNoHalt(Format("Processor of %s errored: %s\n", self.owner:Nick(), msg))
+	local name = IsValid(self.owner) and self.owner:Nick() or "(NULL)"
+	ErrorNoHalt(Format("Processor of %s errored: %s\n", name, msg))
 	if traceback then
 		print(traceback)
 	end
-	WireLib.ClientError(msg, self.owner)
+	if IsValid(self.owner) then
+		WireLib.ClientError(msg, self.owner)
+	end
 	
 	if self.instance then
 		self.instance:deinitialize()

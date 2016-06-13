@@ -198,7 +198,7 @@ function ENT:Error(msg, override)
 end
 
 function ENT:CodeSent(ply, files, mainfile)
-	if ply ~= self.owner then return end
+	if IsValid(ply) and ply ~= self.owner then return end
 	local update = (self.mainfile ~= nil)
 
 	self.files = files

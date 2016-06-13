@@ -3,12 +3,19 @@
 	Contains useful drawing functions
 -----------------------------------------------]]
 
+if scr then return end
+
 local mat_lit2d = CreateMaterial("Lit2D", "VertexLitGeneric", {
 	["$basetexture"] = "", ["$translucent"] = 1,
+})
+local mat_pngrt = CreateMaterial("PngRT", "UnlitGeneric", {
+	["$basetexture"] = "", ["$ignorez"] = 1, ["$model"] = 1,
+	["$vertexcolor"] = 1, ["$vertexalpha"] = 1,
 })
 scr = {
 	-- Constants
 	LIT_2D = mat_lit2d,
+	PNG_RT = mat_pngrt,
 }
 
 function scr.Clear(col)
@@ -36,6 +43,18 @@ function scr.DrawTexRect(x,y,w,h,tex,col)
 	scr.EnableTexture(tex)
 	x, y = x+w/2, y+h/2
 	surface.DrawTexturedRectRotated(x,y,w,h,0)
+end
+
+function scr.DrawTexRectUV(x,y,w,h,tex,col,ul,vl,uh,vh)
+	surface.SetDrawColor(col or color_white)
+	scr.EnableTexture(tex)
+	local rw = tex:GetInt("$realwidth") or tex:Width()
+	local rh = tex:GetInt("$realheight") or tex:Height()
+	ul = (ul < 1e-7) and ul-0.5/rw or ul
+	vl = (vl < 1e-7) and vl-0.5/rh or vl
+	uh = (1 - uh < 1e-7) and uh+0.5/rw or uh
+	vh = (1 - vh < 1e-7) and vh+0.5/rh or vh
+	surface.DrawTexturedRectUV(x,y,w,h, ul,vl, uh,vh)
 end
 
 local min, max = math.min, math.max
@@ -73,7 +92,7 @@ local function rect_outln(x,y,w,h,c)
     scr.DrawLine(x,y-1,x,y+h,c)
 end
 
-function scr.DrawRectOL(x,y,w,h,col,sz)
+function scr._DrawRectOL(x,y,w,h,col,sz)
     local wid = sz or 1
     if wid < 0 then
         for i = 0, wid+1, -1 do
@@ -86,12 +105,30 @@ function scr.DrawRectOL(x,y,w,h,col,sz)
     end
 end
 
+function scr.DrawRectOL(x,y,w,h,col,sz)
+    sz = sz or 1
+    local asz = math.abs(sz)
+    local opu = math.ceil(asz/2)-0.0
+    local opd = math.floor(asz/2)+0.0
+    if sz < 0 then
+        scr.DrawLine(x-opd,y-asz,x-opd,y+h+asz,col,asz)
+        scr.DrawLine(x-asz,y-opd,x+w+asz,y-opd,col,asz)
+        scr.DrawLine(x+w+opu,y-asz,x+w+opu,y+h+asz,col,asz)
+        scr.DrawLine(x-asz,y+h+opu,x+w+asz,y+h+opu,col,asz)
+    elseif sz > 0 then
+        scr.DrawLine(x+opu,y,x+opu,y+h,col,asz)
+        scr.DrawLine(x,y+opu,x+w,y+opu,col,asz)
+        scr.DrawLine(x+w-opd,y,x+w-opd,y+h,col,asz)
+        scr.DrawLine(x,y+h-opd,x+w,y+h-opd,col,asz)
+    end
+end
+
 local cos, sin, rad, floor = math.cos, math.sin, math.rad, math.floor
 function scr.Circle(dx,dy,rx,ry,rot,fi)
 	local rot2, fi = rad(rot or 0), (fi or 45)
     local vert, s, c = {}, sin(rot2), cos(rot2)
-	for ii = 0, fi do
-		local ik = rad(ii*360/fi)
+    for ii = 0, fi do
+        local ik = rad(ii*360/fi)
         local x, y = cos(ik), sin(ik)
         local xs = x * rx * c - y * ry * s + dx
         local ys = x * rx * s + y * ry * c + dy 
@@ -160,6 +197,17 @@ function scr.DrawQuadLit2D(pos, norm, wid, hgt, tex, ang)
 	render.SuppressEngineLighting(false)
 end
 
+function scr.PngToRT(tex)
+	local m_type = type(tex)
+	if m_type == "IMaterial" then
+		tex = tex:GetTexture("$basetexture")
+		mat_pngrt:SetTexture("$basetexture", tex)
+	elseif m_type == "ITexture" then
+		mat_pngrt:SetTexture("$basetexture", tex)
+	end
+	return mat_pngrt
+end
+
 local font_bits = {
 	"antialias",
 	"additive",	
@@ -183,10 +231,18 @@ end
 function scr.CreateFont(name,font,size,weight,params)
 	local fdata = {
 		font	= font,
-		size	= size,
-		weight	= weight,
+		size	= size or 12,
+		weight	= weight or 400,
 	}
-	if type(params) == "table" then
+	if isstring(params) then
+		local options = {}
+		for _, s in ipairs(params:Split(",")) do
+			local k, v = s:match("(%w+)=(%d+)")
+			options[k or s] = tonumber(v) or true
+		end
+		params = options
+	end
+	if istable(params) then
 		fdata.antialias = params.antialias
 		fdata.additive	= params.additive
 		fdata.shadow 	= params.shadow
@@ -201,6 +257,10 @@ function scr.CreateFont(name,font,size,weight,params)
 	name = name or mangle_font(fdata)
 	surface.CreateFont(name, fdata)
 	return name
+end
+
+function scr.AutoFont(font,size,weight,params)
+	return scr.CreateFont(nil,font,size,weight,params)
 end
 
 function scr.DrawText(x,y,text,xal,yal,col,font)
@@ -221,7 +281,7 @@ function scr.TextSize(text,font)
     return surface.GetTextSize(text)
 end
 
-local scissor_rect = {}
+--[[local scissor_rect = {}
 
 function scr.PushScissorRect(x,y,w,h)
 	local cnt = #scissor_rect
@@ -239,4 +299,104 @@ function scr.PopScissorRect()
 	else
 		render.SetScissorRect(0,0,0,0,false)
 	end
+end]]
+
+function scr.GenTranslateMatrix(x,y)
+	local mat = Matrix()
+	mat:Translate(Vector(x,y,0))
+	return mat
+end
+
+function scr.GenRotateMatrix(x,y,ang)
+	local mat = Matrix()
+	local pos = Vector(x,y,0)
+	mat:Translate(pos)
+	mat:Rotate(Angle(0,ang,0))
+	mat:Translate(-pos)
+	return mat
+end
+
+function scr.GenScaleMatrix(x,y,sx,sy)
+	scy = scy or scx
+	local mat = Matrix()
+	local pos = Vector(x,y,0)
+	mat:Translate(pos)
+	mat:Scale(Vector(sx,sy,0))
+	mat:Translate(-pos)
+	return mat
+end
+
+local matrix_stack = {
+	Matrix() -- Identity
+}
+
+function scr.PushMatrix(mat)
+	local id = #matrix_stack
+	local newmat = matrix_stack[id] * mat
+	matrix_stack[id+1] = newmat
+	cam.PushModelMatrix(newmat)
+end
+
+function scr.PopMatrix()
+	if #matrix_stack < 2 then return end
+	matrix_stack[#matrix_stack] = nil
+	cam.PopModelMatrix()
+end
+
+function scr.ClearMatrix()
+	while #matrix_stack > 1 do
+		scr.PopMatrix()
+	end
+end
+
+function scr.PushTranslateMatrix(x,y)
+	scr.PushMatrix(scr.GenTranslateMatrix(x,y))
+end
+
+function scr.PushRotateMatrix(x,y,ang)
+	scr.PushMatrix(scr.GenRotateMatrix(x,y,ang))
+end
+
+function scr.PushScaleMatrix(x,y,sx,sy)
+	scr.PushMatrix(scr.GenScaleMatrix(x,y,sx,sy))
+end
+
+local mt_anim = {}
+mt_anim.__index = mt_anim
+scr.META_AnimTex = mt_anim
+
+function mt_anim:Render(x,y,tex,col)
+	scr.PushTranslateMatrix(x,y)
+		local frame = self:GetFrame()
+		scr.DrawPoly(frame,col,tex)
+	scr.PopMatrix()
+end
+
+function mt_anim:GetFrame(clk)
+	clk = clk or RealTime()
+	if self._mode then
+		return 0, 0
+	end
+	local fi = clk / self.Speed % self.Length
+	return self._frames[math.floor(fi)+1]
+end
+
+function scr.AnimTexture1D(w,h,len,ds)
+	local polys = {}
+	for i = 1, len do
+		polys[i] = {
+			{x = 0, y = 0, u = 1/len*(i-1), v = 0},
+			{x = w, y = 0, u = 1/len*i, v = 0},
+			{x = w, y = h, u = 1/len*i, v = 1},
+			{x = 0,	y = h, u = 1/len*(i-1), v = 1},
+		}
+	end
+	return setmetatable({
+		_mode = false,
+		_frames = polys,
+		Width = w,
+		Height = h,
+		Length = len,
+		Speed = ds,
+	}, mt_anim)
 end
