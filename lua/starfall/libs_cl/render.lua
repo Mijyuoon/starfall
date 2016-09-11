@@ -54,6 +54,7 @@ SF.Libraries.AddHook("cleanup", function(instance, hkname)
 end)
 
 local texturecache = {}
+local materialcache = {}
 
 local validfonts = {
 	"WireGPU_ConsoleFont",
@@ -139,6 +140,19 @@ function poly_metamethods:__newindex(k,v)
 	poly[k] = checkvertex(v)
 end
 
+local mat_methods, mat_metamethods = SF.Typedef("Material")
+local wrapmat, unwrapmat = SF.CreateWrapper(mat_metamethods)
+
+function mat_methods:width()
+	local mat = unwrapmat(self)
+	return mat:GetInt("$realwidth") or mat:GetWidth()
+end
+
+function mat_methods:height()
+	local mat = unwrapmat(self)
+	return mat:GetInt("$realheight") or mat:GetHeight()
+end
+
 -- ------------------------------------------------------------------ --
 
 --- Pushes a matrix onto the matrix stack.
@@ -198,7 +212,48 @@ function render_library.setColor(clr)
     SF.CheckType(clr, SF.Types["Color"])
     currentcolor = clr
     surface.SetDrawColor(clr)
-    surface.SetDrawColor(clr)
+    surface.SetTextColor(clr)
+end
+
+--- Looks up a material by file name
+-- @param path Material file path
+-- @param pngopts Options for PNG materials
+function render_library.getMaterial(path, pngopts)
+	SF.CheckType(path, "string")
+	local mat_id = path
+	if pngopts ~= nil then
+		SF.CheckType(pngopts, "string")
+		mat_id = mat_id..":"..pngopts
+	end
+	local cached = materialcache[mat_id]
+	if cached then
+		return wrapmat(cached)
+	end
+	local mat = Material(path, pngopts)
+	materialcache[mat_id] = mat
+	return wrapmat(mat)
+end
+
+--- Sets the material
+-- @param mat Material object
+function render_library.setMaterial(mat)
+	if not SF.instance.data.render.isRendering then
+		SF.throw("not in rendering hook",2)
+	end
+	if mat == nil then
+		surface.SetTexture(0)
+	else
+		SF.CheckType(mat, SF.Types["Material"])
+		surface.SetMaterial(unwrapmat(mat))
+	end
+end
+
+--- Returns proxy material that allows rendering PNG materials to rendertargets
+-- @param mat Material object
+function render_library.pngToRt(mat)
+	SF.CheckType(mat, SF.Types["Material"])
+	mat = unwrapmat(mat)
+	return wrapmat(scr.PngToRT(mat))
 end
 
 --- Looks up a texture ID by file name.
